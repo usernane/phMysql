@@ -3,7 +3,7 @@
  * A class that represents a foreign key.
  *
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.0
+ * @version 1.1
  */
 class ForeignKey {
     /**
@@ -58,6 +58,14 @@ class ForeignKey {
      */
     private $keyName;
     /**
+     * Sets the name of the key.
+     * @param string $name The name of the key.
+     * @since 1.1
+     */
+    public function setKeyName($name) {
+        $this->keyName = $name;
+    }
+    /**
      * Returns the name of the key.
      * @return string The name of the key.
      * @since 1.0
@@ -71,7 +79,7 @@ class ForeignKey {
      * @since 1.0
      */
     public function getSourceCol(){
-        return $this->sourceTable;
+        return $this->sourceTableCol;
     }
     /**
      * Sets the name of the source column.
@@ -87,7 +95,7 @@ class ForeignKey {
      * @since 1.0
      */
     public function getRefrenceCol(){
-        return $this->referencedTable;
+        return $this->referencedTableCol;
     }
     /**
      * Sets the name of the referenced column.
@@ -104,6 +112,14 @@ class ForeignKey {
      */
     public function getSourceTable(){
         return $this->sourceTable;
+    }
+    /**
+     * Sets the name of the table that will contain the key.
+     * @param string $name The name of the table.
+     * @since 1.1
+     */
+    public function setSourceTable($name) {
+        $this->sourceTable = $name;
     }
     /**
      * Returns the condition that will happen if the value of the column in the 
@@ -162,9 +178,16 @@ class ForeignKey {
     public function getReferenceTable(){
         return $this->referencedTable;
     }
+    public function __construct($name='key_name') {
+        $this->setKeyName($name);
+        $this->setSourceCol('source_col');
+        $this->setReferenceCol('referenced_col');
+        $this->setSourceTable('source_table');
+        $this->setReferenceTable('referenced_table');
+    }
     /**
      * Sets the name of the table that is referenced by the key.
-     * @param type $name
+     * @param type $name The name of the table.
      * @since 1.0
      */
     public function setReferenceTable($name) {
@@ -179,7 +202,7 @@ class ForeignKey {
         $retVal = 'alter table '.$this->getSourceTable().' ';
         $retVal .= 'add constraint '.$this->getKeyName().' ';
         $retVal .= 'foreign key ('.$this->getSourceCol().') ';
-        $retVal .= 'feferencees '.$this->getReferenceTable().'('.$this->getRefrenceCol().') ';
+        $retVal .= 'references '.$this->getReferenceTable().'('.$this->getRefrenceCol().') ';
         
         $onDelete = $this->getOnDelete();
         if($onDelete != NULL){
