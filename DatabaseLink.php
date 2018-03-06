@@ -1,12 +1,11 @@
 <?php
-define('QUERY_ERR','query_err');
 /**
  * A class that is used to connect to MySQL database. It works as an interface 
  * for <b>mysqli</b> 
  * @author Ibrahim <ibinshikh@hotmail.com>
  * @version 1.1
  */
-class DatabaseLink{
+class DatabaseLink implements JsonI{
     /**
      * The name of database host. It can be an IP address (such as '134.123.111.3:3306') or 
      * a URL.
@@ -101,17 +100,11 @@ class DatabaseLink{
      * @since 1.1
      */
     public function toJSON(){
-        $retVal = '{';
-        $retVal .= '"error-code":"'.$this->getErrorCode().'",';
-        $retVal .= '"error-message":"'. escapeJSONSpecialChars($this->getErrorMessage()).'",';
-        if($this->getLastQuery() instanceof MySQLQuery){
-            $retVal .= '"last-query":'.$this->getLastQuery()->toJSON().'';
-        }
-        else{
-            $retVal .= '"last-query":""';
-        }
-        $retVal .= '}';
-        return $retVal;
+        $json = new JsonX();
+        $json->add('error-code', $this->getErrorCode());
+        $json->add('error-message', $this->getErrorMessage());
+        $json->add('query', $this->getLastQuery());
+        return $json;
     }
     /**
      * Returns the last executed query.
