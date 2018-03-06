@@ -7,7 +7,13 @@
  * @author Ibrahim <ibinshikh@hotmail.com>
  * @version 1.4
  */
-class MySQLQuery {
+class MySQLQuery implements JsonI{
+    /**
+     * A constant that indicates an error has occurred while executing the query.
+     * @var string 
+     * @since 1.4 
+     */
+    const QUERY_ERR = 'query_error';
     /**
      * An array that contains the supported MySQL query types.
      * @since 1.1
@@ -101,7 +107,13 @@ class MySQLQuery {
             }
             $query .= ')';
             $query .= 'ENGINE = '.$table->getEngine().' ';
-            $query .= 'DEFAULT CHARSET = '.$table->getCharSet().' ';
+            $query .= 'DEFAULT CHARSET = '.$table->getCharSet().'; ';
+            
+            //add forign keys
+            $count2 = count($table->forignKeys());
+            for($x = 0 ; $x < $count2 ; $x++){
+                $query .= $table->forignKeys()[$x]->getAlterStatement().'; ';
+            }
             $this->setQuery($query, 'create');
         }
     }
@@ -238,8 +250,8 @@ class MySQLQuery {
      * @param string $id The value of the ID on the row.
      * @since 1.0
      */
-    public function delete($table,$id){
-        $this->setQuery(self::DELETE.$table.' where '.self::ID_COL.' = '.$id, 'delete');
+    public function delete($table,$id,$idColName=self::ID_COL){
+        $this->setQuery(self::DELETE.$table.' where '.$idColName.' = '.$id, 'delete');
     }
     /**
      * Constructs a query that can be used to update the values of a table row.
@@ -305,11 +317,10 @@ class MySQLQuery {
      * @since 1.1
      */
     public function toJSON(){
-        $retVal = '{';
-        $retVal .= '"query":"'. escapeJSONSpecialChars($this->getQuery()).'",';
-        $retVal .= '"query-type":"'.$this->getType().'"';
-        $retVal .= '}';
-        return $retVal;
+        $json = new JsonX();
+        $json->add('query', $this->getQuery());
+        $json->add('type', $this->getType());
+        return $json;
     }
     /**
      * Constructs a query that can be used to select maximum value of a table column.
