@@ -3,8 +3,15 @@
  * A class that represents MySQL table.
  *
  * @author Ibrahim <ibinshikh@hotmail.com>
+ * @version 1.1
  */
 class Table {
+    /**
+     * An array that contains all table foreign keys.
+     * @var array 
+     * @since 1.0
+     */
+    private $foreignKeys = array();
     /**
      * The name of the table.
      * @var string
@@ -29,11 +36,30 @@ class Table {
      * @since 1.0 
      */
     private $charSet;
-    
     public function __construct($tName = 'table') {
         $this->setName($tName);
         $this->engin = 'InnoDB';
         $this->charSet = 'utf8';
+    }
+    /**
+     * Adds a foreign key to the table.
+     * @param ForeignKey $key an object of type <b>ForeignKey</b>
+     * @since 1.1
+     * @see ForeignKey
+     */
+    public function addForeignKey($key){
+        if($key instanceof ForeignKey){
+            $key->setSourceTable($this->getName());
+            array_push($this->foreignKeys, $key);
+        }
+    }
+    /**
+     * Returns an array that contains all table foreign keys.
+     * @return array An array of FKs.
+     * @since 1.1
+     */
+    public function forignKeys() {
+        return $this->foreignKeys;
     }
     /**
      * Returns an array of all the columns in the table.
