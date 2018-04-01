@@ -80,15 +80,32 @@ class Table {
     }
     /**
      * Sets the name of the table.
-     * @param string $param The name of the table (such as 'users').
+     * @param string $param The name of the table (such as 'users'). It must be a 
+     * string and its not empty. Also it must not contain any spaces or any 
+     * characters other than A-Z, a-z and underscore.
+     * @return boolean <b>TRUE</b> if the name of the table is set. <b>FALSE</b> 
+     * in case the given name is invalid.
      * @since 1.0
      */
     public function setName($param) {
         if(gettype($param) == 'string'){
             if(strlen($param) != 0){
-                $this->tableName = $param;
+                if(strpos($param, ' ') === FALSE){
+                    for ($x = 0 ; $x < strlen($param) ; $x++){
+                        $ch = $param[$x];
+                        if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z')){
+                            
+                        }
+                        else{
+                            return FALSE;
+                        }
+                    }
+                    $this->tableName = $param;
+                    return TRUE;
+                }
             }
         }
+        return FALSE;
     }
     /**
      * Adds new column to the table.
