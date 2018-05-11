@@ -269,7 +269,7 @@ class ForeignKey {
             $sourceCol='source_col',
             $refTblName='referenced_table',
             $refCol='referenced_col') {
-        if(!$this->setKeyName($name)){
+        if($this->setKeyName($name) !== TRUE){
             $this->setKeyName('key_name');
         }
         if(!$this->setSourceCol($sourceCol)){
