@@ -2,7 +2,7 @@
 /**
  * A class that represents a column in MySQL table.
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.2
+ * @version 1.3
  */
 class Column{
     /**
@@ -45,7 +45,7 @@ class Column{
      */
     const DATATYPES = array(
         'int','varchar','timestamp','tinyblob','mediumblob','longblob',
-        'datetime'
+        'datetime','text','mediumtext'
     );
     /**
      * A boolean value. Set to <b>TRUE</b> if column is unique.
@@ -127,6 +127,9 @@ class Column{
             if($this->setSize($size) == Column::INV_DATASIZE){
                 $this->setSize(1);
             }
+        }
+        if($datatype == 'varchar' && $size > 21845){
+            $this->setType('mediumtext');
         }
         $this->setIsNull(FALSE);
         $this->setIsUnique(FALSE);
@@ -413,7 +416,7 @@ class Column{
     public function __toString() {
         $retVal = $this->getName().' ';
         $type = $this->getType();
-        if($type == 'int' || $type == 'varchar'){
+        if($type == 'int' || $type == 'varchar' || $type == 'text' || $type == 'mediumtext'){
             $retVal .= $type.'('.$this->getSize().') ';
         }
         else{
