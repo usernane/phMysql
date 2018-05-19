@@ -5,7 +5,7 @@
  * @uses Table Used by the 'create table' Query.
  * @uses ForeignKey Used to alter a table and insert a foreign key in it.
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.6
+ * @version 1.7
  */
 abstract class MySQLQuery implements JsonI{
     /**
@@ -189,37 +189,80 @@ abstract class MySQLQuery implements JsonI{
     }
     /**
      * Constructs a query that can be used to select all columns from a table.
+     * @param int $limit [Optional] The value of the attribute 'limit' of the select statement. 
+     * If zero or a negative value is given, it will not be included in the generated 
+     * MySQL query. Default is -1.
+     * @param int $offset [Optional] The value of the attribute 'offset' of the select statement. 
+     * If zero or a negative value is given, it will not be included in the generated 
+     * MySQL query. Default is -1.
      * @since 1.0
      */
-    public function selectAll(){
-        $this->setQuery(self::SELECT.$this->getStructureName(), 'select');
+    public function selectAll($limit=-1,$offset=-1){
+        if($limit > 0 && $offset > 0){
+            $lmit = 'limit '.$limit.' offset '.$offset;
+        }
+        else if($limit > 0 && $offset <= 0){
+            $lmit = 'limit '.$limit;
+        }
+        else{
+            $lmit = '';
+        }
+        $this->setQuery(self::SELECT.$this->getStructureName().' '.$limit, 'select');
     }
     /**
      * Constructs a query that can be used to get table data based on a specific 
      * column value.
      * @param string $col The name of the column in the table.
      * @param string $val The value that is used to filter data.
+     * @param string $cond [Optional] The condition of select statement. It can be '=' or 
+     * '!='. If anything else is given, '=' will be used. Default is '='.
+     * @param int $limit [Optional] The value of the attribute 'limit' of the select statement. 
+     * If zero or a negative value is given, it will not be included in the generated 
+     * MySQL query. Default is -1.
+     * @param int $offset [Optional] The value of the attribute 'offset' of the select statement. 
+     * If zero or a negative value is given, it will not be included in the generated 
+     * MySQL query. Default is -1.
      * @since 1.0
      */
-    public function selectByColVal($col,$val){
-        $this->setQuery(self::SELECT.$this->getStructureName().' where '.$col.' = '.$val, 'select');
+    public function selectByColVal($col,$val,$cond='=',$limit=-1,$offset=-1){
+        if($limit > 0 && $offset > 0){
+            $lmit = 'limit '.$limit.' offset '.$offset;
+        }
+        else if($limit > 0 && $offset <= 0){
+            $lmit = 'limit '.$limit;
+        }
+        else{
+            $lmit = '';
+        }
+        if(trim($cond) == '!='){
+            $this->setQuery(self::SELECT.$this->getStructureName().' where '.$col.' != '.$val.' '.$lmit, 'select');
+        }
+        else{
+            $this->setQuery(self::SELECT.$this->getStructureName().' where '.$col.' = '.$val.' '.$lmit, 'select');
+        }
     }
     /**
      * Selects a values from a table given specific columns values.
      * @param array $cols An array that contains an objects of type <b>Column</b>.
      * @param array $vals An array that contains values. 
-     * @param array $condsArr An array of conditions.
+     * @param array $valsConds An array that can contains two possible values: 
+     * '=' or '!='. If anything else is given at specific index, '=' will be used.
+     * @param array $jointOps An array of conditions (Such as 'or', 'and', 'xor').
      * @since 1.6
      */
-    public function selectByColsVals($cols,$vals,$condsArr){
+    public function selectByColsVals($cols,$vals,$valsConds,$jointOps,$limit=-1,$offset=-1){
         $where = '';
         $count = count($cols);
         $index = 0;
         foreach($cols as $col){
+            $equalityCond = trim($valsConds[$index]);
+            if($equalityCond != '!=' && $equalityCond != '='){
+                $equalityCond = '=';
+            }
             if($col instanceof Column){
                 if($index + 1 == $count){
-                    $where .= $col->getName().' = ';
-                    if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp'){
+                    $where .= $col->getName().' '.$equalityCond.' ';
+                    if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
                         $where .= '\''.$vals[$index].'\'' ;
                     }
                     else{
@@ -227,16 +270,25 @@ abstract class MySQLQuery implements JsonI{
                     }
                 }
                 else{
-                    $where .= $col->getName().' = ';
-                    if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp'){
-                        $where .= '\''.$vals[$index].'\' '.$condsArr[$index].' ' ;
+                    $where .= $col->getName().' '.$equalityCond.' ';
+                    if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                        $where .= '\''.$vals[$index].'\' '.$jointOps[$index].' ' ;
                     }
                     else{
-                        $where .= $vals[$index].' '.$condsArr[$index].' ';
+                        $where .= $vals[$index].' '.$jointOps[$index].' ';
                     }
                 }
             }
             $index++;
+        }
+        if($limit > 0 && $offset > 0){
+            $lmit = 'limit '.$limit.' offset '.$offset;
+        }
+        else if($limit > 0 && $offset <= 0){
+            $lmit = 'limit '.$limit;
+        }
+        else{
+            $lmit = '';
         }
         $this->setQuery(self::SELECT.$this->getStructureName().' where '.$where, 'select');
     }
