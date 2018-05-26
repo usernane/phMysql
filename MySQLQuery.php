@@ -5,7 +5,7 @@
  * @uses Table Used by the 'create table' Query.
  * @uses ForeignKey Used to alter a table and insert a foreign key in it.
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.7
+ * @version 1.8
  */
 abstract class MySQLQuery implements JsonI{
     /**
@@ -53,7 +53,58 @@ abstract class MySQLQuery implements JsonI{
      * @since 1.0
      */
     private $queryType;
-    
+    /**
+     * Constructs a query that can be used to get the number of tables in a 
+     * schema given its name.
+     * @param string $schemaName The name of the schema. The result of executing 
+     * the query is a table with one row and one column. The column name will be 
+     * 'tables_count' which will contain an integer value that indicates the 
+     * number of tables in the schema. If the schema does not exist or has no tables, 
+     * the result in the given column will be 0.
+     * @since 1.8
+     */
+    public function schemaTablesCount($schemaName){
+        $this->query = 'select count(*) as tables_count from information_schema.tables where TABLE_TYPE = \'BASE TABLE\' and TABLE_SCHEMA = \''.$schemaName.'\';';
+        $this->queryType = 'select';
+    }
+    /**
+     * Constructs a query that can be used to get all tables in a schema given its name.
+     * @param string $schemaName The name of the schema. The result of executing the query 
+     * is a table with one colum. The name of the column is 'TABLE_NAME'. The column 
+     * will simply contain all the names of the tables in the schema. If the given 
+     * schema does not exist or has no tables, The result will be an empty table.
+     * @since 1.8 
+     */
+    public function getSchemaTables($schemaName) {
+        $this->query = 'select TABLE_NAME from information_schema.tables where TABLE_TYPE = \'BASE TABLE\' and TABLE_SCHEMA = \''.$schemaName.'\'';
+        $this->queryType = 'select';
+    }
+    /**
+     * Constructs a query that can be used to get the number of views in a 
+     * schema given its name.
+     * @param string $schemaName The name of the schema. The result of executing 
+     * the query is a table with one row and one column. The column name will be 
+     * 'views_count' which will contain an integer value that indicates the 
+     * number of views in the schema. If the schema does not exist or has no views, 
+     * the result in the given column will be 0.
+     * @since 1.8
+     */
+    public function schemaViewsCount($schemaName){
+        $this->query = 'select count(*) as views_count from information_schema.tables where TABLE_TYPE = \'VIEW\' and TABLE_SCHEMA = \''.$schemaName.'\';';
+        $this->queryType = 'select';
+    }
+    /**
+     * Constructs a query that can be used to get all views in a schema given its name.
+     * @param string $schemaName The name of the schema. The result of executing the query 
+     * is a table with one colum. The name of the column is 'TABLE_NAME'. The column 
+     * will simply contain all the names of the views in the schema. If the given 
+     * schema does not exist or has no views, The result will be an empty table.
+     * @since 1.8 
+     */
+    public function getSchemaViews($schemaName) {
+        $this->query = 'select TABLE_NAME from information_schema.tables where TABLE_TYPE = \'VIEW\' and TABLE_SCHEMA = \''.$schemaName.'\'';
+        $this->queryType = 'select';
+    }
     public function __construct() {
         $this->query = self::SELECT.' a_table';
         $this->queryType = 'select';
