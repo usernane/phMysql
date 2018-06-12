@@ -5,9 +5,14 @@
  * @uses Table Used by the 'create table' Query.
  * @uses ForeignKey Used to alter a table and insert a foreign key in it.
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.8
+ * @version 1.8.1
  */
 abstract class MySQLQuery implements JsonI{
+    /**
+     * Line feed character.
+     * @since 1.8.1
+     */
+    const NL = "\n";
     /**
      * A constant that indicates an error has occurred while executing the query.
      * @var string 
@@ -116,14 +121,14 @@ abstract class MySQLQuery implements JsonI{
      * @since 1.4
      */
     public function alter($alterOps){
-        $q = 'alter table '.$this->getStructureName().' ';
+        $q = 'alter table '.$this->getStructureName().self::NL;
         $count = count($alterOps);
         for($x = 0 ; $x < $count ; $x++){
             if($x + 1 == $count){
-                $q .= $alterOps[$x].';';
+                $q .= $alterOps[$x].';'.self::NL;
             }
             else{
-                $q .= $alterOps[$x].', ';
+                $q .= $alterOps[$x].','.self::NL;
             }
         }
         $this->setQuery($q, 'alter');
@@ -144,26 +149,26 @@ abstract class MySQLQuery implements JsonI{
      */
     private function createTable($table){
         if($table instanceof Table){
-            $query = 'create table if not exists '.$table->getName().'(';
+            $query = 'create table if not exists '.$table->getName().'('.self::NL;
             $keys = $table->keys();
             $count = count($keys);
             for($x = 0 ; $x < $count ; $x++){
                 if($x + 1 == $count){
-                    $query .= $table->columns()[$keys[$x]];
+                    $query .= '    '.$table->columns()[$keys[$x]].self::NL;
                 }
                 else{
-                    $query .= $table->columns()[$keys[$x]].', ';
+                    $query .= '    '.$table->columns()[$keys[$x]].','.self::NL;
                 }
             }
-            $query .= ')';
-            $query .= 'ENGINE = '.$table->getEngine().' ';
-            $query .= 'DEFAULT CHARSET = '.$table->getCharSet().' ';
-            $query .= 'collate = utf8_general_ci; ';
+            $query .= ')'.self::NL;
+            $query .= 'ENGINE = '.$table->getEngine().self::NL;
+            $query .= 'DEFAULT CHARSET = '.$table->getCharSet().self::NL;
+            $query .= 'collate = utf8_general_ci;'.self::NL;
             
             //add forign keys
             $count2 = count($table->forignKeys());
             for($x = 0 ; $x < $count2 ; $x++){
-                $query .= $table->forignKeys()[$x]->getAlterStatement().'; ';
+                $query .= $table->forignKeys()[$x]->getAlterStatement().';'.self::NL;
             }
             $this->setQuery($query, 'create');
         }
