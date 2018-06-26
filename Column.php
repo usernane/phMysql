@@ -181,7 +181,7 @@ class Column{
                 if(strpos($name, ' ') === FALSE){
                     for ($x = 0 ; $x < strlen($name) ; $x++){
                         $ch = $name[$x];
-                        if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z')){
+                        if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
                             
                         }
                         else{
