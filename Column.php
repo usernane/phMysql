@@ -120,11 +120,11 @@ class Column{
         if($this->setName($colName) !== TRUE){
             $this->setName('col');
         }
-        if($this->setType($datatype) == Column::INV_COL_DATATYPE){
+        if(!$this->setType($datatype)){
             $this->setType('varchar');
         }
         if($this->getType() == 'varchar' || $this->getType() == 'int'){
-            if($this->setSize($size) == Column::INV_DATASIZE){
+            if(!$this->setSize($size)){
                 $this->setSize(1);
             }
         }
