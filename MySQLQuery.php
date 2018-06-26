@@ -147,8 +147,14 @@ abstract class MySQLQuery implements JsonI{
      * @param Table $table an instance of <b>Table</b>.
      * @since 1.4
      */
-    private function createTable($table){
+    private function createTable($table,$inclComments=false){
         if($table instanceof Table){
+            $query = '';
+            if($inclComments){
+                $query .= '-- Structure of the table \''.$this->getStructureName().'\''.self::NL;
+                $query .= '-- Number of columns: \''.count($this->getStructure()->columns()).'\''.self::NL;
+                $query .= '-- Number of forign keys: \''.count($this->getStructure()->forignKeys()).'\''.self::NL;
+            }
             $query = 'create table if not exists '.$table->getName().'('.self::NL;
             $keys = $table->keys();
             $count = count($keys);
@@ -167,8 +173,14 @@ abstract class MySQLQuery implements JsonI{
             
             //add forign keys
             $count2 = count($table->forignKeys());
+            if($inclComments && $count2 != 0){
+                $query .= '-- Forign keys of the table '.self::NL;
+            }
             for($x = 0 ; $x < $count2 ; $x++){
                 $query .= $table->forignKeys()[$x]->getAlterStatement().';'.self::NL;
+            }
+            if($inclComments){
+                $query .= '-- End of the Structure of the table \''.$this->getStructureName().'\''.self::NL;
             }
             $this->setQuery($query, 'create');
         }
@@ -506,10 +518,12 @@ abstract class MySQLQuery implements JsonI{
     }
     /**
      * Constructs a query that can be used to create the table.
+     * @param boolean $inclComments If set to <b>TRUE</b>, the generated MySQL 
+     * query will have basic comments explaining the structure.
      * @since 1.5
      */
-    public function createStructure(){
-        $this->createTable($this->getStructure());
+    public function createStructure($inclComments=false){
+        $this->createTable($this->getStructure($inclComments));
     }
     /**
      * Returns the name of the column from the table given its key.
