@@ -176,7 +176,7 @@ class Table {
                         if($fk->setReferenceTable($refTable->getName()) === TRUE){
                             if($this->hasColumn($targetCol)){
                                 $fk->setSourceCol($this->getCol($targetCol)->getName());
-                                $fk->setReferenceTable($this->getName());
+                                $fk->setSourceTable($this->getName());
                                 $fk->setOnDelete($ondelete);
                                 $fk->setOnUpdate($onupdate);
                                 return $this->addForeignKey($fk);
