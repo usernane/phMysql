@@ -283,7 +283,9 @@ abstract class MySQLQuery implements JsonI{
      * @param string $col The name of the column in the table.
      * @param string $val The value that is used to filter data.
      * @param string $cond [Optional] The condition of select statement. It can be '=' or 
-     * '!='. If anything else is given, '=' will be used. Default is '='.
+     * '!='. If anything else is given, '=' will be used. Note that if 
+     * the parameter <b>$val</b> is equal to 'IS NULL' or 'IS NOT NULL', 
+     * This parameter is ignored. Default is '='.
      * @param int $limit [Optional] The value of the attribute 'limit' of the select statement. 
      * If zero or a negative value is given, it will not be included in the generated 
      * MySQL query. Default is -1.
@@ -302,11 +304,17 @@ abstract class MySQLQuery implements JsonI{
         else{
             $lmit = '';
         }
-        if(trim($cond) == '!='){
-            $this->setQuery(self::SELECT.$this->getStructureName().' where '.$col.' != '.$val.' '.$lmit, 'select');
+        $valUpper = strtoupper(trim($val));
+        if($valUpper == 'IS NOT NULL' || $valUpper == 'IS NULL'){
+            $this->setQuery(self::SELECT.$this->getStructureName().' where '.$col.' '.$val.' '.$lmit, 'select');
         }
         else{
-            $this->setQuery(self::SELECT.$this->getStructureName().' where '.$col.' = '.$val.' '.$lmit, 'select');
+            if(trim($cond) == '!='){
+                $this->setQuery(self::SELECT.$this->getStructureName().' where '.$col.' != '.$val.' '.$lmit, 'select');
+            }
+            else{
+                $this->setQuery(self::SELECT.$this->getStructureName().' where '.$col.' = '.$val.' '.$lmit, 'select');
+            }
         }
     }
     /**
@@ -314,7 +322,9 @@ abstract class MySQLQuery implements JsonI{
      * @param array $cols An array that contains an objects of type <b>Column</b>.
      * @param array $vals An array that contains values. 
      * @param array $valsConds An array that can contains two possible values: 
-     * '=' or '!='. If anything else is given at specific index, '=' will be used.
+     * '=' or '!='. If anything else is given at specific index, '=' will be used. 
+     * Note that if the value at <b>$vals[$index]</b> is equal to 'IS NULL' or 'IS NOT NULL', 
+     * The value at <b>$valsConds[$index]</b> is ignored. 
      * @param array $jointOps An array of conditions (Such as 'or', 'and', 'xor').
      * @since 1.6
      */
@@ -328,22 +338,33 @@ abstract class MySQLQuery implements JsonI{
                 $equalityCond = '=';
             }
             if($col instanceof Column){
-                if($index + 1 == $count){
-                    $where .= $col->getName().' '.$equalityCond.' ';
-                    if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                        $where .= '\''.$vals[$index].'\'' ;
+                $valUpper = strtoupper(trim($vals[$index]));
+                if($valUpper == 'IS NULL' || $valUpper == 'IS NOT NULL'){
+                    if($index + 1 == $count){
+                        $where .= $col->getName().' '.$vals[$index].'';
                     }
                     else{
-                        $where .= $vals[$index];
+                        $where .= $col->getName().' '.$vals[$index].' '.$jointOps[$index].' ';
                     }
                 }
                 else{
-                    $where .= $col->getName().' '.$equalityCond.' ';
-                    if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                        $where .= '\''.$vals[$index].'\' '.$jointOps[$index].' ' ;
+                    if($index + 1 == $count){
+                        $where .= $col->getName().' '.$equalityCond.' ';
+                        if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                            $where .= '\''.$vals[$index].'\'' ;
+                        }
+                        else{
+                            $where .= $vals[$index];
+                        }
                     }
                     else{
-                        $where .= $vals[$index].' '.$jointOps[$index].' ';
+                        $where .= $col->getName().' '.$equalityCond.' ';
+                        if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                            $where .= '\''.$vals[$index].'\' '.$jointOps[$index].' ' ;
+                        }
+                        else{
+                            $where .= $vals[$index].' '.$jointOps[$index].' ';
+                        }
                     }
                 }
             }
@@ -358,7 +379,7 @@ abstract class MySQLQuery implements JsonI{
         else{
             $lmit = '';
         }
-        $this->setQuery(self::SELECT.$this->getStructureName().' where '.$where, 'select');
+        $this->setQuery(self::SELECT.$this->getStructureName().' where '.$where.' '.$lmit.';', 'select');
     }
     /**
      * Constructs a query that can be used to get table data by using ID column.
