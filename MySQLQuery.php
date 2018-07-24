@@ -171,7 +171,7 @@ abstract class MySQLQuery implements JsonI{
             $query .= ')'.self::NL;
             $query .= 'ENGINE = '.$table->getEngine().self::NL;
             $query .= 'DEFAULT CHARSET = '.$table->getCharSet().self::NL;
-            $query .= 'collate = utf8_general_ci;'.self::NL;
+            $query .= 'collate = utf8mb4_unicode_520_ci;'.self::NL;
             
             $coutPk = $this->getStructure()->primaryKeyColsCount();
             if($coutPk > 1){
