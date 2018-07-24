@@ -145,17 +145,19 @@ abstract class MySQLQuery implements JsonI{
     /**
      * Constructs a query that can be used to create a new table.
      * @param Table $table an instance of <b>Table</b>.
+     * @param boolean $inclComments Description
      * @since 1.4
      */
     private function createTable($table,$inclComments=false){
         if($table instanceof Table){
             $query = '';
-            if($inclComments){
+            if($inclComments === TRUE){
                 $query .= '-- Structure of the table \''.$this->getStructureName().'\''.self::NL;
                 $query .= '-- Number of columns: \''.count($this->getStructure()->columns()).'\''.self::NL;
                 $query .= '-- Number of forign keys: \''.count($this->getStructure()->forignKeys()).'\''.self::NL;
+                $query .= '-- Number of primary key columns: \''.$this->getStructure()->primaryKeyColsCount().'\''.self::NL;
             }
-            $query = 'create table if not exists '.$table->getName().'('.self::NL;
+            $query .= 'create table if not exists '.$table->getName().'('.self::NL;
             $keys = $table->keys();
             $count = count($keys);
             for($x = 0 ; $x < $count ; $x++){
@@ -171,15 +173,22 @@ abstract class MySQLQuery implements JsonI{
             $query .= 'DEFAULT CHARSET = '.$table->getCharSet().self::NL;
             $query .= 'collate = utf8_general_ci;'.self::NL;
             
+            $coutPk = $this->getStructure()->primaryKeyColsCount();
+            if($coutPk > 1){
+                if($inclComments === TRUE){
+                    $query .= '-- Primary key of the table '.self::NL;
+                }
+                $query .= $table->getCreatePrimaryKeyStatement().';'.self::NL;
+            }
             //add forign keys
             $count2 = count($table->forignKeys());
-            if($inclComments && $count2 != 0){
+            if($inclComments === TRUE && $count2 != 0){
                 $query .= '-- Forign keys of the table '.self::NL;
             }
             for($x = 0 ; $x < $count2 ; $x++){
                 $query .= $table->forignKeys()[$x]->getAlterStatement().';'.self::NL;
             }
-            if($inclComments){
+            if($inclComments === TRUE){
                 $query .= '-- End of the Structure of the table \''.$this->getStructureName().'\''.self::NL;
             }
             $this->setQuery($query, 'create');
@@ -275,7 +284,7 @@ abstract class MySQLQuery implements JsonI{
         else{
             $lmit = '';
         }
-        $this->setQuery(self::SELECT.$this->getStructureName().' '.$limit, 'select');
+        $this->setQuery(self::SELECT.$this->getStructureName().' '.$lmit, 'select');
     }
     /**
      * Constructs a query that can be used to get table data based on a specific 
@@ -544,7 +553,7 @@ abstract class MySQLQuery implements JsonI{
      * @since 1.5
      */
     public function createStructure($inclComments=false){
-        $this->createTable($this->getStructure($inclComments));
+        $this->createTable($this->getStructure(),$inclComments);
     }
     /**
      * Returns the name of the column from the table given its key.

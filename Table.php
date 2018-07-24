@@ -3,7 +3,7 @@
  * A class that represents MySQL table.
  *
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.4
+ * @version 1.5
  */
 class Table {
     /**
@@ -131,6 +131,65 @@ class Table {
             return TRUE;
         }
         return FALSE;
+    }
+    /**
+     * Returns the name of table primary key.
+     * @return string The returned value will be the name of the table added 
+     * to it the suffex '_pk'.
+     * @since 1.5
+     */
+    public function getPrimaryKeyName() {
+        return $this->getName().'_pk';
+    }
+    /**
+     * Returns the number of columns that will act as one primary key.
+     * @return int The number of columns that will act as one primary key. If 
+     * the table has no primary key, the function will return 0. If one column 
+     * is used as primary, the function will return 1. If two, the function 
+     * will return 2 and so on.
+     * @since 1.5
+     */
+    public function primaryKeyColsCount(){
+        $count = 0;
+        foreach ($this->colSet as $col){
+            if($col->isPrimary()){
+                $count++;
+            }
+        }
+        return $count;
+    }
+    /**
+     * Returns a string that can be used to alter the table and add primary 
+     * key constraint to it.
+     * @return string A string that can be used to alter the table and add primary 
+     * key constraint to it. If the table has no primary keys or has only one, 
+     * the returned string will be empty.
+     * @since 1.5
+     */
+    public function getCreatePrimaryKeyStatement() {
+        $primaryCount = $this->primaryKeyColsCount();
+        if($primaryCount == 1){
+            return '';
+        }
+        else if($primaryCount != 0){
+            $stm = 'alter table '.$this->getName().' add constraint '.$this->getPrimaryKeyName().' primary key (';
+            $index = 0;
+            foreach ($this->colSet as $col){
+                if($col->isPrimary()){
+                    if($index + 1 == $primaryCount){
+                        $stm .= $col->getName().')';
+                    }
+                    else{
+                        $stm .= $col->getName().',';
+                    }
+                    $index++;
+                }
+            }
+            return $stm;
+        }
+        else{
+            return '';
+        }
     }
     /**
      * Adds a foreign key to the table.
@@ -273,6 +332,7 @@ class Table {
                         return FALSE;
                     }
                 }
+                $col->setOwner($this);
                 $this->colSet[$key] = $col;
                 return TRUE;
             }
@@ -295,11 +355,12 @@ class Table {
      * was found. <b>NULL</b> in case of no column was found.
      * @since 1.0
      */
-    public function getCol($key){
+    public function &getCol($key){
         if(isset($this->colSet[$key])){
             return $this->colSet[$key];
         }
-        return NULL;
+        $null = NULL;
+        return $null;
     }
     /**
      * Returns an array that contains all the set of keys the columns was stored in.
