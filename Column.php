@@ -451,11 +451,11 @@ class Column{
     }
     /**
      * Returns the value of column collation.
-     * @return string The string 'utf8_general_ci'.
+     * @return string The string 'utf8mb4_unicode_520_ci'.
      * @since 1.0
      */
     public function getCollation(){
-        return 'utf8_general_ci';
+        return 'utf8mb4_unicode_520_ci';
     }
     public function __toString() {
         $retVal = $this->getName().' ';
