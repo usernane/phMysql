@@ -5,7 +5,7 @@
  * @uses Table Used by the 'create table' Query.
  * @uses ForeignKey Used to alter a table and insert a foreign key in it.
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.8.1
+ * @version 1.8.2
  */
 abstract class MySQLQuery implements JsonI{
     /**
@@ -399,11 +399,63 @@ abstract class MySQLQuery implements JsonI{
         $this->setQuery(self::SELECT.$this->getStructureName().' where '.self::ID_COL.' = '.$id, 'select');
     }
     /**
+     * Constructs a query that can be used to insert a new record.
+     * @param array $colsAndVals An associative array. The indices should be 
+     * the values of the columns and the value of the index should be an 
+     * object of type 'Column'
+     * @since 1.8.2
+     */
+    public function insertRecord($colsAndVals) {
+        $cols = '';
+        $vals = '';
+        $count = count($colsAndVals);
+        $index = 0;
+        foreach($colsAndVals as $val=>$colObj){
+            if($index + 1 == $count){
+                $cols .= $colObj->getName();
+                $colValLower = strtolower($val);
+                if(trim($colValLower) != 'null'){
+                    $type = $colObj->getType();
+                    if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
+                        $vals .= '\''.$val.'\'';
+                    }
+                    else{
+                         $vals .= $val.'';
+                    }
+                }
+                else{
+                    $vals .= 'null';
+                }
+            }
+            else{
+                $cols .= $colObj->getName().', ';
+                $colValLower = strtolower($val);
+                if(trim($colValLower) != 'null'){
+                    $type = $colObj->getType();
+                    if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
+                        $vals .= '\''.$val.'\',';
+                    }
+                    else{
+                         $vals .= $val.', ';
+                    }
+                }
+                else{
+                    $vals .= 'null, ';
+                }
+            }
+            $index++;
+        }
+        $cols = ' ('.$cols.')';
+        $vals = ' ('.$vals.')';
+        $this->setQuery(self::INSERT.$this->getStructureName().$cols.' values '.$vals.';', 'insert');
+    }
+    /**
      * Constructs a query that can be used to insert data into a table.
      * @param array $Arr An associative array of keys and values. The keys will 
      * be acting as the columns names and the values will be acting as the values 
      * that will be inserted.
      * @since 1.0
+     * @deprecated since version 1.8.2 Use MySQLQuery::insertRecord() instead.
      */
     public function insert($Arr){
         $cols = '';
@@ -435,27 +487,166 @@ abstract class MySQLQuery implements JsonI{
         $this->setQuery(self::DELETE.$this->getStructureName().' where '.$idColName.' = '.$id, 'delete');
     }
     /**
+     * Removes a record from the table.
+     * @param array $columnsAndVals An associative array. The indices of the array 
+     * should be the values of the columns and the value at each index is 
+     * an object of type 'Column'.
+     * @param array $valsConds An array that can have only two possible values, 
+     * '=' and '!='. The number of elements in this array must match number of 
+     * elements in the array $cols.
+     * @param array $jointOps [Optional] An array which contains conditional operators 
+     * to join conditions. The operators can be logical or bitwise. Possible 
+     * values include: &&, ||, and, or, |, &, xor. It is optional in case there 
+     * is only one condition.
+     * @since 1.8.2
+     */
+    public function deleteRecord($columnsAndVals,$valsConds,$jointOps=array()) {
+        $cols = array();
+        $vals = array();
+        foreach ($columnsAndVals as $val => $colObj){
+            $cols[] = $colObj;
+            $vals[] = $val;
+        }
+        $query = 'delete from '.$this->getStructureName();
+        $this->setQuery($query.$this->createWhereConditions($cols, $vals, $valsConds, $jointOps).';', 'delete');
+    }
+    /**
+     * A function that is used to create the 'where' part of any query in case 
+     * of multiple columns.
+     * @param array $cols An array that holds an objects of type 'Column'.
+     * @param array $vals An array that contains columns values. The number of 
+     * elements in this array must match number of elements in the array $cols.
+     * @param array $valsConds An array that can have only two possible values, 
+     * '=' and '!='. The number of elements in this array must match number of 
+     * elements in the array $cols.
+     * @param array $jointOps An array which contains conditional operators 
+     * to join conditions. The operators can be logical or bitwise. Possible 
+     * values include: &&, ||, and, or, |, &, xor.
+     * @return string A string that represents the 'where' part of the query.
+     * @since 1.8.2
+     */
+    private function createWhereConditions($cols,$vals,$valsConds,$jointOps){
+        $index = 0;
+        $count = count($cols);
+        $where = ' where ';
+        foreach ($cols as $col){
+            $equalityCond = trim($valsConds[$index]);
+            if($equalityCond != '!=' && $equalityCond != '='){
+                $equalityCond = '=';
+            }
+            if($col instanceof Column){
+                $valUpper = strtoupper(trim($vals[$index]));
+                if($valUpper == 'IS NULL' || $valUpper == 'IS NOT NULL'){
+                    if($index + 1 == $count){
+                        $where .= $col->getName().' '.$vals[$index].'';
+                    }
+                    else{
+                        $where .= $col->getName().' '.$vals[$index].' '.$jointOps[$index].' ';
+                    }
+                }
+                else{
+                    if($index + 1 == $count){
+                        $where .= $col->getName().' '.$equalityCond.' ';
+                        if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                            $where .= '\''.$vals[$index].'\'' ;
+                        }
+                        else{
+                            $where .= $vals[$index];
+                        }
+                    }
+                    else{
+                        $where .= $col->getName().' '.$equalityCond.' ';
+                        if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                            $where .= '\''.$vals[$index].'\' '.$jointOps[$index].' ' ;
+                        }
+                        else{
+                            $where .= $vals[$index].' '.$jointOps[$index].' ';
+                        }
+                    }
+                }
+            }
+            $index++;
+        }
+        return $where;
+    }
+    /**
      * Constructs a query that can be used to update the values of a table row.
      * @param array $arr An associative array of keys and values. The keys will 
      * be acting as the columns names and the values will be acting as the new 
      * values for each field.
      * @param string $id The value of the ID column.
      * @since 1.0
+     * @deprecated since version 1.8.2 Use MySQLQuery::updateRecord() instead.
      */
     public function update($arr,$id,$idColName=self::ID_COL){
-        $cols = '';
+        $colsStr = '';
         $count = count($arr);
         $index = 0;
-        foreach($arr as $col => $val){
+        foreach($arr as $colName => $newVal){
             if($index + 1 == $count){
-                $cols .= $col.' = '.$val;
+                $colsStr .= $colName.' = '.$newVal;
             }
             else{
-                $cols .= $col.' = '.$val.', ';
+                $colsStr .= $colName.' = '.$newVal.', ';
             }
             $index++;
         }
-        $this->setQuery('update '.$this->getStructureName().' set '.$cols.' where '.$idColName.' = '.$id, 'update');
+        $this->setQuery('update '.$this->getStructureName().' set '.$colsStr.' where '.$idColName.' = '.$id, 'update');
+    }
+    /**
+     * Constructs a query that can be used to update a record.
+     * @param array $colsAndNewVals An associative array. The key must be the 
+     * new value and the value of the index is an object of type 'Column'.
+     * @param array $colsAndVals An associative array that contains columns and 
+     * values for the 'where' clause. The indices should be the values and the 
+     * value at each index should be an object of type 'Column'. 
+     * The number of elements in this array must match number of elements 
+     * in the array $colsAndNewVals.
+     * @param array $valsConds An array that can have only two possible values, 
+     * '=' and '!='. The number of elements in this array must match number of 
+     * elements in the array $colsAndNewVals.
+     * @param array $jointOps [Optional] An array which contains conditional operators 
+     * to join conditions. The operators can be logical or bitwise. Possible 
+     * values include: &&, ||, and, or, |, &, xor. It is optional in case there 
+     * is only one condition.
+     * @since 1.8.2
+     */
+    public function updateRecord($colsAndNewVals,$colsAndVals,$valsConds,$jointOps=array()) {
+        $colsStr = '';
+        $comma = '';
+        $index = 0;
+        $count = count($colsAndNewVals);
+        foreach($colsAndNewVals as $newVal => $colObj){
+            if($colObj instanceof Column){
+                if($index + 1 == $count){
+                    $comma = '';
+                }
+                else{
+                    $comma = ',';
+                }
+                $newValLower = strtolower($newVal);
+                if(trim($newValLower) != 'null'){
+                    $type = $colObj->getType();
+                    if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
+                        $colsStr .= ' '.$colObj->getName().' = \''.$newVal.'\''.$comma ;
+                    }
+                    else{
+                        $colsStr .= ' '.$colObj->getName().' = '.$newVal.$comma;
+                    }
+                }
+                else{
+                    $colsStr .= ' '.$colObj->getName().' = null'.$comma;
+                }
+            }
+            $index++;
+        }
+        $colsArr = array();
+        $valsArr = array();
+        foreach ($colsAndVals as $vl=>$cl){
+            $colsArr[] = $cl;
+            $valsArr[] = $vl;
+        }
+        $this->setQuery('update '.$this->getStructureName().' set '.$colsStr.$this->createWhereConditions($colsArr, $valsArr, $valsConds, $jointOps).';', 'update');
     }
     /**
      * Updates a table columns that has a datatype of blob from source files.
