@@ -158,7 +158,7 @@ abstract class MySQLQuery implements JsonI{
                 $query .= '-- Number of primary key columns: \''.$this->getStructure()->primaryKeyColsCount().'\''.self::NL;
             }
             $query .= 'create table if not exists '.$table->getName().'('.self::NL;
-            $keys = $table->keys();
+            $keys = $table->colsKeys();
             $count = count($keys);
             for($x = 0 ; $x < $count ; $x++){
                 if($x + 1 == $count){
