@@ -229,25 +229,7 @@ class Table {
      * @since 1.0
      */
     public function addReference($refTable,$refColName,$targetCol,$keyname,$onupdate='set null',$ondelete='set null'){
-        if($refTable instanceof Table){
-            $fk = new ForeignKey();
-            if($fk->setKeyName($keyname) === TRUE){
-                if($refTable->hasColumn($refColName)){
-                    if($fk->addReferenceCol($refTable->getCol($refColName)->getName()) === TRUE){
-                        if($fk->setReferenceTable($refTable->getName()) === TRUE){
-                            if($this->hasColumn($targetCol)){
-                                $fk->addSourceCol($this->getCol($targetCol)->getName());
-                                $fk->setSourceTable($this->getName());
-                                $fk->setOnDelete($ondelete);
-                                $fk->setOnUpdate($onupdate);
-                                return $this->addForeignKey($fk);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return FALSE;
+        return $this->addMultiReference($refTable, array($refColName), array($targetCol), $keyname, $onupdate, $ondelete);
     }
     /**
      * Adds a foreign key which references multiple columns.
