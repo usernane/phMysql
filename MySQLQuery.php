@@ -417,7 +417,7 @@ abstract class MySQLQuery implements JsonI{
                 if(trim($colValLower) != 'null'){
                     $type = $colObj->getType();
                     if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
-                        $vals .= '\''.$val.'\'';
+                        $vals .= '\''.self::escapeMySQLSpeciarChars($val).'\'';
                     }
                     else{
                          $vals .= $val.'';
@@ -433,7 +433,7 @@ abstract class MySQLQuery implements JsonI{
                 if(trim($colValLower) != 'null'){
                     $type = $colObj->getType();
                     if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
-                        $vals .= '\''.$val.'\',';
+                        $vals .= '\''.self::escapeMySQLSpeciarChars($val).'\',';
                     }
                     else{
                          $vals .= $val.', ';
@@ -548,7 +548,7 @@ abstract class MySQLQuery implements JsonI{
                     if($index + 1 == $count){
                         $where .= $col->getName().' '.$equalityCond.' ';
                         if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                            $where .= '\''.$vals[$index].'\'' ;
+                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\'' ;
                         }
                         else{
                             $where .= $vals[$index];
@@ -557,7 +557,7 @@ abstract class MySQLQuery implements JsonI{
                     else{
                         $where .= $col->getName().' '.$equalityCond.' ';
                         if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                            $where .= '\''.$vals[$index].'\' '.$jointOps[$index].' ' ;
+                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' '.$jointOps[$index].' ' ;
                         }
                         else{
                             $where .= $vals[$index].' '.$jointOps[$index].' ';
@@ -628,7 +628,7 @@ abstract class MySQLQuery implements JsonI{
                 if(trim($newValLower) != 'null'){
                     $type = $colObj->getType();
                     if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
-                        $colsStr .= ' '.$colObj->getName().' = \''.$newVal.'\''.$comma ;
+                        $colsStr .= ' '.$colObj->getName().' = \''.self::escapeMySQLSpeciarChars($newVal).'\''.$comma ;
                     }
                     else{
                         $colsStr .= ' '.$colObj->getName().' = '.$newVal.$comma;
