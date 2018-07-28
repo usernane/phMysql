@@ -5,7 +5,7 @@
  * @uses Table Used by the 'create table' Query.
  * @uses ForeignKey Used to alter a table and insert a foreign key in it.
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.8.2
+ * @version 1.8.3
  */
 abstract class MySQLQuery implements JsonI{
     /**
@@ -285,6 +285,52 @@ abstract class MySQLQuery implements JsonI{
             $lmit = '';
         }
         $this->setQuery(self::SELECT.$this->getStructureName().' '.$lmit, 'select');
+    }
+    /**
+     * 
+     * @param type $colsToSelect
+     * @param type $colsAndVals
+     * @param type $condsArr
+     * @param type $jointOps
+     * @param type $limit
+     * @param type $offset
+     * @since 1.8.3
+     */
+    public function select($colsToSelect=array(),$colsAndVals=array(),$condsArr=array(),$jointOps=array(),$limit=-1,$offset=-1) {
+        if($limit > 0 && $offset > 0){
+            $limitPart = 'limit '.$limit.' offset '.$offset;
+        }
+        else if($limit > 0 && $offset <= 0){
+            $limitPart = 'limit '.$limit;
+        }
+        else{
+            $limitPart = '';
+        }
+        $colsToSelectCount = count($colsToSelect);
+        if($colsToSelectCount == 0){
+            $colsToSelectStr = '*';
+        }
+        else{
+            $colsToSelectStr = '';
+            $i = 0;
+            foreach ($colsToSelect as $colName){
+                if($i + 1 == $colsToSelectCount){
+                    $colsToSelectStr .= $colName;
+                }
+                else{
+                    $colsToSelectStr .= $colName.', ';
+                }
+                $i++;
+            }
+        }
+        $cols = array();
+        $vals = array();
+        foreach ($colsAndVals as $val => $colObj){
+            $cols[] = $colObj;
+            $vals[] = $val;
+        }
+        $where = $this->createWhereConditions($cols, $vals, $condsArr, $jointOps);
+        $this->setQuery('select '.$colsToSelectStr.' from '.$this->getStructureName().' '.$where.' '.$limit, 'select');
     }
     /**
      * Constructs a query that can be used to get table data based on a specific 
