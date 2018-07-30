@@ -63,10 +63,10 @@ class Table {
     private $charSet;
     /**
      * Creates a new instance of the class.
-     * @param string $tName The name of the table. It must be a 
+     * @param string $tName [Optional] The name of the table. It must be a 
      * string and its not empty. Also it must not contain any spaces or any 
-     * characters other than A-Z, a-z and underscore. If the given name is invalid, 
-     * 'table' will be used as default.
+     * characters other than A-Z, a-z and underscore. If the given name is invalid 
+     * or not provided, 'table' will be used as default.
      */
     public function __construct($tName = 'table') {
         if($this->setName($tName) !== TRUE){
@@ -85,8 +85,8 @@ class Table {
      * table 'C' will have order 0, Table 'A' have order 1 and table 'B' have order 
      * 2.
      * @since 1.3 
-     * @return boolean <b>TRUE</b> if the value of the attribute is set. 
-     * <b>FALSE</b> if not.
+     * @return boolean TRUE if the value of the attribute is set. 
+     * FALSE if not.
      */
     public function setOrder($val){
         if(gettype($val) == 'integer'){
@@ -112,11 +112,11 @@ class Table {
     }
     /**
      * Adds a foreign key to the table.
-     * @param ForeignKey $key an object of type <b>ForeignKey</b>. Note that it 
+     * @param ForeignKey $key an object of type 'ForeignKey'. Note that it 
      * will be added only if no key was added to the table which has the same name 
      * as the given key.
      * @since 1.1
-     * @return boolean <b>TRUE</b> if the key is added. <b>FALSE</b> otherwise.
+     * @return boolean TRUE if the key is added. FALSE otherwise.
      * @see ForeignKey
      * @since 1.0
      */
@@ -136,7 +136,7 @@ class Table {
     /**
      * Returns the name of table primary key.
      * @return string The returned value will be the name of the table added 
-     * to it the suffex '_pk'.
+     * to it the suffix '_pk'.
      * @since 1.5
      */
     public function getPrimaryKeyName() {
@@ -301,9 +301,25 @@ class Table {
         return FALSE;
     }
     /**
-     * Checks if a key with the given name exist on the table or not.
+     * Returns the columns of the table which are a part of the primary key.
+     * @return array An array which contains an objects of type 'Column'. If 
+     * the table has no primary key, the array will be empty.
+     * @since 1.5.1
+     */
+    public function getPrimaryKeyCols() {
+        $arr = array();
+        foreach ($this->columns() as $col){
+            if($col->isPrimary()){
+                $arr[] = $col;
+            }
+        }
+        return $arr;
+    }
+    /**
+     * Checks if a foreign key with the given name exist on the table or not.
      * @param string $keyName The name of the key.
-     * @return boolean <b>TRUE</b> if the table has a key. <b>FALSE</b> if not.
+     * @return boolean TRUE if the table has a foreign key with the given name. 
+     * FALSE if not.
      * @since 1.4
      */
     public function hasForeignKey($keyName){
@@ -344,7 +360,7 @@ class Table {
      * @param string $param The name of the table (such as 'users'). It must be a 
      * string and its not empty. Also it must not contain any spaces or any 
      * characters other than A-Z, a-z and underscore.
-     * @return boolean <b>TRUE</b> if the name of the table is set. <b>FALSE</b> 
+     * @return boolean TRUE if the name of the table is set. FALSE 
      * in case the given name is invalid.
      * @since 1.0
      */
@@ -371,10 +387,10 @@ class Table {
     /**
      * Adds new column to the table.
      * @param string $key The index at which the column will be added to.
-     * @param Column $col An object of type <b>Column</b>. Note that the column will 
+     * @param Column $col An object of type Column. Note that the column will 
      * be added only if no column was found in the table which has the same name 
      * as the given column.
-     * @return boolean <b>TRUE</b> if the column is added. <b>FALSE</b> otherwise.
+     * @return boolean TRUE if the column is added. FALSE otherwise.
      * @since 1.0
      */
     public function addColumn($key,$col) {
@@ -404,8 +420,8 @@ class Table {
     /**
      * Returns the column object given the key that it was stored in.
      * @param string $key The name of the key.
-     * @return Column|NULL An object of type Column if the given column 
-     * was found. NULL in case of no column was found.
+     * @return Column|NULL A reference to an object of type Column if the given 
+     * column was found. NULL in case of no column was found.
      * @since 1.0
      */
     public function &getCol($key){
@@ -416,7 +432,8 @@ class Table {
         return $null;
     }
     /**
-     * Returns an array that contains all the set of keys the columns was stored in.
+     * Returns an array that contains all the keys the columns was stored in 
+     * the table.
      * @return array an array that contains all the set of keys.
      * @since 1.2
      */
