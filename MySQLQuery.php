@@ -78,6 +78,48 @@ abstract class MySQLQuery implements JsonI{
         $this->queryType = 'select';
     }
     /**
+     * Constructs a query which can be used to update the server's global 
+     * variable 'max_allowed_packet'
+     * @param int $size The new size. The maximum value this attribute can 
+     * have is 1073741824 bytes.
+     * @param string $unit One of 4 values: 'B' for byte, 'KB' for kilobyte, 
+     * 'MB' for megabyte and 'GB' for gigabyte. If the given value is none of the 
+     * 4, the type will be set to 'MP'.
+     */
+    public function setMaxPackete($size,$unit='MB'){
+        $max = 1073741824;
+        $updatedSize = 0;
+        $uUnit = strtoupper($unit);
+        if($uUnit != 'MB' && $uUnit != 'B' && $uUnit != 'KB' && $uUnit != 'GB'){
+            $uUnit = 'MB';
+        }
+        switch ($uUnit){
+            case 'B':{
+                $updatedSize = $size < $max && $size > 0 ? $size : $max;
+                break;
+            }
+            case 'KB':{
+                $new = $size*1024;
+                $updatedSize = $new < $max && $new > 0 ? $new : $max;
+                break;
+            }
+            case 'MB':{
+                $new = $size*1024*1024;
+                $updatedSize = $new < $max && $new > 0 ? $new : $max;
+                break;
+            }
+            case 'GB':{
+                $new = $size*1024*1024*1024;
+                $updatedSize = $new < $max && $new > 0 ? $new : $max;
+                break;
+            }
+            default:{
+                $updatedSize = $max;
+            }
+        }
+        $this->query = 'set global max_allowed_packet = '.$updatedSize.';';
+    }
+    /**
      * Constructs a query that can be used to get all tables in a schema given its name.
      * @param string $schemaName The name of the schema. The result of executing the query 
      * is a table with one colum. The name of the column is 'TABLE_NAME'. The column 
@@ -551,8 +593,7 @@ abstract class MySQLQuery implements JsonI{
                 $comma = ',';
             }
             $cols .= $colObj->getName().$comma;
-            $colValLower = strtolower($val);
-            if(trim($colValLower) != 'null'){
+            if($val !== 'null'){
                 $type = $colObj->getType();
                 if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
                     $vals .= '\''.self::escapeMySQLSpeciarChars($val).'\''.$comma;
@@ -777,7 +818,7 @@ abstract class MySQLQuery implements JsonI{
                     $comma = ',';
                 }
                 $newValLower = strtolower($newVal);
-                if(trim($newValLower) != 'null'){
+                if(trim($newValLower) !== 'null'){
                     $type = $colObj->getType();
                     if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
                         $colsStr .= ' '.$colObj->getName().' = \''.self::escapeMySQLSpeciarChars($newVal).'\''.$comma ;
