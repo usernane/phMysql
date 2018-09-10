@@ -2,7 +2,7 @@
 /**
  * A class that represents a column in MySQL table.
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.5
+ * @version 1.6
  */
 class Column{
     /**
@@ -11,6 +11,12 @@ class Column{
      * @since 1.5 
      */
     private $ownerTable;
+    /**
+     * The index of the column in owner table.
+     * @var int
+     * @since 1.6 
+     */
+    private $columnIndex;
     /**
      * A constant that indicates the datatype of the 
      * column does not support size.
@@ -60,14 +66,15 @@ class Column{
         'int','varchar','timestamp','tinyblob','mediumblob','longblob',
         'datetime','text','mediumtext'
     );
+
     /**
-     * A boolean value. Set to <b>TRUE</b> if column is unique.
+     * A boolean value. Set to TRUE if column is unique.
      * @var boolean
      * @since 1.0 
      */
     private $isUnique;
     /**
-     * A boolean value. Set to <b>TRUE</b> if column is primary and auto increment.
+     * A boolean value. Set to TRUE if column is primary and auto increment.
      * @var boolean 
      * @since 1.0
      */
@@ -123,7 +130,7 @@ class Column{
      * underscore. If the given column name is invalid the value 'col' will be 
      * set as an initial name for the column.
      * @param string $datatype The type of column data. It must be a value from the 
-     * array <b>Column::DATATYPES</b>. If the given datatype is invalid, 'varchar' 
+     * array 'Column::DATATYPES;. If the given datatype is invalid, 'varchar' 
      * will be used as default type for the column.
      * @param int $size [optional] The size of the column. Used only in case of 
      * 'varachar' and 'int'. If the given size is invalid, 1 will be used as default 
@@ -157,9 +164,12 @@ class Column{
     public function setOwner(&$table) {
         if($table instanceof Table){
             $this->ownerTable = $table;
+            $colsCount = count($table->columns());
+            $this->columnIndex = $colsCount == 0 ? 0 : $colsCount + 1;
         }
         else if($table === NULL){
             $this->ownerTable = NULL;
+            $this->columnIndex = -1;
         }
     }
     /**
