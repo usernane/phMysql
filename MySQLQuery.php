@@ -5,9 +5,9 @@
  * @uses Table Used by the 'create table' Query.
  * @uses ForeignKey Used to alter a table and insert a foreign key in it.
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.8.3
+ * @version 1.8.4
  */
-abstract class MySQLQuery implements JsonI{
+abstract class MySQLQuery{
     /**
      * Line feed character.
      * @since 1.8.1
@@ -195,7 +195,7 @@ abstract class MySQLQuery implements JsonI{
      * @param boolean $inclComments Description
      * @since 1.4
      */
-    private function createTable($table,$inclComments=false){
+    private function createTable($table,$mysqlVnum='8.0',$inclComments=false){
         if($table instanceof Table){
             $query = '';
             if($inclComments === TRUE){
@@ -218,7 +218,7 @@ abstract class MySQLQuery implements JsonI{
             $query .= ')'.self::NL;
             $query .= 'ENGINE = '.$table->getEngine().self::NL;
             $query .= 'DEFAULT CHARSET = '.$table->getCharSet().self::NL;
-            $query .= 'collate = utf8mb4_unicode_520_ci;'.self::NL;
+            $query .= 'collate = '.$table->getCollation($mysqlVnum).';'.self::NL;
             
             $coutPk = $this->getStructure()->primaryKeyColsCount();
             if($coutPk > 1){
@@ -443,9 +443,15 @@ abstract class MySQLQuery implements JsonI{
             if(isset($selectOptions['condition-cols-and-vals']) && isset($selectOptions['conditions']) && isset($selectOptions['join-operators'])){
                 $cols = array();
                 $vals = array();
-                foreach($selectOptions['condition-cols-and-vals'] as $val => $col){
-                    $cols[] = $col;
-                    $vals[] = $val;
+                foreach($selectOptions['condition-cols-and-vals'] as $valOrColIndex => $colOrVal){
+                    if($colOrVal instanceof Column){
+                        $cols[] = $colOrVal;
+                        $vals[] = $valOrColIndex;
+                    }
+                    else{
+                        $cols[] = $this->getStructure()->getColByIndex($valOrColIndex);
+                        $vals[] = $colOrVal;
+                    }
                 }
                 $where = $this->createWhereConditions($cols, $vals, $selectOptions['conditions'], $selectOptions['join-operators']);
             }
@@ -637,7 +643,7 @@ abstract class MySQLQuery implements JsonI{
             }
             else{
                 //an index with a value
-                $column = $this->getStructure()->getColIndex($valOrColIndex);
+                $column = $this->getStructure()->getColByIndex($valOrColIndex);
                 if($column instanceof Column){
                     $cols .= $column->getName().$comma;
                     if($colObjOrVal !== 'null'){
@@ -744,7 +750,7 @@ abstract class MySQLQuery implements JsonI{
                 $vals[] = $valOrIndex;
             }
             else{
-                $cols[] = $this->getStructure()->getColIndex($valOrIndex);
+                $cols[] = $this->getStructure()->getColByIndex($valOrIndex);
                 $vals[] = $colObjOrVal;
             }
         }
@@ -786,10 +792,10 @@ abstract class MySQLQuery implements JsonI{
                 $valUpper = strtoupper(trim($vals[$index]));
                 if($valUpper == 'IS NULL' || $valUpper == 'IS NOT NULL'){
                     if($index + 1 == $count){
-                        $where .= $col->getName().' '.$vals[$index].'';
+                        $where .= $col->getName().' '.$valUpper.'';
                     }
                     else{
-                        $where .= $col->getName().' '.$vals[$index].' '.$jointOps[$index].' ';
+                        $where .= $col->getName().' '.$valUpper.' '.$jointOps[$index].' ';
                     }
                 }
                 else{
@@ -916,7 +922,7 @@ abstract class MySQLQuery implements JsonI{
                     if(trim($newValLower) !== 'null'){
                         $type = $column->getType();
                         if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
-                            $colsStr .= ' '.$colObjOrNewVal->getName().' = \''.self::escapeMySQLSpeciarChars($colObjOrNewVal).'\''.$comma ;
+                            $colsStr .= ' '.$column->getName().' = \''.self::escapeMySQLSpeciarChars($colObjOrNewVal).'\''.$comma ;
                         }
                         else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
                             $fixedPath = str_replace('\\', '/', $colObjOrNewVal);
@@ -954,9 +960,15 @@ abstract class MySQLQuery implements JsonI{
         }
         $colsArr = array();
         $valsArr = array();
-        foreach ($colsAndVals as $vl=>$cl){
-            $colsArr[] = $cl;
-            $valsArr[] = $vl;
+        foreach ($colsAndVals as $valueOrIndex=>$colObjOrVal){
+            if($colObjOrNewVal instanceof Column){
+                $colsArr[] = $colObjOrVal;
+                $valsArr[] = $valueOrIndex;
+            }
+            else{
+                $colsArr[] = $this->getStructure()->getColByIndex($valueOrIndex);
+                $valsArr[] = $colObjOrVal;
+            }
         }
         $this->setQuery('update '.$this->getStructureName().' set '.$colsStr.$this->createWhereConditions($colsArr, $valsArr, $valsConds, $jointOps).';', 'update');
     }
@@ -991,18 +1003,6 @@ abstract class MySQLQuery implements JsonI{
             $index++;
         }
         $this->setQuery('update '.$this->getStructureName().' set '.$cols.' where '.$idColName.' = '.$id, 'update');
-    }
-    /**
-     * Returns a JSON string that represents the query.
-     * @return string A JSON object on the following formate: 
-     * <b><br/>{<br/>&nbsp;&nbsp;"query":"",<br/>&nbsp;&nbsp;"query-type":""<br/>}</b>
-     * @since 1.1
-     */
-    public function toJSON(){
-        $json = new JsonX();
-        $json->add('query', $this->getQuery());
-        $json->add('type', $this->getType());
-        return $json;
     }
     /**
      * Constructs a query that can be used to select maximum value of a table column.
@@ -1052,6 +1052,8 @@ abstract class MySQLQuery implements JsonI{
     /**
      * Constructs a query that can be used to create the table which is linked 
      * with the query class.
+     * @param string $mySqlVersion [Optional] Version number of MySQL. Default 
+     * is '8.0'.
      * @param boolean $inclComments If set to TRUE, the generated MySQL 
      * query will have basic comments explaining the structure.
      * @return boolean Once the query is structured, the function will return 
@@ -1060,10 +1062,10 @@ abstract class MySQLQuery implements JsonI{
      * did not return an object of type 'Table'.
      * @since 1.5
      */
-    public function createStructure($inclComments=false){
+    public function createStructure($mySqlVersion='8.0',$inclComments=false){
         $t = $this->getStructure();
         if($t instanceof Table){
-            $this->createTable($t,$inclComments);
+            $this->createTable($t,$mySqlVersion,$inclComments);
             return TRUE;
         }
         return FALSE;
@@ -1103,6 +1105,18 @@ abstract class MySQLQuery implements JsonI{
             return Table::NO_SUCH_COL;
         }
         return self::NO_STRUCTURE;
+    }
+    /**
+     * Returns the index of a column given its key.
+     * @param string $colKey The name of the column key.
+     * @return int  The index of the column if found starting from 0. 
+     * If the column was not found, the function will return -1.
+     * @since 1.8.4
+     */
+    public function getColIndex($colKey){
+        $col = $this->getCol($colKey);
+        $index = $col instanceof Column ? $col->getIndex() : -1;
+        return $index;
     }
     /**
      * Returns the table that is used for constructing queries.
