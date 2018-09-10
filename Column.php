@@ -173,6 +173,15 @@ class Column{
         }
     }
     /**
+     * Returns the index of the column in its parent table.
+     * @return int The index of the column in its parent table starting from 0. 
+     * If the column has no parent table, the function will return -1.
+     * @since 1.6
+     */
+    public function getIndex() {
+        return $this->columnIndex;
+    }
+    /**
      * Returns the table which owns this column.
      * @return Table|NULL The owner table of the column. 
      * If the column has no owner, the function will return NULL.
@@ -461,10 +470,18 @@ class Column{
     }
     /**
      * Returns the value of column collation.
-     * @return string The string 'utf8mb4_unicode_520_ci'.
+     * @param string $mySqlVersion [Optional] Version number of MySQL. Default 
+     * is '8.0'.
+     * @return string If the given value is '5.5' or lower, the function will 
+     * return 'utf8mb4_unicode_ci'. Other than that, the function will return 
+     * 'utf8mb4_unicode_520_ci'.
      * @since 1.0
      */
-    public function getCollation(){
+    public function getCollation($mySqlVersion='8.0'){
+        $split = explode('.', $mySqlVersion);
+        if(isset($split[0]) && $split[0] <= 5 && isset($split[1]) && $split[1] <= 5){
+            return 'utf8mb4_unicode_ci';
+        }
         return 'utf8mb4_unicode_520_ci';
     }
     public function __toString() {
