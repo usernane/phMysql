@@ -165,7 +165,7 @@ class Column{
         if($table instanceof Table){
             $this->ownerTable = $table;
             $colsCount = count($table->columns());
-            $this->columnIndex = $colsCount == 0 ? 0 : $colsCount + 1;
+            $this->columnIndex = $colsCount == 0 ? 0 : $colsCount;
         }
         else if($table === NULL){
             $this->ownerTable = NULL;
