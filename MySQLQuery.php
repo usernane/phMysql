@@ -340,8 +340,8 @@ abstract class MySQLQuery{
      * <li><b>condition-cols-and-vals</b>: An associative array of values 
      * and objects of type 'Column'. The value is the condition at which the records 
      * will be selected based on.</li>
-     * <li><b>conditions</b>: An array that can contains two possible values: 
-     * '=' or '!='. If anything else is given at specific index, '=' will be used.</li>
+     * <li><b>conditions</b>: An array that can contains 3 possible values: 
+     * '=', '!=' and 'null'. If anything else is given at specific index, '=' will be used.</li>
      * <li><b>join-operators</b>: An array that contains a set of MySQL join operators 
      * like 'and' and 'or'.</li>
      * <li><b>select-max</b>: A boolean value. Set to TRUE if you want to select maximum 
@@ -350,6 +350,9 @@ abstract class MySQLQuery{
      * value of a column. Ignored in case the option 'columns' or 'select-max' is set.</li>
      * <li><b>column</b>: The column which contains maximum or minimum value.</li>
      * <li><b>rename-to</b>: Rename the max or min column to the given name.</li>
+     * <li><b>order-by</b>: An object of type column at which the rows will be ordered by.</li>
+     * <li><b>order-type</b>: A one character string. 'A' for ascending and 'D' 
+     * for descending. Default is 'A'. Used only if 'order-by' is set. </li>
      * </ul>
      * @since 1.8.3
      */
@@ -363,7 +366,9 @@ abstract class MySQLQuery{
         'select-min'=>false,
         'select-max'=>false,
         'column'=>'',
-        'rename-to'=>''
+        'rename-to'=>'',
+        'order-by'=>NULL,
+        'order-type'=>'A'
         )) {
         $table = $this->getStructure();
         if($table instanceof Table){
@@ -378,6 +383,16 @@ abstract class MySQLQuery{
             }
             else{
                 $limitPart = '';
+            }
+            $orderByPart = '';
+            if(isset($selectOptions['order-by']) && ($selectOptions['order-by'] instanceof Column)){
+                $orderType = isset($selectOptions['order-type']) ? strtoupper($selectOptions['order-type']) : 'A';
+                if($orderType == 'D'){
+                    $orderByPart = ' order by '.$selectOptions['order-by']->getName().' desc ';
+                }
+                else{
+                    $orderByPart = ' order by '.$selectOptions['order-by']->getName().' asc ';
+                }
             }
             if(isset($selectOptions['columns']) && count($selectOptions['columns']) != 0){
                 $count = count($selectOptions['columns']);
@@ -459,7 +474,7 @@ abstract class MySQLQuery{
             else{
                 $where = '';
             }
-            $this->setQuery($selectQuery.$where.$limitPart.';', 'select');
+            $this->setQuery($selectQuery.$where.$orderByPart.$limitPart.';', 'select');
             return TRUE;
         }
         return FALSE;
@@ -571,7 +586,7 @@ abstract class MySQLQuery{
     }
     /**
      * Constructs a query that can be used to get table data by using ID column.
-     * @param string $id The value of the ID column.
+     * @param string $id The value of the ID column. 
      * @since 1.0
      * @deprecated since version 1.8.3
      */
@@ -645,6 +660,7 @@ abstract class MySQLQuery{
             }
             else{
                 //an index with a value
+                
                 $column = $this->getStructure()->getColByIndex($valOrColIndex);
                 if($column instanceof Column){
                     $cols .= $column->getName().$comma;
@@ -677,7 +693,7 @@ abstract class MySQLQuery{
                             }
                         }
                         else{
-                             $vals .= $colObjOrVal.$comma;
+                            $vals .= $colObjOrVal.$comma;
                         }
                     }
                     else{
@@ -859,11 +875,9 @@ abstract class MySQLQuery{
      * </ul>
      * The second way is not recommended as it may cause some issues if two columns 
      * have the same value. To get the correct index of the column, use the function 
-     * 'MySQLQuery::getColumnIndex()'. 
-     * The number of elements in this array must match number of elements 
-     * in the array $colsAndNewVals.
-     * @param array $valsConds An array that can have only two possible values, 
-     * '=' and '!='. The number of elements in this array must match number of 
+     * 'MySQLQuery::getColumnIndex()'.
+     * @param array $valsConds An array that can have only 3 possible values, 
+     * '=', '!=' and 'null'. The number of elements in this array must match number of 
      * elements in the array $colsAndNewVals.
      * @param array $jointOps [Optional] An array which contains conditional operators 
      * to join conditions. The operators can be logical or bitwise. Possible 
