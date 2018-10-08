@@ -195,7 +195,7 @@ abstract class MySQLQuery{
      * @param boolean $inclComments Description
      * @since 1.4
      */
-    private function createTable($table,$mysqlVnum='8.0',$inclComments=false){
+    private function createTable($table,$inclComments=false){
         if($table instanceof Table){
             $query = '';
             if($inclComments === TRUE){
@@ -218,7 +218,7 @@ abstract class MySQLQuery{
             $query .= ')'.self::NL;
             $query .= 'ENGINE = '.$table->getEngine().self::NL;
             $query .= 'DEFAULT CHARSET = '.$table->getCharSet().self::NL;
-            $query .= 'collate = '.$table->getCollation($mysqlVnum).';'.self::NL;
+            $query .= 'collate = '.$table->getCollation().';'.self::NL;
             
             $coutPk = $this->getStructure()->primaryKeyColsCount();
             if($coutPk > 1){
@@ -340,8 +340,8 @@ abstract class MySQLQuery{
      * <li><b>condition-cols-and-vals</b>: An associative array of values 
      * and objects of type 'Column'. The value is the condition at which the records 
      * will be selected based on.</li>
-     * <li><b>conditions</b>: An array that can contains 3 possible values: 
-     * '=', '!=' and 'null'. If anything else is given at specific index, '=' will be used.</li>
+     * <li><b>conditions</b>: An array that can contains two possible values: 
+     * '=' or '!='. If anything else is given at specific index, '=' will be used.</li>
      * <li><b>join-operators</b>: An array that contains a set of MySQL join operators 
      * like 'and' and 'or'.</li>
      * <li><b>select-max</b>: A boolean value. Set to TRUE if you want to select maximum 
@@ -586,7 +586,7 @@ abstract class MySQLQuery{
     }
     /**
      * Constructs a query that can be used to get table data by using ID column.
-     * @param string $id The value of the ID column. 
+     * @param string $id The value of the ID column.
      * @since 1.0
      * @deprecated since version 1.8.3
      */
@@ -598,12 +598,11 @@ abstract class MySQLQuery{
      * @param array $colsAndVals An associative array. The array can have two 
      * possible structures:
      * <ul>
-     * <li>A column index as an index with a value as the value of the column (Recommended).</li>
+     * <li>A column index as an index with a value as the value of the column (Recomended).</li>
      * <li>A value as an index with an object of type 'Column' as it is value.</li>
      * </ul>
-     * The second way is not recommended as it may cause some issues if two columns 
-     * have the same value. To get the correct index of the column, use the function 
-     * 'MySQLQuery::getColumnIndex()'.
+     * The second way is not recomended as it may caus some issues if two columns 
+     * have the same value.
      * @since 1.8.2
      */
     public function insertRecord($colsAndVals) {
@@ -867,17 +866,15 @@ abstract class MySQLQuery{
     }
     /**
      * Constructs a query that can be used to update a record.
-     * @param array $colsAndNewVals An associative array. The array can have two 
-     * possible structures:
-     * <ul>
-     * <li>A column index as an index with a value as the value of the column (Recommended).</li>
-     * <li>A value as an index with an object of type 'Column' as it is value.</li>
-     * </ul>
-     * The second way is not recommended as it may cause some issues if two columns 
-     * have the same value. To get the correct index of the column, use the function 
-     * 'MySQLQuery::getColumnIndex()'.
-     * @param array $valsConds An array that can have only 3 possible values, 
-     * '=', '!=' and 'null'. The number of elements in this array must match number of 
+     * @param array $colsAndNewVals An associative array. The key must be the 
+     * new value and the value of the index is an object of type 'Column'.
+     * @param array $colsAndVals An associative array that contains columns and 
+     * values for the 'where' clause. The indices should be the values and the 
+     * value at each index should be an object of type 'Column'. 
+     * The number of elements in this array must match number of elements 
+     * in the array $colsAndNewVals.
+     * @param array $valsConds An array that can have only two possible values, 
+     * '=' and '!='. The number of elements in this array must match number of 
      * elements in the array $colsAndNewVals.
      * @param array $jointOps [Optional] An array which contains conditional operators 
      * to join conditions. The operators can be logical or bitwise. Possible 
@@ -1072,8 +1069,6 @@ abstract class MySQLQuery{
     /**
      * Constructs a query that can be used to create the table which is linked 
      * with the query class.
-     * @param string $mySqlVersion [Optional] Version number of MySQL. Default 
-     * is '8.0'.
      * @param boolean $inclComments If set to TRUE, the generated MySQL 
      * query will have basic comments explaining the structure.
      * @return boolean Once the query is structured, the function will return 
@@ -1082,10 +1077,10 @@ abstract class MySQLQuery{
      * did not return an object of type 'Table'.
      * @since 1.5
      */
-    public function createStructure($mySqlVersion='8.0',$inclComments=false){
+    public function createStructure($inclComments=false){
         $t = $this->getStructure();
         if($t instanceof Table){
-            $this->createTable($t,$mySqlVersion,$inclComments);
+            $this->createTable($t,$inclComments);
             return TRUE;
         }
         return FALSE;
