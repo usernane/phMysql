@@ -7,7 +7,7 @@
  */
 class DatabaseLink{
     /**
-     * The name of database host. It can be an IP address (such as '134.123.111.3:3306') or 
+     * The name of database host. It can be an IP address (such as '134.123.111.3') or 
      * a URL.
      * @var string 
      * @since 1.0
@@ -113,7 +113,7 @@ class DatabaseLink{
         $this->portNum = $port;
         $this->currentRow = -1;
         if($this->link){
-            
+            $this->link->set_charset("utf8");
         }
         else{
             $this->lastErrorNo = mysqli_connect_errno();
@@ -175,7 +175,7 @@ class DatabaseLink{
     
     /**
      * Return the number of rows returned by last query.
-     * If no result returned, the method will return -1.
+     * If no result returned by MySQL server, the function will return -1.
      * @return int
      * @since 1.0
      */
@@ -187,6 +187,8 @@ class DatabaseLink{
     }
     /**
      * Select a database instance.
+     * This function will always return FALSE if no connection has been 
+     * established with the database. 
      * @param string $dbName The name of the database instance.
      * @return boolean TRUE if the instance is selected. FALSE
      * otherwise.
@@ -279,7 +281,17 @@ class DatabaseLink{
             return $this->resultRows;
         }
         $result = $this->getResult();
-        $rows = $result !== NULL ? mysqli_fetch_all($result, MYSQLI_ASSOC) : array();
+        if(function_exists('mysqli_fetch_all')){
+            $rows = $result !== NULL ? mysqli_fetch_all($result, MYSQLI_ASSOC) : array();
+        }
+        else{
+            $rows = array();
+            if($result !== NULL){
+                while ($row = $result->fetch_assoc()){
+                    $rows[] = $row;
+                }
+            }
+        }
         $this->resultRows = $rows;
         return $rows;
     }
