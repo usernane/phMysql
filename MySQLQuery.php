@@ -640,6 +640,7 @@ abstract class MySQLQuery{
                                 else{
                                     $vals .= 'NULL'.$comma;
                                 }
+                                fclose($file);
                             }
                             else{
                                 $vals .= 'NULL'.$comma;
@@ -682,6 +683,7 @@ abstract class MySQLQuery{
                                     else{
                                         $vals .= 'NULL'.$comma;
                                     }
+                                    fclose($file);
                                 }
                                 else{
                                     $vals .= 'NULL'.$comma;
@@ -915,6 +917,7 @@ abstract class MySQLQuery{
                                 else{
                                     $colsStr .= 'NULL'.$comma;
                                 }
+                                fclose($file);
                             }
                             else{
                                 $colsStr .= 'NULL'.$comma;
@@ -955,6 +958,7 @@ abstract class MySQLQuery{
                                     else{
                                         $colsStr .= 'NULL'.$comma;
                                     }
+                                    fclose($file);
                                 }
                                 else{
                                     $colsStr .= 'NULL'.$comma;
