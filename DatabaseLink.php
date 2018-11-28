@@ -156,7 +156,7 @@ class DatabaseLink{
     public function isConnected(){
         $test = FALSE;
         if($this->link instanceof mysqli){
-            $this->link = @mysqli_connect($this->host, $this->user, $this->pass);
+            $this->link = @mysqli_connect($this->host, $this->user, $this->pass,NULL , $this->portNum);
             if($this->link){
                 if($this->db !== NULL){
                     $test = $this->setDB($this->db);
