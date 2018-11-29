@@ -1,4 +1,5 @@
 <?php
+namespace phMysql;
 /**
  * A base class that is used to construct MySQL queries. It can be used as a base 
  * class for constructing other MySQL queries.<br/>

@@ -1,4 +1,5 @@
 <?php
+namespace phMysql;
 /**
  * A class that represents a column in MySQL table.
  * @author Ibrahim <ibinshikh@hotmail.com>
