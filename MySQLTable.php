@@ -69,7 +69,10 @@ class MySQLTable {
     private $charSet;
     /**
      * Creates a new instance of the class.
-     * @param string $tName [Optional] The name of the table. It must be a 
+     * This function will initialize the basic settings of the table. It will 
+     * set MySQL version to 5.5, the engine to 'InnoDB', char set to 
+     * 'utf8mb4' and the order to 0.  
+     * @param string $tName The name of the table. It must be a 
      * string and its not empty. Also it must not contain any spaces or any 
      * characters other than A-Z, a-z and underscore. If the given name is invalid 
      * or not provided, 'table' will be used as default.
@@ -85,6 +88,10 @@ class MySQLTable {
     }
     /**
      * Sets version number of MySQL server.
+     * Version number of MySQL is used to set the correct collation for table columns 
+     * in case of varchar or text data types. If MySQL version is '5.5' or lower, 
+     * collation will be set to 'utf8mb4_unicode_ci'. Other than that, the 
+     * collation will be set to 'utf8mb4_unicode_520_ci'.
      * @param string $vNum MySQL version number (such as '5.5').
      * @since 1.6.1
      */
@@ -111,12 +118,12 @@ class MySQLTable {
     }
     /**
      * Sets the order of the table in the database.
-     * @param int $val The order of the table in the database. The value 
-     * of this attributes describes the dependencies between tables. For example, 
+     * The order of the table describes the dependencies between tables. For example, 
      * if we have three tables, 'A', 'B' and 'C'. Let's assume that table 'B' 
      * references table 'A' and Table 'A' references table 'C'. In this case, 
      * table 'C' will have order 0, Table 'A' have order 1 and table 'B' have order 
      * 2.
+     * @param int $val The order of the table in the database.
      * @since 1.3 
      * @return boolean TRUE if the value of the attribute is set. 
      * FALSE if not.
@@ -132,12 +139,7 @@ class MySQLTable {
     }
     /**
      * Returns the order of the table in the database.
-     * @return int The order of the table in the database. The value 
-     * of this attributes describes the dependencies between tables. For example, 
-     * if we have three tables, 'A', 'B' and 'C'. Let's assume that table 'B' 
-     * references table 'A' and Table 'A' references table 'C'. In this case, 
-     * table 'C' will have order 0, Table 'A' have order 1 and table 'B' have order 
-     * 2.
+     * @return int The order of the table in the database.
      * @since 1.3 
      */
     public function getOrder() {
@@ -145,9 +147,10 @@ class MySQLTable {
     }
     /**
      * Returns the value of table collation.
-     * @return string If MySQL version is '5.5' or lower, the function will 
+     * If MySQL version is '5.5' or lower, the function will 
      * return 'utf8mb4_unicode_ci'. Other than that, the function will return 
      * 'utf8mb4_unicode_520_ci'.
+     * @return string Table collation.
      * @since 1.6
      */
     public function getCollation(){
@@ -159,9 +162,9 @@ class MySQLTable {
     }
     /**
      * Adds a foreign key to the table.
-     * @param ForeignKey $key an object of type 'ForeignKey'. Note that it 
-     * will be added only if no key was added to the table which has the same name 
-     * as the given key.
+     * Note that it will be added only if no key was added to the table which 
+     * has the same name as the given key.
+     * @param ForeignKey $key an object of type 'ForeignKey'.
      * @since 1.1
      * @return boolean TRUE if the key is added. FALSE otherwise.
      * @see ForeignKey
@@ -244,14 +247,14 @@ class MySQLTable {
      * @param MySQLTable $refTable The table that will be referenced.
      * @param string $refColName The name of the column that will be referenced. It must 
      * be a column in the referenced table. The value of this attribute is a 
-     * value that once passed to the function Table::getColumn() will 
+     * value that once passed to the function MySQLTable::getColumn() will 
      * return an object of type 'Column'.
      * @param string $targetCol The target column. It must be a column in the current 
      * instance. The value of this attribute is a 
-     * value that once passed to the function Table::getColumn() will 
+     * value that once passed to the function MySQLTable::getColumn() will 
      * return an object of type 'Column'.
      * @param string $keyname The name of the foreign key.
-     * @param string $onupdate [Optional] The 'on update' condition for the key. it can be one 
+     * @param string $onupdate The 'on update' condition for the key. it can be one 
      * of the following: 
      * <ul>
      * <li>set null</li>
@@ -261,7 +264,7 @@ class MySQLTable {
      * <li>no action</li>
      * </ul>
      * Default value is 'set null'.
-     * @param string $ondelete [Optional] The 'on delete' condition for the key. it can be one 
+     * @param string $ondelete The 'on delete' condition for the key. it can be one 
      * of the following: 
      * <ul>
      * <li>set null</li>
@@ -283,11 +286,11 @@ class MySQLTable {
      * @param MySQLTable $refTable The referenced table.
      * @param array $refColsArr An array which contains the names of referenced 
      * columns. The names of columns  must in the referenced table. 
-     * If one of the names is passed to the function Table::getColumn(), it 
+     * If one of the names is passed to the function MySQLTable::getColumn(), it 
      * should return an object of type 'Column'.
      * @param array $targetColsArr An array which contains the targeted columns. 
      * @param string $keyname The name of the key.
-     * @param string $onupdate [Optional] The 'on update' condition for the key. it can be one 
+     * @param string $onupdate The 'on update' condition for the key. it can be one 
      * of the following: 
      * <ul>
      * <li>set null</li>
@@ -297,7 +300,7 @@ class MySQLTable {
      * <li>no action</li>
      * </ul>
      * Default value is 'set null'.
-     * @param string $ondelete [Optional] The 'on delete' condition for the key. it can be one 
+     * @param string $ondelete The 'on delete' condition for the key. it can be one 
      * of the following: 
      * <ul>
      * <li>set null</li>
