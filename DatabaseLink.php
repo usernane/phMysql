@@ -1,4 +1,5 @@
 <?php
+namespace phMysql;
 /**
  * A class that is used to connect to MySQL database. It works as an interface 
  * for <b>mysqli</b> 
@@ -195,15 +196,16 @@ class DatabaseLink{
      * @since 1.0
      */
     public function setDB($dbName){
-        if(!mysqli_select_db($this->link, $dbName)){
+        if(gettype($this->link) == 'object' && !mysqli_select_db($this->link, $dbName)){
             $this->lastErrorMessage = $this->link->error;
             $this->lastErrorNo = $this->link->errno;
             return false;
         }
         else{
             $this->db = $dbName;
+            return true;
         }
-        return true;
+        return FALSE;
     }
     /**
      * Returns the result set in case of executing select query.
