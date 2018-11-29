@@ -5,8 +5,11 @@ error_reporting(-1);
 require 'Column.php';
 require 'Table.php';
 require 'MySQLQuery.php';
-require 'ForeignKey.php';
 require 'DatabaseLink.php';
+use phMysql\Column;
+use phMysql\Table;
+use phMysql\MySQLQuery;
+use phMysql\DatabaseLink;
 class Q extends MySQLQuery{
     /**
      *
