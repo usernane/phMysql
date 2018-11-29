@@ -6,7 +6,7 @@ namespace phMysql;
  * @author Ibrahim <ibinshikh@hotmail.com>
  * @version 1.3.1
  */
-class DatabaseLink{
+class MySQLLink{
     /**
      * The name of database host. It can be an IP address (such as '134.123.111.3') or 
      * a URL.
@@ -312,7 +312,7 @@ class DatabaseLink{
         $retVal = array();
         $rows = $this->getRows();
         $colNameInDb = $this->getLastQuery()->getColName($colKey);
-        if($colKey != Table::NO_SUCH_COL){
+        if($colKey != MySQLTable::NO_SUCH_COL){
             foreach ($rows as $row){
                 if(isset($row[$colNameInDb])){
                     $retVal[] = $row[$colNameInDb];
@@ -323,7 +323,7 @@ class DatabaseLink{
             }
         }
         else{
-            $retVal = Table::NO_SUCH_COL;
+            $retVal = MySQLTable::NO_SUCH_COL;
         }
         return $retVal;
     }

@@ -6,7 +6,7 @@ namespace phMysql;
  * @author Ibrahim <ibinshikh@hotmail.com>
  * @version 1.6
  */
-class Table {
+class MySQLTable {
     /**
      * Version number of MySQL server.
      * @var string 
@@ -241,7 +241,7 @@ class Table {
     }
     /**
      * Adds a foreign key to the table.
-     * @param Table $refTable The table that will be referenced.
+     * @param MySQLTable $refTable The table that will be referenced.
      * @param string $refColName The name of the column that will be referenced. It must 
      * be a column in the referenced table. The value of this attribute is a 
      * value that once passed to the function Table::getColumn() will 
@@ -280,7 +280,7 @@ class Table {
     }
     /**
      * Adds a foreign key which references multiple columns.
-     * @param Table $refTable The referenced table.
+     * @param MySQLTable $refTable The referenced table.
      * @param array $refColsArr An array which contains the names of referenced 
      * columns. The names of columns  must in the referenced table. 
      * If one of the names is passed to the function Table::getColumn(), it 
@@ -311,7 +311,7 @@ class Table {
      * @since 1.5
      */
     public function addMultiReference($refTable,$refColsArr,$targetColsArr,$keyname,$onupdate='set null',$ondelete='set null') {
-        if($refTable instanceof Table){
+        if($refTable instanceof MySQLTable){
             if(count($refColsArr) == count($targetColsArr)){
                 $fk = new ForeignKey();
                 if($fk->setKeyName($keyname) === TRUE){
