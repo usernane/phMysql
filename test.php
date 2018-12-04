@@ -3,13 +3,13 @@ ini_set('display_startup_errors', 1);
 ini_set('display_errors', 1);
 error_reporting(-1);
 require 'Column.php';
-require 'Table.php';
+require 'MySQLTable.php';
 require 'MySQLQuery.php';
-require 'DatabaseLink.php';
+require 'MySQLLink.php';
 use phMysql\Column;
 use phMysql\Table;
 use phMysql\MySQLQuery;
-use phMysql\DatabaseLink;
+use phMysql\MySQLLink;
 class Q extends MySQLQuery{
     /**
      *
@@ -29,7 +29,7 @@ class Q extends MySQLQuery{
 
 }
 
-$link = new DatabaseLink('localhost', 'root', 'xxxx');
+$link = new MySQLLink('localhost', 'root', 'xxxx');
 if($link->isConnected()){
     print_message('Connected.');
     $result = $link->setDB('x_db');
