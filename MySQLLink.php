@@ -161,6 +161,8 @@ class MySQLLink{
             if($this->link){
                 if($this->db !== NULL){
                     $test = $this->setDB($this->db);
+                    mysqli_query($this->link, "set character_set_client='utf8'");
+                    mysqli_query ($this->link, "set character_set_results='utf8'" );
                 }
                 else{
                     $test = TRUE;
@@ -196,16 +198,8 @@ class MySQLLink{
      * @since 1.0
      */
     public function setDB($dbName){
-        if(gettype($this->link) == 'object' && !mysqli_select_db($this->link, $dbName)){
-            $this->lastErrorMessage = $this->link->error;
-            $this->lastErrorNo = $this->link->errno;
-            return false;
-        }
-        else{
-            $this->db = $dbName;
-            return true;
-        }
-        return FALSE;
+        $this->db = $dbName;
+        return $this->reconnect();
     }
     /**
      * Returns the result set in case of executing select query.
@@ -341,6 +335,7 @@ class MySQLLink{
             $this->lastQuery = $query;
             if($this->isConnected()){
                 $eploded = explode(';', trim($query->getQuery(), ';'));
+                mysql_queryi($this->link, "set collation_connection=''.$query->getStructure()->getCollation().'" );
                 if(count($eploded) != 1){
                     $r = mysqli_multi_query($this->link, $query->getQuery());
                     while(mysqli_more_results($this->link)){
