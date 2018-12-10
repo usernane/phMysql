@@ -1,5 +1,6 @@
 <?php
 namespace phMysql;
+use Exception;
 /**
  * A base class that is used to construct MySQL queries. It can be used as a base 
  * class for constructing other MySQL queries.
