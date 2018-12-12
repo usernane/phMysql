@@ -380,10 +380,16 @@ abstract class MySQLQuery{
         'column'=>'',
         'rename-to'=>'',
         'order-by'=>NULL,
-        'order-type'=>'A'
+        'order-type'=>'A',
+        'in'=>array()
         )) {
         $table = $this->getStructure();
         if($table instanceof MySQLTable){
+            $vNum = $table->getMySQLVersion();
+            $vSplit = explode('.', $vNum);
+            if(intval($vSplit[0]) <= 5 && intval($vSplit[1]) < 6){
+                
+            }
             $selectQuery = 'select ';
             $limit = isset($selectOptions['limit']) ? $selectOptions['limit'] : -1;
             $offset = isset($selectOptions['offset']) ? $selectOptions['offset'] : -1;
@@ -490,6 +496,9 @@ abstract class MySQLQuery{
             return TRUE;
         }
         return FALSE;
+    }
+    private function _selectIn($optionsArr){
+        
     }
     /**
      * Constructs a query that can be used to get table data based on a specific 
