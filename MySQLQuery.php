@@ -5,9 +5,15 @@ use Exception;
  * A base class that is used to construct MySQL queries. It can be used as a base 
  * class for constructing other MySQL queries.
  * @author Ibrahim <ibinshikh@hotmail.com>
- * @version 1.8.4
+ * @version 1.8.5
  */
 abstract class MySQLQuery{
+    /**
+     * An attribute that is set to TRUE if the query is un update or insert of 
+     * blob datatype.
+     * @var boolean 
+     */
+    private $isFileInsert;
     /**
      * Line feed character.
      * @since 1.8.1
@@ -167,6 +173,7 @@ abstract class MySQLQuery{
     public function __construct() {
         $this->query = self::SELECT.' a_table';
         $this->queryType = 'select';
+        $this->setIsBlobInsertOrUpdate(FALSE);
     }
     /**
      * Constructs a query that can be used to alter the properties of a table
@@ -658,6 +665,7 @@ abstract class MySQLQuery{
                                 if($fileContent !== FALSE){
                                     $data = '\''. addslashes($fileContent).'\'';
                                     $vals .= $data.$comma;
+                                    $this->setIsBlobInsertOrUpdate(TRUE);
                                 }
                                 else{
                                     $vals .= 'NULL'.$comma;
@@ -935,6 +943,7 @@ abstract class MySQLQuery{
                                 if($fileContent !== FALSE){
                                     $data = '\''. addslashes($fileContent).'\'';
                                     $colsStr .= $data.$comma;
+                                    $this->setIsBlobInsertOrUpdate(TRUE);
                                 }
                                 else{
                                     $colsStr .= 'NULL'.$comma;
@@ -976,6 +985,7 @@ abstract class MySQLQuery{
                                     if($fileContent !== FALSE){
                                         $data = '\''. addslashes($fileContent).'\'';
                                         $colsStr .= $data.$comma;
+                                        $this->setIsBlobInsertOrUpdate(TRUE);
                                     }
                                     else{
                                         $colsStr .= 'NULL'.$comma;
@@ -1016,6 +1026,29 @@ abstract class MySQLQuery{
         $this->setQuery('update '.$this->getStructureName().' set '.$colsStr.$this->createWhereConditions($colsArr, $valsArr, $valsConds, $jointOps).';', 'update');
     }
     /**
+     * Checks if the query represents a blob insert or update.
+     * The aim of this function is to fix an issue with setting the collation 
+     * of the connection while executing a query.
+     * @return boolean The Function will return TRUE if the query represents an 
+     * insert or un update of blob datatype. FALSE if not.
+     * @since 1.8.5
+     */
+    public function isBlobInsertOrUpdate(){
+        return $this->isFileInsert;
+    }
+    /**
+     * Sets the property that is used to check if the query represents an insert 
+     * or an update of a blob datatype.
+     * The attribute is used to fix an issue with setting the collation 
+     * of the connection while executing a query.
+     * @param boolean $boolean TRUE if the query represents an insert or an update 
+     * of a blob datatype. FALSE if not.
+     * @since 1.8.5
+     */
+    public function setIsBlobInsertOrUpdate($boolean) {
+        $this->isFileInsert = $boolean === TRUE ? TRUE : FALSE;
+    }
+    /**
      * Updates a table columns that has a datatype of blob from source files.
      * @param array $arr An associative array of keys and values. The keys will 
      * be acting as the columns names and the values should be a path to a file 
@@ -1035,6 +1068,7 @@ abstract class MySQLQuery{
                 $fileContent = fread($file, filesize($fixedPath));
                 if($fileContent !== FALSE){
                     $data = '\''. addslashes($fileContent).'\'';
+                    $this->setIsBlobInsertOrUpdate(TRUE);
                 }
             }
             if($index + 1 == $count){
