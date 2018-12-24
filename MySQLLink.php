@@ -339,7 +339,9 @@ class MySQLLink{
             $this->lastQuery = $query;
             if($this->isConnected()){
                 $eploded = explode(';', trim($query->getQuery(), ';'));
-                mysqli_query($this->link, 'set collation_connection =\''.$query->getStructure()->getCollation().'\'');
+                if(!$query->isBlobInsertOrUpdate()){
+                    mysqli_query($this->link, 'set collation_connection =\''.$query->getStructure()->getCollation().'\'');
+                }
                 if(count($eploded) != 1){
                     $r = mysqli_multi_query($this->link, $query->getQuery());
                     while(mysqli_more_results($this->link)){
@@ -350,6 +352,7 @@ class MySQLLink{
                         $this->lastErrorMessage = $this->link->error;
                         $this->lastErrorNo = $this->link->errno;
                     }
+                    $query->setIsBlobInsertOrUpdate(FALSE);
                     return $r;
                 }
                 if($query->getType() == 'select' || $query->getType() == 'show'
@@ -365,6 +368,7 @@ class MySQLLink{
                         $this->lastErrorMessage = $this->link->error;
                         $this->lastErrorNo = $this->link->errno;
                         $this->result = NULL;
+                        $query->setIsBlobInsertOrUpdate(FALSE);
                         return false;
                     }
                 }
@@ -375,12 +379,14 @@ class MySQLLink{
                         $this->lastErrorMessage = $this->link->error;
                         $this->lastErrorNo = $this->link->errno;
                         $this->result = NULL;
+                        $query->setIsBlobInsertOrUpdate(FALSE);
                         return false;
                     }
                     else{
                         $this->lastErrorMessage = 'NO ERRORS';
                         $this->lastErrorNo = 0;
                         $this->result = NULL;
+                        $query->setIsBlobInsertOrUpdate(FALSE);
                         return true;
                     }
                 }
