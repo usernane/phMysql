@@ -1083,28 +1083,32 @@ abstract class MySQLQuery{
     }
     /**
      * Constructs a query that can be used to select maximum value of a table column.
-     * @param string $col The name of the column.
+     * @param string $col The name of the column as specified while initializing 
+     * linked table. This value should return an object of type Column 
+     * when passed to the method MySQLQuery::getCol().
      * @param string $rename The new name of the column that contains max value. 
      * The default value is 'max'.
      * @since 1.3
      */
     public function selectMax($col,$rename='max'){
         return $this->select(array(
-            'column'=>$col,
+            'column'=> $this->getColName($col),
             'select-max'=>TRUE,
             'rename-to'=>$rename
         ));
     }
     /**
      * Constructs a query that can be used to select minimum value of a table column.
-     * @param string $col The name of the column.
+     * @param string $col The name of the column as specified while initializing 
+     * linked table. This value should return an object of type Column 
+     * when passed to the method MySQLQuery::getCol().
      * @param string $rename The new name of the column that contains min value. 
      * The default value is 'min'.
      * @since 1.3
      */
     public function selectMin($col,$rename='min'){
         return $this->select(array(
-            'column'=>$col,
+            'column'=>$this->getColName($col),
             'select-min'=>TRUE,
             'rename-to'=>$rename
         ));
