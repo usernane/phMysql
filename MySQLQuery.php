@@ -1092,7 +1092,7 @@ abstract class MySQLQuery{
      */
     public function selectMax($col,$rename='max'){
         return $this->select(array(
-            'column'=> $this->getColName($col),
+            'column'=> $col,
             'select-max'=>TRUE,
             'rename-to'=>$rename
         ));
@@ -1108,7 +1108,7 @@ abstract class MySQLQuery{
      */
     public function selectMin($col,$rename='min'){
         return $this->select(array(
-            'column'=>$this->getColName($col),
+            'column'=>$col,
             'select-min'=>TRUE,
             'rename-to'=>$rename
         ));
