@@ -527,6 +527,79 @@ abstract class MySQLQuery{
         }
         return FALSE;
     }
+    /**
+     * Constructs a 'where' condition given a date.
+     * @param string $date A date or timestamp.
+     * @param string $colName The name of the column that will contain 
+     * the date value.
+     * @param string $format The format of the date. The supported formats 
+     * are:
+     * <ul>
+     * <li>YYYY-MM-DD HH:MM:SS</li>
+     * <li>YYYY-MM-DD</li>
+     * <li>YYYY</li>
+     * <li>MM</li>
+     * <li>DD</li>
+     * <li>HH:MM:SS</li>
+     * <li>HH</li>
+     * <li>MM</li>
+     * <li>SS</li>
+     * </ul>
+     */
+    public static function createDateCondition($date,$colName,$format='YYYY-MM-DD HH:MM:SS') {
+        $formatInUpperCase = strtoupper($format);
+        $condition = '';
+        if($formatInUpperCase == 'YYYY-MM-DD HH:MM:SS'){
+            $dateTimeSplit = explode(' ', $date);
+            if(count($date) == 2){
+                $datePart = explode('-', $dateTimeSplit[0]);
+                $timePart = explode(':', $dateTimeSplit[0]);
+                if(count($datePart) == 3 && count($timePart) == 3){
+                    $condition = 'year('.$colName.') = '.$datePart[0].' and '
+                            .'month('.$colName.') = '.$datePart[1].' and '
+                            .'day('.$colName.') = '.$datePart[2].' and '
+                            .'hour('.$colName.') = '.$datePart[2].' and '
+                            .'minute('.$colName.') = '.$datePart[2].' and '
+                            .'second('.$colName.') = '.$datePart[2].' and ';
+                }
+            }
+        }
+        else if($formatInUpperCase == 'YYYY-MM-DD'){
+            $datePart = explode('-', $date);
+            if(count($datePart) == 3){
+                $condition = 'year('.$colName.') = '.$datePart[0].' and '
+                            .'month('.$colName.') = '.$datePart[1].' and '
+                            .'day('.$colName.') = '.$datePart[2];
+            }
+        }
+        else if($formatInUpperCase == 'YYYY'){
+             $condition = 'year('.$colName.') = '.$date;
+        }
+        else if($formatInUpperCase == 'MM'){
+             $condition = 'month('.$colName.') = '.$date;
+        }
+        else if($formatInUpperCase == 'DD'){
+             $condition = 'day('.$colName.') = '.$date;
+        }
+        else if($formatInUpperCase == 'HH:MM:SS'){
+            $datePart = explode(':', $date);
+            if(count($datePart) == 3){
+                $condition = 'hour('.$colName.') = '.$datePart[0].' and '
+                            .'minute('.$colName.') = '.$datePart[1].' and '
+                            .'second('.$colName.') = '.$datePart[2];
+            }
+        }
+        else if($formatInUpperCase == 'HH'){
+             $condition = 'hour('.$colName.') = '.$date;
+        }
+        else if($formatInUpperCase == 'SS'){
+             $condition = 'second('.$colName.') = '.$date;
+        }
+        else if($formatInUpperCase == 'MM'){
+             $condition = 'minute('.$colName.') = '.$date;
+        }
+        return $condition;
+    }
     private function _selectIn($optionsArr){
         
     }
@@ -861,7 +934,7 @@ abstract class MySQLQuery{
                 $equalityCond = '=';
             }
             if($col instanceof Column){
-                $valUpper = strtoupper(trim($vals[$index]));
+                $valUpper = gettype($vals[$index]) != 'array' ? strtoupper(trim($vals[$index])) : '';
                 if($valUpper == 'IS NULL' || $valUpper == 'IS NOT NULL'){
                     if($index + 1 == $count){
                         $where .= $col->getName().' '.$valUpper.'';
@@ -872,20 +945,62 @@ abstract class MySQLQuery{
                 }
                 else{
                     if($index + 1 == $count){
-                        $where .= $col->getName().' '.$equalityCond.' ';
-                        if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                        if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                            $where .= $col->getName().' '.$equalityCond.' ';
                             $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\'' ;
                         }
+                        else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
+                            if(gettype($vals[$index]) == 'array'){
+                                $value = $vals[$index];
+                                if(isset($value['value'])){
+                                    if(isset($value['format'])){
+                                        $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
+                                    }
+                                    else{
+                                        $str = $this->createDateCondition($value['value'], $col->getName());
+                                    }
+                                    if(strlen($str) !== 0){
+                                        $where .= $str.' ';
+                                    }
+                                }
+                            }
+                            else{
+                                $where .= $col->getName().' '.$equalityCond.' ';
+                                $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
+                            }
+                        }
                         else{
+                            $where .= $col->getName().' '.$equalityCond.' ';
                             $where .= $vals[$index];
                         }
                     }
                     else{
-                        $where .= $col->getName().' '.$equalityCond.' ';
-                        if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                        if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                            $where .= $col->getName().' '.$equalityCond.' ';
                             $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' '.$jointOps[$index].' ' ;
                         }
+                        else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
+                            if(gettype($vals[$index]) == 'array'){
+                                $value = $vals[$index];
+                                if(isset($value['value'])){
+                                    if(isset($value['format'])){
+                                        $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
+                                    }
+                                    else{
+                                        $str = $this->createDateCondition($value['value'], $col->getName());
+                                    }
+                                    if(strlen($str) !== 0){
+                                        $where .= $str.' '.$jointOps[$index].' ';
+                                    }
+                                }
+                            }
+                            else{
+                                $where .= $col->getName().' '.$equalityCond.' ';
+                                $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
+                            }
+                        }
                         else{
+                            $where .= $col->getName().' '.$equalityCond.' ';
                             $where .= $vals[$index].' '.$jointOps[$index].' ';
                         }
                     }
