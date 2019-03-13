@@ -832,6 +832,7 @@ abstract class MySQLQuery{
                                     if($fileContent !== FALSE){
                                         $data = '\''. addslashes($fileContent).'\'';
                                         $vals .= $data.$comma;
+                                        $this->setIsBlobInsertOrUpdate(TRUE);
                                     }
                                     else{
                                         $vals .= 'NULL'.$comma;
