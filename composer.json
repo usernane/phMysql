@@ -1,5 +1,5 @@
 {
-    "name": "phMysql/phMysql",
+    "name": "webfiori/ph-mysql",
     "type": "library",
     "description": "PHP library for constructing MySQL database quires.",
     "keywords": [
