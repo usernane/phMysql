@@ -45,3 +45,4 @@ require_once $rootDir.'src'.$DS.'ForeignKey.php';
 require_once $rootDir.'src'.$DS.'MySQLLink.php';
 require_once $rootDir.'src'.$DS.'MySQLQuery.php';
 require_once $rootDir.'src'.$DS.'MySQLTable.php';
+require_once $rootDir.'tests'.$DS.'QueryTestObj.php';
