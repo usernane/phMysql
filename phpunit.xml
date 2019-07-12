@@ -2,6 +2,11 @@
 <phpunit colors="true" bootstrap="tests/loader.php">
     <php>
     </php>
+    <filter>
+        <whitelist addUncoveredFilesFromWhitelist="true">
+            <directory suffix=".php">./src</directory>
+        </whitelist>
+    </filter>
     <testsuites>
         <testsuite name="Test Suite">
             <directory>./tests</directory>
