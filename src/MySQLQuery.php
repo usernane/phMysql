@@ -1074,6 +1074,47 @@ abstract class MySQLQuery{
         return $where;
     }
     /**
+     * 
+     * @param MySQLTable $rightTable
+     */
+    private function _createOnCondition($rightTable,$rightCols,$leftCols){
+        $onCond = '';
+        if($rightTable instanceof MySQLTable){
+            $leftColsStrsArr = [];
+            $rightColsStrsArr = [];
+            $leftTable = $this->getStructure();
+            foreach ($rightCols as $colKey){
+                $colObj = $rightTable->getCol($colKey);
+                if($colObj instanceof Column){
+                    $rightColsStrsArr[] = $rightTable->getName().'.'.$colObj->getName();
+                }
+            }
+            foreach ($leftCols as $colKey){
+                $colObj = $leftTable->getCol($colKey);
+                if($colObj instanceof Column){
+                    $leftColsStrsArr[] = $leftTable->getName().'.'.$colObj->getName();
+                }
+            }
+            $leftColsCount = count($leftColsStrsArr);
+            if($leftColsCount == count($rightColsStrsArr)){
+                $onCond = ' on (';
+                for($x = 0 ; $x < $leftColsCount ; $x++){
+                    if($x != 0){
+                        $joinOp = ' and ';
+                    }
+                    else{
+                        $joinOp = '';
+                    }
+                    $leftCol = $leftColsStrsArr[$x];
+                    $rightCol = $rightColsStrsArr[$x];
+                    $onCond .= $joinOp.$leftCol.' = '.$rightCol;
+                }
+                $onCond .= ')';
+            }
+        }
+        return $onCond;
+    }
+    /**
      * Constructs a query that can be used to update a record.
      * @param array $colsAndNewVals An associative array. The key must be the 
      * new value and the value of the index is an object of type 'Column'.
