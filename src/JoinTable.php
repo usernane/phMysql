@@ -26,59 +26,148 @@ namespace phMysql;
 use phMysql\MySQLQuery;
 use phMysql\MySQLTable;
 use phMysql\Column;
+use Exception;
 /**
- * A class that represents a join statement between two tables.
+ * A class that represents a join table of two tables.
  *
  * @author Ibrahim
+ * @version 1.0
  */
 class JoinTable extends MySQLTable{
+    /**
+     * An array that contains supported join types.
+     * The array has the following string values:
+     * <ul>
+     * <li>left</li>
+     * <li>right</li>
+     * </ul>
+     * @since 1.0
+     */
     const SUPPORTED_JOINS = [
         'left','right'
     ];
+    /**
+     * The left table of a join statement.
+     * @var MySQLTable 
+     * @since 1.0
+     */
     private $leftTable;
+    /**
+     * The right table of a join statement.
+     * @var MySQLTable 
+     * @since 1.0
+     */
     private $rightTable;
+    /**
+     * A string that represents join type
+     * @var string
+     * @since 1.0 
+     */
     private $joinType;
+    /**
+     * A static variable which is used in default table name.
+     * The value is incrumented every time a new instance of the 
+     * class is created.
+     * @var int
+     * @since 1.0 
+     */
     private static $JoinCount = 0;
+    /**
+     * Creates new instance of the class.
+     * @param MySQLTable $left The left table of join statement.
+     * @param MySQLTable $right The right table of join statement.
+     * @param string $joinType A string that represents join type. It can be 
+     * one of the following values:
+     * <ul>
+     * <li>join</li>
+     * <li>left</li>
+     * <li>right</li>
+     * If the parameter is not provided or given type is not supported, then 
+     * 'join' is used.
+     * </ul>
+     */
     public function __construct($left,$right,$joinType='join') {
         parent::__construct('Table'.self::$JoinCount);
         self::$JoinCount++;
         if($left instanceof MySQLTable && $right instanceof MySQLTable){
             $this->leftTable = $left;
             $this->rightTable = $right;
+            $lType = strtolower(trim($joinType));
+            if(in_array($lType, self::SUPPORTED_JOINS)){
+                $this->joinType = $lType;
+            }
+            else{
+                $this->joinType = 'join';
+            }
+            return;
         }
-        $lType = strtolower(trim($joinType));
-        if(in_array($lType, self::SUPPORTED_JOINS)){
-            $this->joinType = $lType;
-        }
-        else{
-            $this->joinType = 'join';
-        }
+        throw new Exception('Given parameter(s) are not of type \'phpStructs\\MySQLTable\'.');
     }
     /**
-     * 
-     * @return MySQLTable
+     * Returns the right table of the join statement.
+     * @return MySQLTable An object of type 'MySQlTable' that represents right 
+     * table of the join statement.
+     * @since 1.0
      */
     public function getRightTable() {
         return $this->rightTable;
     }
     /**
-     * 
-     * @return MySQLTable
+     * Returns the left table of the join statement.
+     * @return MySQLTable An object of type 'MySQlTable' that represents left 
+     * table of the join statement.
+     * @since 1.0
      */
     public function getLeftTable() {
         return $this->leftTable;
     }
+    /**
+     * Returns a string that represents join type.
+     * @return string The method might return one of the following values:
+     * <ul>
+     * <li>join</li>
+     * <li>left join</li>
+     * <li>right join</li>
+     * </ul>
+     * @since 1.0
+     */
     public function getJoinType() {
         return $this->joinType;
     }
+    /**
+     * Returns a string that represents join clause of join statement.
+     * @return string The returned string will have the following format:
+     * <p>Table1 &lt;join_type&gt; Table2</p>
+     * @since 1.0
+     */
     public function getJoinStatement() {
         $retVal = $this->getLeftTable()->getName()
                 .' '.$this->getJoinType().' '.$this->getRightTable()->getName();
         return $retVal;  
     }
-    
+    /**
+     * Constructs a string that represents the 'on' condition of join statement.
+     * @param array $cols An associative array of columns indices. The keys 
+     * must be columns indices taken from left table and the values must be columns 
+     * indices from the right table.
+     * @param array $conditions An array that contains join conditions (such as 
+     * '=' or '!='). If not provided or invalid value is given, '=' will be used 
+     * as a default value.
+     * @param array $joinOps An array that contains string which contains conditions 
+     * join operators ('and' or 'or'). If not provided or invalid join operators 
+     * are given, 'and' will be used as a default value.
+     * @return string A string that represents the 'on' condition of join statement. 
+     * If no condition is constructed, the method will return empty string.
+     * @since 1.0
+     */
     public function getOnCondition($cols,$conditions=[],$joinOps=[]) {
-        if(gettype($cols) == 'array' && gettype($conditions) == 'array'){
+        if(gettype($cols) == 'array'){
+            if(gettype($conditions) != 'array'){
+                $conditions = [];
+            }
+            if(gettype($joinOps) != 'array'){
+                $joinOps = [];
+            }
             $conditionsCount = count($conditions);
             $colsCount = count($cols);
             $joinOpsCount = count($joinOps);
