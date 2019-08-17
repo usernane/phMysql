@@ -174,11 +174,13 @@ class JoinTable extends MySQLTable{
             if($colsCount > $conditionsCount){
                 while ($conditionsCount != $colsCount){
                     $conditions[] = '=';
+                    $conditionsCount = count($conditions);
                 }
             }
-            if($conditionsCount - 1 > $conditionsCount){
+            if($conditionsCount - 1 > $joinOpsCount){
                 while ($conditionsCount - 1 != $joinOpsCount){
                     $joinOps[] = 'and';
+                    $joinOpsCount = count($joinOps);
                 }
             }
             $index = 0;
