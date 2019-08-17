@@ -19,6 +19,7 @@ class ArticleQuery extends MySQLQuery{
         $this->table = new MySQLTable('articles');
         $this->table->addColumn('article-id', new Column('article_id', 'int', 11));
         $this->table->addColumn('author-id', new Column('author_id', 'int', 11));
+        $this->table->addColumn('author-name', new Column('author_name', 'varchar', 20));
         $this->table->addColumn('content', new Column('content', 'varchar', 5000));
     }
     /**
