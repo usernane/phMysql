@@ -21,4 +21,13 @@ class JoinTableTest extends TestCase{
         $join = new JoinTable($q1->getStructure(), $q2->getStructure());
         $this->assertEquals('system_users join articles',$join->getJoinStatement());
     }
+    public function testGetOnCondition00() {
+        $q1 = new UsersQuery();
+        $q2 = new ArticleQuery();
+        $join = new JoinTable($q1->getStructure(), $q2->getStructure());
+        $on = $join->getOnCondition([
+            'user-id'=>'author-id'
+        ]);
+        $this->assertEquals('on (system_users.user_id = articles.author_id)',$on);
+    }
 }
