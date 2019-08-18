@@ -376,6 +376,7 @@ abstract class MySQLQuery{
      * Or the indices can be column indices or columns names taken from MySQLTable object and 
      * the values are set for each index. The second way is recommended as one 
      * table might have two columns with the same values.</li>
+     * <li><b>where</b>: Similar to 'condition-cols-and-vals'.</li>
      * <li><b>conditions</b>: An array that can contains two possible values: 
      * '=' or '!='. If anything else is given at specific index, '=' will be used. In 
      * addition, If not provided or has invalid value, an array of '=' conditions 
@@ -507,6 +508,9 @@ abstract class MySQLQuery{
             }
             else{
                 $selectQuery .= '* from '.$this->getStructureName();
+            }
+            if(!isset($selectOptions['condition-cols-and-vals'])){
+                $selectOptions['condition-cols-and-vals'] = isset($selectOptions['where']) ? $selectOptions['where'] : [];
             }
             $selectOptions['join-operators'] = isset($selectOptions['join-operators']) && 
                     gettype($selectOptions['join-operators']) == 'array' ? $selectOptions['join-operators'] : array();
