@@ -66,7 +66,7 @@ class JoinTable extends MySQLTable{
     private $joinType;
     /**
      * A static variable which is used in default table name.
-     * The value is incrumented every time a new instance of the 
+     * The value is incremented every time a new instance of the 
      * class is created.
      * @var int
      * @since 1.0 
