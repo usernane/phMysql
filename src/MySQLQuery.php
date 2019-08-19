@@ -914,15 +914,6 @@ abstract class MySQLQuery{
         $this->setQuery(self::INSERT.$this->getStructureName().$cols.' values '.$vals.';', 'insert');
     }
     /**
-     * Constructs a query that can be used to delete a row from a table using 
-     * the ID column.
-     * @param string $id The value of the ID on the row.
-     * @since 1.0
-     */
-    public function delete($id,$idColName){
-        $this->setQuery(self::DELETE.$this->getStructureName().' where '.$idColName.' = '.$id, 'delete');
-    }
-    /**
      * Removes a record from the table.
      * @param array $columnsAndVals An associative array. The indices of the array 
      * should be the values of the columns and the value at each index is 
@@ -936,9 +927,9 @@ abstract class MySQLQuery{
      * is only one condition.
      * @since 1.8.2
      */
-    public function deleteRecord($columnsAndVals,$valsConds,$jointOps=array()) {
-        $cols = array();
-        $vals = array();
+    public function deleteRecord($columnsAndVals,$valsConds,$jointOps=[]) {
+        $cols = [];
+        $vals = [];
         foreach ($columnsAndVals as $valOrIndex => $colObjOrVal){
             if($colObjOrVal instanceof Column){
                 $cols[] = $colObjOrVal;
@@ -995,12 +986,16 @@ abstract class MySQLQuery{
         $index = 0;
         $count = count($cols);
         $where = ' where ';
+        $supportedConds = ['=','!=','<','<=','>','>='];
         foreach ($cols as $col){
+            //first, check given condition
             $equalityCond = trim($valsConds[$index]);
-            if($equalityCond != '!=' && $equalityCond != '='){
+            if(!in_array($equalityCond, $supportedConds)){
                 $equalityCond = '=';
             }
+            //then check if column object is given
             if($col instanceof Column){
+                //then check value
                 $valUpper = gettype($vals[$index]) != 'array' ? strtoupper(trim($vals[$index])) : '';
                 if($valUpper == 'IS NULL' || $valUpper == 'IS NOT NULL'){
                     if($index + 1 == $count){
@@ -1032,7 +1027,7 @@ abstract class MySQLQuery{
                                 }
                             }
                             else{
-                                $where .= $col->getName().' '.$equalityCond.' ';
+                                $where .= 'date('.$col->getName().') '.$equalityCond.' ';
                                 $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
                             }
                         }
@@ -1062,7 +1057,7 @@ abstract class MySQLQuery{
                                 }
                             }
                             else{
-                                $where .= $col->getName().' '.$equalityCond.' ';
+                                $where .= 'date('.$col->getName().') '.$equalityCond.' ';
                                 $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
                             }
                         }
