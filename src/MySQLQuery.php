@@ -824,6 +824,9 @@ abstract class MySQLQuery{
                     if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
                         $vals .= '\''.self::escapeMySQLSpeciarChars($valOrColIndex).'\''.$comma;
                     }
+                    else if($type == 'decimal' || $type == 'double' || $type == 'float'){
+                        $vals .= '\''.$valOrColIndex.'\''.$comma;
+                    }
                     else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
                         $fixedPath = str_replace('\\', '/', $valOrColIndex);
                         if(file_exists($fixedPath)){
@@ -871,6 +874,9 @@ abstract class MySQLQuery{
                         $type = $column->getType();
                         if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
                             $vals .= '\''.self::escapeMySQLSpeciarChars($colObjOrVal).'\''.$comma;
+                        }
+                        else if($type == 'decimal' || $type == 'double' || $type == 'float'){
+                            $vals .= '\''.$valOrColIndex.'\''.$comma;
                         }
                         else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
                             $fixedPath = str_replace('\\', '/', $colObjOrVal);
@@ -1011,6 +1017,10 @@ abstract class MySQLQuery{
                             $where .= $col->getName().' '.$equalityCond.' ';
                             $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\'' ;
                         }
+                        else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
+                            $where .= $col->getName().' '.$equalityCond.' ';
+                            $where .= '\''.$vals[$index].'\'' ;
+                        }
                         else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
                             if(gettype($vals[$index]) == 'array'){
                                 $value = $vals[$index];
@@ -1040,6 +1050,10 @@ abstract class MySQLQuery{
                         if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
                             $where .= $col->getName().' '.$equalityCond.' ';
                             $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' '.$jointOps[$index].' ' ;
+                        }
+                        else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
+                            $where .= $col->getName().' '.$equalityCond.' ';
+                            $where .= '\''.$vals[$index].'\'' ;
                         }
                         else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
                             if(gettype($vals[$index]) == 'array'){
@@ -1110,6 +1124,9 @@ abstract class MySQLQuery{
                     if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
                         $colsStr .= ' '.$colObjOrNewVal->getName().' = \''.self::escapeMySQLSpeciarChars($newValOrIndex).'\''.$comma ;
                     }
+                    else if($type == 'decimal' || $type == 'float' || $type == 'double'){
+                        $colsStr .= '\''.$newValOrIndex.'\''.$comma;
+                    }
                     else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
                         $fixedPath = str_replace('\\', '/', $newValOrIndex);
                         if(file_exists($fixedPath)){
@@ -1157,6 +1174,9 @@ abstract class MySQLQuery{
                         $type = $column->getType();
                         if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
                             $colsStr .= ' '.$column->getName().' = \''.self::escapeMySQLSpeciarChars($colObjOrNewVal).'\''.$comma ;
+                        }
+                        else if($type == 'decimal' || $type == 'float' || $type == 'double'){
+                            $colsStr .= '\''.$newValOrIndex.'\''.$comma;
                         }
                         else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
                             $fixedPath = str_replace('\\', '/', $colObjOrNewVal);

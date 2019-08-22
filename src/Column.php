@@ -26,7 +26,7 @@ namespace phMysql;
 /**
  * A class that represents a column in MySQL table.
  * @author Ibrahim
- * @version 1.6.1
+ * @version 1.6.2
  */
 class Column{
     /**
@@ -90,13 +90,16 @@ class Column{
      * <li><b>blob</b> Used to store up to 16 kilobytes of raw binary data.</li>
      * <li><b>mediumblob</b> Used to store up to 16 megabytes of raw binary data.</li>
      * <li><b>longblob</b> Used to store up to 4 gigabytes of raw binary data.</li>
+     * <li><b>decimal</b> Used to store exact numeric values.</li>
+     * <li><b>float</b> Used to store numbers in a single precision notation (approximate values).</li>
+     * <li><b>double</b> Used to store numbers in a double precision notation (approximate values).</li>
      * </ul>
      * @var array 
      * @since 1.0
      */
     const DATATYPES = array(
         'int','varchar','timestamp','tinyblob','blob','mediumblob','longblob',
-        'datetime','text','mediumtext'
+        'datetime','text','mediumtext','decimal','double','float'
     );
     
     /**
@@ -156,6 +159,12 @@ class Column{
      */
     private $onColUpdate;
     /**
+     * The number of numbers that will appear after the decimal point.
+     * @var int 
+     * @since 1.6.2
+     */
+    private $precision;
+    /**
      * Creates new instance of the class.
      * This method is used to initialize basic attributes of the column. 
      * First of all, it sets MySQL version number to 5.5. Then it validates the 
@@ -180,16 +189,63 @@ class Column{
         if(!$this->setType($datatype)){
             $this->setType('varchar');
         }
-        if($this->getType() == 'varchar' || $this->getType() == 'int' || $this->getType() == 'text'){
+        $realDatatype = $this->getType();
+        if($realDatatype == 'varchar' || $realDatatype == 'int' || $realDatatype == 'text'){
             if(!$this->setSize($size)){
                 $this->setSize(1);
             }
         }
-        if($datatype == 'varchar' && $size > 21845){
+        if($realDatatype == 'decimal' || $realDatatype == 'float' || $realDatatype == 'double'){
+            $this->setPrecision(2);
+        }
+        if($realDatatype == 'varchar' && $size > 21845){
             $this->setType('mediumtext');
         }
         $this->setIsNull(false);
         $this->setIsUnique(false);
+    }
+    /**
+     * Sets the value of precision.
+     * Precision is simply the number of numbers that will appear after the decimal 
+     * point. This method will only work if the data type is decimal, float or 
+     * double. Each type support different maximum value as follows:
+     * <ul>
+     * <li>If datatype is float, then the maximum value is 23.</li>
+     * <li>If the datatype is decimal, the maximum value is 30.</li>
+     * <li>If the datatype is double, the maximum value is 53.</li>
+     * <ul>
+     * @param int $val Number of numbers after the decimal point. It must be a 
+     * positive number.
+     * @since 1.6.2
+     */
+    public function setPrecision($val) {
+        $type = $this->getType();
+        if($type == 'decimal'){
+            if($val >= 0 && $val <= 30){
+                $this->precision = $val;
+            }
+        }
+        else if($type == 'float'){
+            if($val >= 0 && $val <= 23){
+                $this->precision = $val;
+            }
+        }
+        else if($type == 'double'){
+            if($val >= 0 && $val <= 53){
+                $this->precision = $val;
+            }
+        }
+    }
+    /**
+     * Returns the value of precision.
+     * Precision is simply the number of numbers that will appear after the decimal 
+     * point.
+     * @return int The number of numbers after the decimal point. Default return 
+     * value is 2.
+     * @since 1.6.2
+     */
+    public function getPrecision() {
+        return $this->precision;
     }
     private function _validateDateAndTime($date) {
         $trimmed = trim($date);
@@ -570,6 +626,10 @@ class Column{
                 return true;
             }
         }
+        else if($type == 'decimal' || $type == 'float' || $type == 'double'){
+            $this->size = $size;
+            return true;
+        }
         else{
             return Column::SIZE_NOT_SUPPORTED;
         }
@@ -635,6 +695,9 @@ class Column{
         if($type == 'int' || $type == 'varchar' || $type == 'text'){
             $retVal .= $type.'('.$this->getSize().') ';
         }
+        else if($type == 'decimal' || $type == 'float' || $type == 'double'){
+            $retVal .= $type.'('.$this->getSize().','.$this->getPrecision().') ';
+        }
         else{
             $retVal .= $type.' ';
         }
@@ -669,7 +732,13 @@ class Column{
             $retVal .= 'collate '.$this->getCollation().' ';
         }
         if($default !== null){
-            if($this->getType() == 'varchar'){
+            
+            if($type == 'varchar' || 
+                    $type == 'decimal' || 
+                    $type == 'float' || 
+                    $type == 'double' || 
+                    $type == 'mediumtext' || 
+                    $type == 'text'){
                 $retVal .= 'default \''.$default.'\' ';
             }
             else if($this->getType() == 'timestamp' || $this->getType() == 'datetime'){
