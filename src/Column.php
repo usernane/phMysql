@@ -26,9 +26,15 @@ namespace phMysql;
 /**
  * A class that represents a column in MySQL table.
  * @author Ibrahim
- * @version 1.6.2
+ * @version 1.6.3
  */
 class Column{
+    /**
+     * A comment to add to the column.
+     * @var string|null 
+     * @since 1.6.3
+     */
+    private $comment;
     /**
      * Version number of MySQL server.
      * @var string 
@@ -198,11 +204,29 @@ class Column{
         if($realDatatype == 'decimal' || $realDatatype == 'float' || $realDatatype == 'double'){
             $this->setPrecision(2);
         }
-        if($realDatatype == 'varchar' && $size > 21845){
-            $this->setType('mediumtext');
-        }
+        
         $this->setIsNull(false);
         $this->setIsUnique(false);
+    }
+    /**
+     * Sets a comment which will appear with the column.
+     * @param string|null $comment Comment text. It must be non-empty string 
+     * in order to set. If null is passed, the comment will be removed.
+     * @since 1.6.3
+     */
+    public function setComment($comment) {
+        if($comment == null || strlen($comment) != 0){
+            $this->comment = $comment;
+        }
+    }
+    /**
+     * Returns a string that represents a comment which was added with the column.
+     * @return string|null Comment text. If it is not set, the method will return 
+     * null.
+     * @since 1.6.3
+     */
+    public function getComment() {
+        return $this->comment;
     }
     /**
      * Sets the value of precision.
@@ -409,6 +433,9 @@ class Column{
             if(strpos($trimmed, ' ') === false){
                 for ($x = 0 ; $x < strlen($trimmed) ; $x++){
                     $ch = $trimmed[$x];
+                    if($x == 0 && ($ch >= '0' && $ch <= '9')){
+                        return false;
+                    }
                     if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
 
                     }
@@ -498,14 +525,17 @@ class Column{
      * size is invalid, 1 will be used.
      * @param mixed $default Default value for the column to set in case no value is 
      * given in case of insert.
-     * @return boolean true if the data type is set. Column::INV_COL_DATATYPE otherwise.
+     * @return boolean true if the data type is set. False otherwise.
      * @since 1.0
      */
     public function setType($type,$size=1,$default=null){
         $s_type = strtolower(trim($type));
         if(in_array($s_type, self::DATATYPES)){
-            $this->type = $type;
-            if($type == 'varchar' || $type == 'int'){
+            if($s_type != 'int'){
+                $this->setIsAutoInc(false);
+            }
+            $this->type = $s_type;
+            if($s_type == 'varchar' || $s_type == 'int'){
                 if(!$this->setSize($size)){
                     $this->setSize(1);
                 }
@@ -522,7 +552,7 @@ class Column{
             }
             return true;
         }
-        return Column::INV_COL_DATATYPE;
+        return false;
     }
     /**
      * Returns the type of column data (such as 'varchar').
@@ -599,7 +629,8 @@ class Column{
      * Sets the size of data (for 'int' and 'varchar' only). 
      * If the data type of the column is 'int', the maximum size is 11. If a 
      * number greater than 11 is given, the value will be set to 11. The 
-     * maximum size for the 'varchar' is not specified.
+     * maximum size for the 'varchar' is 21845. If a value greater that that is given, 
+     * the datatype of the column will be changed to 'mediumtext'.
      * @param int $size The size to set.
      * @return boolean true if the size is set. The method will return 
      * Column::INV_DATASIZE in case the size is invalid or datatype does not support 
@@ -613,6 +644,9 @@ class Column{
         if($type == 'varchar' || $type == 'text'){
             if($size > 0){
                 $this->size = $size;
+                if($type == 'varchar' && $size > 21845){
+                    $this->setType('mediumtext');
+                }
                 return true;
             }
         }
@@ -707,23 +741,23 @@ class Column{
         else{
             $retVal .= 'null ';
         }
-        if($this->isPrimary()){
-            $t = &$this->getOwner();
-            if($t != null){
-                if($t->primaryKeyColsCount() == 1){
-                    $retVal .= 'primary key ';
-                    if($this->isAutoInc()){
-                        $retVal .= 'auto_increment ';
-                    }
-                }
-            }
-            else{
-                $retVal .= 'primary key ';
-                if($this->isAutoInc()){
-                    $retVal .= 'auto_increment ';
-                }
-            }
-        }
+//        if($this->isPrimary()){
+//            $t = &$this->getOwner();
+//            if($t != null){
+//                if($t->primaryKeyColsCount() == 1){
+//                    $retVal .= 'primary key ';
+//                    if($this->isAutoInc()){
+//                        $retVal .= 'auto_increment ';
+//                    }
+//                }
+//            }
+//            else{
+//                $retVal .= 'primary key ';
+//                if($this->isAutoInc()){
+//                    $retVal .= 'auto_increment ';
+//                }
+//            }
+//        }
         if($this->isUnique()){
             $retVal .= 'unique ';
         }
@@ -753,6 +787,10 @@ class Column{
             else{
                 $retVal .= 'default '.$default.' ';
             }
+        }
+        $comment = $this->getComment();
+        if($comment !== null){
+            $retVal .= 'comment \''.$comment.'\' ';
         }
         return $retVal;
     }
