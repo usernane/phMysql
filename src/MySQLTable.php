@@ -23,6 +23,7 @@
  * SOFTWARE.
  */
 namespace phMysql;
+use phMysql\MySQLQuery;
 /**
  * A class that represents MySQL table.
  *
@@ -30,6 +31,12 @@ namespace phMysql;
  * @version 1.6.1
  */
 class MySQLTable {
+    /**
+     * A comment to add to the column.
+     * @var string|null 
+     * @since 1.6.1
+     */
+    private $comment;
     /**
      * Version number of MySQL server.
      * @var string 
@@ -91,11 +98,10 @@ class MySQLTable {
      */
     private $charSet;
     /**
-     * A boolean which is set to true when the method Table::addDefaultColumns() 
-     * is called.
-     * @var boolean 
+     * An array of booleans which indicates which default columns has been added
+     * @var array 
      */
-    private $hasDefault;
+    private $hasDefaults;
     /**
      * Creates a new instance of the class.
      * This method will initialize the basic settings of the table. It will 
@@ -114,7 +120,11 @@ class MySQLTable {
         $this->engin = 'InnoDB';
         $this->charSet = 'utf8mb4';
         $this->order = 0;
-        $this->hasDefault = false;
+        $this->hasDefaults = [
+            'id'=>false,
+            'created-on'=>false,
+            'last-updated'=>false
+        ];
     }
     /**
      * Sets version number of MySQL server.
@@ -183,7 +193,7 @@ class MySQLTable {
         'last-updated'=>[]
     ]) {
         if(gettype($options) == 'array'){
-            if(isset($options['id'])){
+            if(isset($options['id']) && !$this->hasDefaults['id']){
                 $id = $options['id'];
                 $key = isset($id['key-name']) ? trim($id['key-name']) : 'id';
                 if(!$this->_isKeyNameValid($key)){
@@ -191,16 +201,20 @@ class MySQLTable {
                 }
                 $inDbName = isset($id['db-name']) ? $id['db-name'] : 'id';
                 $colObj = new Column($inDbName, 'int', 11);
+                $colObj->setIsPrimary(true);
+                $colObj->setIsAutoInc(true);
                 if(!($colObj->getName() == $inDbName)){
                     $colObj->setName('id');
                 }
-                $this->addColumn($key, $colObj);
+                if($this->addColumn($key, $colObj)){
+                    $this->hasDefaults['id'] = true;
+                }
             }
-            if(isset($options['created-on'])){
+            if(isset($options['created-on']) && !$this->hasDefaults['created-on']){
                 $createdOn = $options['created-on'];
                 $key = isset($createdOn['key-name']) ? trim($createdOn['key-name']) : 'created-on';
                 if(!$this->_isKeyNameValid($key)){
-                    $key = 'id';
+                    $key = 'created-on';
                 }
                 $inDbName = isset($createdOn['db-name']) ? $createdOn['db-name'] : 'created_on';
                 $colObj = new Column($inDbName, 'timestamp');
@@ -208,13 +222,15 @@ class MySQLTable {
                     $colObj->setName('created_on');
                 }
                 $colObj->setDefault();
-                $this->addColumn($key, $colObj);
+                if($this->addColumn($key, $colObj)){
+                    $this->hasDefaults['created-on'] = true;
+                }
             }
-            if(isset($options['last-updated'])){
+            if(isset($options['last-updated']) && !$this->hasDefaults['last-updated']){
                 $lastUpdated = $options['last-updated'];
                 $key = isset($lastUpdated['key-name']) ? trim($lastUpdated['key-name']) : 'last-updated';
                 if(!$this->_isKeyNameValid($key)){
-                    $key = 'id';
+                    $key = 'last-updated';
                 }
                 $inDbName = isset($lastUpdated['db-name']) ? $lastUpdated['db-name'] : 'last_updated';
                 $colObj = new Column($inDbName, 'datetime');
@@ -222,7 +238,9 @@ class MySQLTable {
                     $colObj->setName('last_update');
                 }
                 $colObj->autoUpdate();
-                $this->addColumn($key, $colObj);
+                if($this->addColumn($key, $colObj)){
+                    $this->hasDefaults['last-updated'] = true;
+                }
             }
         }
     }
@@ -338,12 +356,10 @@ class MySQLTable {
      */
     public function getCreatePrimaryKeyStatement() {
         $primaryCount = $this->primaryKeyColsCount();
-        if($primaryCount == 1){
-            return '';
-        }
-        else if($primaryCount != 0){
+        if($primaryCount != 0){
             $stm = 'alter table '.$this->getName().' add constraint '.$this->getPrimaryKeyName().' primary key (';
             $index = 0;
+            $alterStm = '';
             foreach ($this->colSet as $col){
                 if($col->isPrimary()){
                     if($index + 1 == $primaryCount){
@@ -352,14 +368,40 @@ class MySQLTable {
                     else{
                         $stm .= $col->getName().',';
                     }
+                    if($col->isAutoInc()){
+                        $alterStm .= 'alter table '.$this->getName().' modify '.$col;
+                    }
                     $index++;
                 }
+            }
+            if(strlen($stm) !== 0){
+                $stm .= ';'.MySQLQuery::NL.$alterStm;
             }
             return $stm;
         }
         else{
             return '';
         }
+    }
+    /**
+     * Sets a comment which will appear with the table.
+     * @param string|null $comment Comment text. It must be non-empty string 
+     * in order to set. If null is passed, the comment will be removed.
+     * @since 1.6.1
+     */
+    public function setComment($comment) {
+        if($comment == null || strlen($comment) != 0){
+            $this->comment = $comment;
+        }
+    }
+    /**
+     * Returns a string that represents a comment which was added with the table.
+     * @return string|null Comment text. If it is not set, the method will return 
+     * null.
+     * @since 1.6.1
+     */
+    public function getComment() {
+        return $this->comment;
     }
     /**
      * Adds a foreign key to the table.
@@ -518,7 +560,7 @@ class MySQLTable {
 
     /**
      * Returns the name of the table.
-     * @return string The name of the table.
+     * @return string The name of the table. Default return value is 'table'.
      * @since 1.0
      */
     public function getName(){
@@ -526,32 +568,36 @@ class MySQLTable {
     }
     /**
      * Sets the name of the table.
-     * @param string $param The name of the table (such as 'users'). It must be a 
-     * string and its not empty. Also it must not contain any spaces or any 
-     * characters other than A-Z, a-z and underscore.
-     * @return boolean true if the name of the table is set. false 
-     * in case the given name is invalid.
+     * @param string $param The name of the table (such as 'users'). A valid table 
+     * name must follow the following rules:
+     * <ul>
+     * <li>Must not be an empty string.</li>
+     * <li>Cannot starts with numbers.</li>
+     * <li>Only contain the following sets of characters: [A-Z], [a-z], [0-9] and underscore.</li>
+     * </ul>
+     * @return boolean If the name of the table is updated, then the method will return true. 
+     * other than that, it will return false.
      * @since 1.0
      */
     public function setName($param) {
-        if(gettype($param) == 'string'){
-            if(strlen($param) != 0){
-                if(strpos($param, ' ') === false){
-                    for ($x = 0 ; $x < strlen($param) ; $x++){
-                        $ch = $param[$x];
-                        if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
-                            
-                        }
-                        else{
-                            return false;
-                        }
-                    }
-                    $this->tableName = $param;
-                    return true;
+        $trimmedName = trim($param);
+        $len = strlen($trimmedName);
+        for ($x = 0 ; $x < $len ; $x++){
+            $ch = $trimmedName[$x];
+            if($x == 0){
+                if($ch >= '0' && $ch <= '9'){
+                    return false;
                 }
             }
+            if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
+
+            }
+            else{
+                return false;
+            }
         }
-        return false;
+        $this->tableName = $trimmedName;
+        return true;
     }
     /**
      * Removes a column given its key or index in the table.
@@ -586,29 +632,34 @@ class MySQLTable {
      * and '-'.
      * @param Column $col An object of type Column. Note that the column will 
      * be added only if no column was found in the table which has the same name 
-     * as the given column.
+     * as the given column (key name and database name).
      * @return boolean true if the column is added. false otherwise.
      * @since 1.0
      */
     public function addColumn($key,$col) {
         $trimmedKey = trim($key);
         $keyLen = strlen($trimmedKey);
-        if(strlen($keyLen) != 0){
+        if(strlen($keyLen) != 0 && $this->_isKeyNameValid($trimmedKey)){
             if($col instanceof Column){
-                foreach ($this->columns() as $val){
-                    if($val->getName() == $col->getName()){
-                        return false;
+                if(!isset($this->colSet[$trimmedKey])){
+                    $givanColName = $col->getName();
+                    foreach ($this->columns() as $val){
+                        $inTableColName = $val->getName();
+                        if($inTableColName == $givanColName){
+                            return false;
+                        }
                     }
+                    if($this->_isKeyNameValid($trimmedKey)){
+                        $col->setOwner($this);
+                        $this->colSet[$trimmedKey] = $col;
+                    }
+                    return true;
                 }
-                if($this->_isKeyNameValid($trimmedKey)){
-                    $col->setOwner($this);
-                    $this->colSet[$trimmedKey] = $col;
-                }
-                return true;
             }
         }
         return false;
     }
+    
     /**
      * 
      * @param type $key
@@ -636,7 +687,7 @@ class MySQLTable {
      * @since 1.4
      */
     public function hasColumn($colKey) {
-        return isset($this->colSet[$colKey]);
+        return isset($this->colSet[trim($colKey)]);
     }
     /**
      * Returns the column object given the key that it was stored in.
@@ -646,8 +697,9 @@ class MySQLTable {
      * @since 1.0
      */
     public function &getCol($key){
-        if(isset($this->colSet[$key])){
-            return $this->colSet[$key];
+        $trimmed = trim($key);
+        if(isset($this->colSet[$trimmed])){
+            return $this->colSet[$trimmed];
         }
         $null = null;
         return $null;
@@ -660,8 +712,9 @@ class MySQLTable {
      * @since 1.6
      */
     public function getColIndex($key){
-        if(isset($this->colSet[$key])){
-            return $this->colSet[$key]->getIndex();
+        $trimmed = trim($key);
+        if(isset($this->colSet[$trimmed])){
+            return $this->colSet[$trimmed]->getIndex();
         }
         return -1;
     }
