@@ -169,7 +169,7 @@ class Column{
      * @var int 
      * @since 1.6.2
      */
-    private $precision;
+    private $scale;
     /**
      * Creates new instance of the class.
      * This method is used to initialize basic attributes of the column. 
@@ -202,7 +202,8 @@ class Column{
             }
         }
         if($realDatatype == 'decimal' || $realDatatype == 'float' || $realDatatype == 'double'){
-            $this->setPrecision(2);
+            $this->setScale(0);
+            $this->setSize(0);
         }
         
         $this->setIsNull(false);
@@ -229,47 +230,43 @@ class Column{
         return $this->comment;
     }
     /**
-     * Sets the value of precision.
-     * Precision is simply the number of numbers that will appear after the decimal 
-     * point. This method will only work if the data type is decimal, float or 
-     * double. Each type support different maximum value as follows:
-     * <ul>
-     * <li>If datatype is float, then the maximum value is 23.</li>
-     * <li>If the datatype is decimal, the maximum value is 30.</li>
-     * <li>If the datatype is double, the maximum value is 53.</li>
-     * <ul>
+     * Sets the value of Scale.
+     * Scale is simply the number of digits that will appear to the right of 
+     * decimal point. Only applicable if the datatype of the column is decimal, 
+     * float and double.
      * @param int $val Number of numbers after the decimal point. It must be a 
      * positive number.
+     * @return boolean If scale value is set, the method will return true. 
+     * false otherwise. The method will not set the scale in the following cases:
+     * <ul>
+     * <li>Datatype of the column is not decimal, float or double.</li>
+     * <li>Size of the column is 0.</li>
+     * <li>Given scale value is greater than the size of the column.</li>
+     * </ul>
      * @since 1.6.2
      */
-    public function setPrecision($val) {
+    public function setScale($val) {
         $type = $this->getType();
-        if($type == 'decimal'){
-            if($val >= 0 && $val <= 30){
-                $this->precision = $val;
+        if($type == 'decimal' || $type == 'float' || $type == 'double'){
+            $size = $this->getSize();
+            if($size != 0 && $val >= 0 && ($size - $val > 0)){
+                $this->scale = $val;
+                return true;
             }
         }
-        else if($type == 'float'){
-            if($val >= 0 && $val <= 23){
-                $this->precision = $val;
-            }
-        }
-        else if($type == 'double'){
-            if($val >= 0 && $val <= 53){
-                $this->precision = $val;
-            }
-        }
+        return false;
     }
     /**
-     * Returns the value of precision.
-     * Precision is simply the number of numbers that will appear after the decimal 
-     * point.
+     * Returns the value of scale.
+     * Scale is simply the number of digits that will appear to the right of 
+     * decimal point. Only applicable if the datatype of the column is decimal, 
+     * float and double.
      * @return int The number of numbers after the decimal point. Default return 
-     * value is 2.
+     * value is 0.
      * @since 1.6.2
      */
-    public function getPrecision() {
-        return $this->precision;
+    public function getScale() {
+        return $this->scale;
     }
     private function _validateDateAndTime($date) {
         $trimmed = trim($date);
@@ -631,11 +628,14 @@ class Column{
      * number greater than 11 is given, the value will be set to 11. The 
      * maximum size for the 'varchar' is 21845. If a value greater that that is given, 
      * the datatype of the column will be changed to 'mediumtext'.
+     * For decimal, double and float data types, the value will represent 
+     * the  precision. If zero is given, then no specific value for precision 
+     * and scale will be used.
      * @param int $size The size to set.
      * @return boolean true if the size is set. The method will return 
-     * Column::INV_DATASIZE in case the size is invalid or datatype does not support 
+     * false in case the size is invalid or datatype does not support 
      * size attribute. Also The method will return 
-     * Column::SIZE_NOT_SUPPORTED in case the datatype of the column does not 
+     * false in case the datatype of the column does not 
      * support size.
      * @since 1.0
      */
@@ -661,13 +661,15 @@ class Column{
             }
         }
         else if($type == 'decimal' || $type == 'float' || $type == 'double'){
-            $this->size = $size;
-            return true;
+            if($size >= 0){
+                $this->size = $size;
+                return true;
+            }
         }
         else{
-            return Column::SIZE_NOT_SUPPORTED;
+            return false;
         }
-        return Column::INV_DATASIZE;
+        return false;
     }
     /**
      * Sets the value of the property <b>$isAutoInc</b>.
@@ -699,7 +701,11 @@ class Column{
     }
     /**
      * Returns the size of the column.
-     * @return int The size of the column. Apply only to 'varchar' and 'int'.
+     * @return int The size of the column. If column data type is int, decimal, double 
+     * or float, the value will represents the overall number of digits in the 
+     * number (Precision) (e.g: size of 54.323 is 5). If the datatype is varchar, then the 
+     * number will represents number of characters. Default value is 1 for 
+     * 'varchar' and 'int'. Zero for decimal, float and double.
      * @since 1.0
      */
     public function getSize(){
@@ -730,7 +736,7 @@ class Column{
             $retVal .= $type.'('.$this->getSize().') ';
         }
         else if($type == 'decimal' || $type == 'float' || $type == 'double'){
-            $retVal .= $type.'('.$this->getSize().','.$this->getPrecision().') ';
+            $retVal .= $type.'('.$this->getSize().','.$this->getScale().') ';
         }
         else{
             $retVal .= $type.' ';
