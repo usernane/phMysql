@@ -28,9 +28,15 @@ use Exception;
  * A base class that is used to construct MySQL queries. It can be used as a base 
  * class for constructing other MySQL queries.
  * @author Ibrahim
- * @version 1.8.6
+ * @version 1.8.7
  */
 abstract class MySQLQuery{
+    /**
+     * The name of database schema that the query will be executed on.
+     * @var string 
+     * @since 1.8.7
+     */
+    private $schemaName;
     /**
      * An attribute that is set to true if the query is un update or insert of 
      * blob datatype.
@@ -175,6 +181,26 @@ abstract class MySQLQuery{
         $this->queryType = 'select';
     }
     /**
+     * Sets the name of database that the query will be executed on.
+     * @param string $name Database schema name. It must be non-empty string.
+     * @since 1.8.7
+     */
+    public function setSchemaName($name) {
+        $nameT = trim($name);
+        if(strlen($nameT) != 0){
+            $this->schemaName = $nameT;
+        }
+    }
+    /**
+     * Returns database schema name that the query will be executed on.
+     * @return string Database schema name. If not set, the method will 
+     * return null.
+     * @since 1.8.7
+     */
+    public function getSchemaName() {
+        return $this->schemaName;
+    }
+    /**
      * Constructs a query that can be used to get the names of all views in a 
      * schema given its name.
      * The result of executing the query is a table with one colum. The name 
@@ -200,7 +226,8 @@ abstract class MySQLQuery{
      * @since 1.4
      */
     public function alter($alterOps){
-        $q = 'alter table '.$this->getStructureName().self::NL;
+        $schema = $this->getSchemaName() === null ? '' : $this->getSchemaName().'.';
+        $q = 'alter table '.$schema.''.$this->getStructureName().self::NL;
         $count = count($alterOps);
         for($x = 0 ; $x < $count ; $x++){
             if($x + 1 == $count){
@@ -222,21 +249,32 @@ abstract class MySQLQuery{
         $this->setQuery($key->getAlterStatement(), 'alter');
     }
     /**
+     * 
+     * @return string
+     * @since 1.8.7
+     */
+    private function _schemaPrefix() {
+        $schema = $this->getSchemaName() === null ? '' : $this->getSchemaName().'.';
+        return $schema;
+    }
+    /**
      * Constructs a query that can be used to create a new table.
-     * @param MySQLTable $table an instance of <b>Table</b>.
-     * @param boolean $inclComments Description
+     * @param MySQLTable $table an instance of <b>MySQLTable</b>.
+     * @param boolean $inclSqlComments If set to true, a set of comment will appear 
+     * in the generated SQL which descripe what is happening in every SQL Statement.
      * @since 1.4
      */
-    private function createTable($table,$inclComments=false){
+    private function createTable($table,$inclSqlComments=false){
         if($table instanceof MySQLTable){
             $query = '';
-            if($inclComments === true){
+            if($inclSqlComments === true){
                 $query .= '-- Structure of the table \''.$this->getStructureName().'\''.self::NL;
                 $query .= '-- Number of columns: \''.count($this->getStructure()->columns()).'\''.self::NL;
-                $query .= '-- Number of forign keys: \''.count($this->getStructure()->forignKeys()).'\''.self::NL;
-                $query .= '-- Number of primary key columns: \''.$this->getStructure()->primaryKeyColsCount().'\''.self::NL;
+                $query .= '-- Number of forign keys count: \''.count($this->getStructure()->forignKeys()).'\''.self::NL;
+                $query .= '-- Number of primary key columns count: \''.$this->getStructure()->primaryKeyColsCount().'\''.self::NL;
             }
-            $query .= 'create table if not exists '.$table->getName().'('.self::NL;
+            $schema = $this->_schemaPrefix();
+            $query .= 'create table if not exists '.$schema.''.$table->getName().'('.self::NL;
             $keys = $table->colsKeys();
             $count = count($keys);
             for($x = 0 ; $x < $count ; $x++){
@@ -248,26 +286,29 @@ abstract class MySQLQuery{
                 }
             }
             $query .= ')'.self::NL;
+            $comment = $table->getComment();
+            if($comment !== null){
+                $query .= 'comment \''.$comment.'\''.self::NL;
+            }
             $query .= 'ENGINE = '.$table->getEngine().self::NL;
             $query .= 'DEFAULT CHARSET = '.$table->getCharSet().self::NL;
             $query .= 'collate = '.$table->getCollation().';'.self::NL;
-            
             $coutPk = $this->getStructure()->primaryKeyColsCount();
             if($coutPk > 1){
-                if($inclComments === true){
-                    $query .= '-- Primary key of the table '.self::NL;
+                if($inclSqlComments === true){
+                    $query .= '-- Add Primary key to the table.'.self::NL;
                 }
                 $query .= $table->getCreatePrimaryKeyStatement().';'.self::NL;
             }
             //add forign keys
             $count2 = count($table->forignKeys());
-            if($inclComments === true && $count2 != 0){
-                $query .= '-- Forign keys of the table '.self::NL;
+            if($inclSqlComments === true && $count2 != 0){
+                $query .= '-- Add Forign keys to the table.'.self::NL;
             }
             for($x = 0 ; $x < $count2 ; $x++){
                 $query .= $table->forignKeys()[$x]->getAlterStatement().';'.self::NL;
             }
-            if($inclComments === true){
+            if($inclSqlComments === true){
                 $query .= '-- End of the Structure of the table \''.$this->getStructureName().'\''.self::NL;
             }
             $this->setQuery($query, 'create');
@@ -302,12 +343,28 @@ abstract class MySQLQuery{
         return $escapedQuery;
     }
     /**
+     * Constructs a query that can be used to show database table engines.
+     * The result of executing the query will be a table with the following 
+     * columns:
+     * <ul>
+     * <li>Engine</li>
+     * <li>Support</li>
+     * <li>Comment</li>
+     * <li>Transactions</li>
+     * <li>Savepoints</li>
+     * </ul>
+     * @since 1.8.7
+     */
+    public function showEngines() {
+        $this->show('engines');
+    }
+    /**
      * Constructs a query that can be used to show some information about something.
      * @param string $toShow The thing that will be shown.
      * @since 1.4
      */
     public function show($toShow){
-        $this->setQuery('show '.$toShow, 'show');
+        $this->setQuery('show '.$toShow.';', 'show');
     }
     /**
      * Returns the value of the property $query.
@@ -465,10 +522,10 @@ abstract class MySQLQuery{
                     else{
                         if($i + 1 == $count && $colsFound != 0){
                             $selectQuery = trim($selectQuery, ',');
-                            $selectQuery .= ' from '.$this->getStructureName();
+                            $selectQuery .= ' from '.$this->_schemaPrefix().$this->getStructureName();
                         }
                         else if($i + 1 == $count && $colsFound == 0){
-                            $selectQuery .= '* from '.$this->getStructureName();
+                            $selectQuery .= '* from '.$this->_schemaPrefix().$this->getStructureName();
                         }
                     }
                     $i++;
@@ -917,7 +974,7 @@ abstract class MySQLQuery{
         
         $cols = ' ('.$cols.')';
         $vals = ' ('.$vals.')';
-        $this->setQuery(self::INSERT.$this->getStructureName().$cols.' values '.$vals.';', 'insert');
+        $this->setQuery(self::INSERT.$this->_schemaPrefix().$this->getStructureName().$cols.' values '.$vals.';', 'insert');
     }
     /**
      * Removes a record from the table.
@@ -952,7 +1009,7 @@ abstract class MySQLQuery{
                 $vals[] = $colObjOrVal;
             }
         }
-        $query = 'delete from '.$this->getStructureName();
+        $query = 'delete from '.$this->_schemaPrefix().$this->getStructureName();
         $this->setQuery($query.$this->createWhereConditions($cols, $vals, $valsConds, $jointOps).';', 'delete');
     }
     /**
@@ -1232,7 +1289,7 @@ abstract class MySQLQuery{
                 $valsArr[] = $colObjOrVal;
             }
         }
-        $this->setQuery('update '.$this->getStructureName().' set '.$colsStr.$this->createWhereConditions($colsArr, $valsArr, $valsConds, $jointOps).';', 'update');
+        $this->setQuery('update '.$this->_schemaPrefix().$this->getStructureName().' set '.$colsStr.$this->createWhereConditions($colsArr, $valsArr, $valsConds, $jointOps).';', 'update');
     }
     /**
      * Checks if the query represents a blob insert or update.
