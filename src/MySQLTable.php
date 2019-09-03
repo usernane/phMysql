@@ -27,7 +27,7 @@ namespace phMysql;
  * A class that represents MySQL table.
  *
  * @author Ibrahim
- * @version 1.6
+ * @version 1.6.1
  */
 class MySQLTable {
     /**
@@ -77,7 +77,7 @@ class MySQLTable {
      * @var array
      * @since 1.0 
      */
-    private $colSet = array();
+    private $colSet = [];
     /**
      * The engine that will be used by the table.
      * @var string
@@ -90,6 +90,12 @@ class MySQLTable {
      * @since 1.0 
      */
     private $charSet;
+    /**
+     * A boolean which is set to true when the method Table::addDefaultColumns() 
+     * is called.
+     * @var boolean 
+     */
+    private $hasDefault;
     /**
      * Creates a new instance of the class.
      * This method will initialize the basic settings of the table. It will 
@@ -108,6 +114,7 @@ class MySQLTable {
         $this->engin = 'InnoDB';
         $this->charSet = 'utf8mb4';
         $this->order = 0;
+        $this->hasDefault = false;
     }
     /**
      * Sets version number of MySQL server.
@@ -127,6 +134,95 @@ class MySQLTable {
                 if($major >= 0 && $minor >= 0){
                     $this->mysqlVnum = $vNum;
                 }
+            }
+        }
+    }
+    /**
+     * Adds default columns to the table.
+     * Default columns are the following columns:
+     * <ul>
+     * <li>ID Column.</li>
+     * <li>The timestamp at which the record was created on.</li>
+     * <li>The date and time at which the record was last updated.</li>
+     * </ul>
+     * Depending on the provided options, none of the 3 might be added or 
+     * one of them or two or all.
+     * @param array $options An associative array that can be used to 
+     * customize default columns. Each option must have a sub-associative 
+     * array with two indices: 'key-name' and 'db-name'. 'key-name' is 
+     * simply the name of the column in the table instance. While 'db-name' 
+     * is the name of the column in database schema. Available options are:
+     * <ul>
+     * <li><b>id</b>: If provided, the column ID will be added. Default value is 
+     * the following array:
+     * <ul>
+     * <li>'key-name'=>'id'</li>
+     * <li>'db-name'=>'id'</li>
+     * </ul>
+     * </li>
+     * <li><b>created-on</b>: If provided, the column created on will be added. Default value is 
+     * the following array:
+     * <ul>
+     * <li>'key-name'=>'created-on'</li>
+     * <li>'db-name'=>'created_on'</li>
+     * </ul>
+     * </li>
+     * <li><b>last-updated</b>: If provided, the column last updated will be added. Default value is 
+     * the following array:
+     * <ul>
+     * <li>'key-name'=>'last-updated'</li>
+     * <li>'db-name'=>'last_updated'</li>
+     * </ul>
+     * </li>
+     * </ul>
+     * @since 1.6.1
+     */
+    public function addDefaultCols($options=[
+        'id'=>[],
+        'created-on'=>[],
+        'last-updated'=>[]
+    ]) {
+        if(gettype($options) == 'array'){
+            if(isset($options['id'])){
+                $id = $options['id'];
+                $key = isset($id['key-name']) ? trim($id['key-name']) : 'id';
+                if(!$this->_isKeyNameValid($key)){
+                    $key = 'id';
+                }
+                $inDbName = isset($id['db-name']) ? $id['db-name'] : 'id';
+                $colObj = new Column($inDbName, 'int', 11);
+                if(!($colObj->getName() == $inDbName)){
+                    $colObj->setName('id');
+                }
+                $this->addColumn($key, $colObj);
+            }
+            if(isset($options['created-on'])){
+                $createdOn = $options['created-on'];
+                $key = isset($createdOn['key-name']) ? trim($createdOn['key-name']) : 'created-on';
+                if(!$this->_isKeyNameValid($key)){
+                    $key = 'id';
+                }
+                $inDbName = isset($createdOn['db-name']) ? $createdOn['db-name'] : 'created_on';
+                $colObj = new Column($inDbName, 'timestamp');
+                if(!($colObj->getName() == $inDbName)){
+                    $colObj->setName('created_on');
+                }
+                $colObj->setDefault();
+                $this->addColumn($key, $colObj);
+            }
+            if(isset($options['last-updated'])){
+                $lastUpdated = $options['last-updated'];
+                $key = isset($lastUpdated['key-name']) ? trim($lastUpdated['key-name']) : 'last-updated';
+                if(!$this->_isKeyNameValid($key)){
+                    $key = 'id';
+                }
+                $inDbName = isset($lastUpdated['db-name']) ? $lastUpdated['db-name'] : 'last_updated';
+                $colObj = new Column($inDbName, 'datetime');
+                if(!($colObj->getName() == $inDbName)){
+                    $colObj->setName('last_update');
+                }
+                $colObj->autoUpdate();
+                $this->addColumn($key, $colObj);
             }
         }
     }
@@ -458,8 +554,36 @@ class MySQLTable {
         return false;
     }
     /**
+     * Removes a column given its key or index in the table.
+     * The method will first assume that the given value is column key. If 
+     * no column found, then it will assume that the given value is column 
+     * index.
+     * @param string|int $colKeyOrIndex Column key or index.
+     * @return boolean If the column was removed, the method will return true. 
+     * Other than that, the method will return false.
+     * @since 1.6.1
+     */
+    public function removeColumn($colKeyOrIndex) {
+        $col = $this->getCol($colKeyOrIndex);
+        if(!($col instanceof Column)){
+            foreach ($this->colSet as $key => $col){
+                if($col->getIndex() == $colKeyOrIndex){
+                    unset($this->colSet[$key]);
+                    return true;
+                }
+            }
+            return false;
+        }
+        else{
+            unset($this->colSet[$colKeyOrIndex]);
+            return true;
+        }
+    }
+    /**
      * Adds new column to the table.
-     * @param string $key The index at which the column will be added to.
+     * @param string $key The index at which the column will be added to. The name 
+     * of the key can only have the following characters: [A-Z], [a-z], [0-9] 
+     * and '-'.
      * @param Column $col An object of type Column. Note that the column will 
      * be added only if no column was found in the table which has the same name 
      * as the given column.
@@ -467,20 +591,44 @@ class MySQLTable {
      * @since 1.0
      */
     public function addColumn($key,$col) {
-        if(strlen($key) != 0){
+        $trimmedKey = trim($key);
+        $keyLen = strlen($trimmedKey);
+        if(strlen($keyLen) != 0){
             if($col instanceof Column){
                 foreach ($this->columns() as $val){
                     if($val->getName() == $col->getName()){
                         return false;
                     }
                 }
-                $col->setOwner($this);
-                $this->colSet[$key] = $col;
+                if($this->_isKeyNameValid($trimmedKey)){
+                    $col->setOwner($this);
+                    $this->colSet[$trimmedKey] = $col;
+                }
                 return true;
             }
         }
         return false;
     }
+    /**
+     * 
+     * @param type $key
+     * @return boolean
+     * @since 1.6.1
+     */
+    private function _isKeyNameValid($key) {
+        $keyLen = strlen($key);
+        for ($x = 0 ; $x < $keyLen ; $x++){
+            $ch = $key[$x];
+            if($ch == '-' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
+
+            }
+            else{
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Checks if the table has a column or not.
      * @param string $colKey The index at which the column might be exist.
