@@ -2,12 +2,21 @@
 namespace phMysql\tests;
 use PHPUnit\Framework\TestCase;
 use phMysql\tests\QueryTestObj;
+use phMysql\tests\ArticleQuery;
 /**
  * Unit tests for testing the class 'MySQLQuery'.
  *
  * @author Ibrahim
  */
 class MySQLQueryTest extends TestCase{
+    /**
+     * @test
+     */
+    public function createStructureTest00() {
+        $articleQuery = new ArticleQuery();
+        $articleQuery->createStructure();
+        $this->assertEquals("",'');
+    }
     /**
      * @test
      */
