@@ -284,6 +284,7 @@ class MySQLTableTest extends TestCase{
      */
     public function testGetCreatePrimaryKeyStatement00() {
         $table = new MySQLTable();
+        $this->assertTrue(true);
     }
     /**
      * @test
