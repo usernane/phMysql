@@ -448,11 +448,17 @@ class Column{
     }
     /**
      * Returns the name of the column.
+     * @param boolean $tablePrefix If this parameter is set to true and the column 
+     * has an owner table, the name of the column will be prefixed with the owner 
+     * table name. Default value is false.
      * @return string The name of the column. If the name is not set, the method 
      * will return the value 'col'.
      * @since 1.0
      */
-    public function getName(){
+    public function getName($tablePrefix=false){
+        if($tablePrefix === true && $this->getOwner() !== null){
+            return $this->getOwner().'.'.$this->name;
+        }
         return $this->name;
     }
     /**
