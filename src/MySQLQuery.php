@@ -246,16 +246,46 @@ abstract class MySQLQuery{
      * @since 1.4
      */
     public function foreignKey($key){
-        $this->setQuery($key->getAlterStatement(), 'alter');
-    }
-    /**
-     * 
-     * @return string
-     * @since 1.8.7
-     */
-    private function _schemaPrefix() {
-        $schema = $this->getSchemaName() === null ? '' : $this->getSchemaName().'.';
-        return $schema;
+        $ownerTable = $key->getOwner();
+        $sourceTable = $key->getSource();
+        if($sourceTable !== null && $ownerTable !== null){
+            $query = 'alter table '.$ownerTable->getName().self::NL
+                    . 'add constraint '.$key->getKeyName().' foreign key (';
+            $ownerCols = $key->getOwnerCols();
+            $ownerCount = count($ownerCols);
+            $i0 = 0;
+            foreach ($this->sourceOwnerCols as $col){
+                if($i0 + 1 == $ownerCount){
+                    $query .= '    '.$col.') ';
+                }
+                else{
+                    $query .= '    '.$col.','.self::NL;
+                }
+                $i0++;
+            }
+            $query .= 'references '.$sourceTable->getName().'('.self::NL;
+            $sourceCols = $key->getSourceCols();
+            $refCount = count($sourceCols);
+            $i1 = 0;
+            foreach ($this->referencedTableCols as $col){
+                if($i1 + 1 == $refCount){
+                    $query .= '    '.$col.') '.self::NL;
+                }
+                else{
+                    $query .= '    '.$col.','.self::NL;
+                }
+                $i1++;
+            }
+            $onDelete = $this->getOnDelete();
+            if($onDelete !== null){
+                $retVal .= 'on delete '.$onDelete.' ';
+            }
+            $onUpdate = $this->getOnUpdate();
+            if($onUpdate !== null){
+                $retVal .= 'on update '.$onUpdate;
+            }
+        }
+        $this->setQuery($query, 'alter');
     }
     /**
      * Constructs a query that can be used to create a new table.
@@ -273,8 +303,7 @@ abstract class MySQLQuery{
                 $query .= '-- Number of forign keys count: \''.count($this->getStructure()->forignKeys()).'\''.self::NL;
                 $query .= '-- Number of primary key columns count: \''.$this->getStructure()->primaryKeyColsCount().'\''.self::NL;
             }
-            $schema = $this->_schemaPrefix();
-            $query .= 'create table if not exists '.$schema.''.$table->getName().'('.self::NL;
+            $query .= 'create table if not exists '.$table->getName().'('.self::NL;
             $keys = $table->colsKeys();
             $count = count($keys);
             for($x = 0 ; $x < $count ; $x++){
@@ -306,7 +335,8 @@ abstract class MySQLQuery{
                 $query .= '-- Add Forign keys to the table.'.self::NL;
             }
             for($x = 0 ; $x < $count2 ; $x++){
-                $query .= $table->forignKeys()[$x]->getAlterStatement().';'.self::NL;
+                $this->foreignKey($table->forignKeys()[$x]);
+                $query .= $this->getQuery().';'.self::NL;
             }
             if($inclSqlComments === true){
                 $query .= '-- End of the Structure of the table \''.$this->getStructureName().'\''.self::NL;
@@ -522,10 +552,10 @@ abstract class MySQLQuery{
                     else{
                         if($i + 1 == $count && $colsFound != 0){
                             $selectQuery = trim($selectQuery, ',');
-                            $selectQuery .= ' from '.$this->_schemaPrefix().$this->getStructureName();
+                            $selectQuery .= ' from '.$this->getStructureName();
                         }
                         else if($i + 1 == $count && $colsFound == 0){
-                            $selectQuery .= '* from '.$this->_schemaPrefix().$this->getStructureName();
+                            $selectQuery .= '* from '.$this->getStructureName();
                         }
                     }
                     $i++;
@@ -974,7 +1004,7 @@ abstract class MySQLQuery{
         
         $cols = ' ('.$cols.')';
         $vals = ' ('.$vals.')';
-        $this->setQuery(self::INSERT.$this->_schemaPrefix().$this->getStructureName().$cols.' values '.$vals.';', 'insert');
+        $this->setQuery(self::INSERT.$this->getStructureName().$cols.' values '.$vals.';', 'insert');
     }
     /**
      * Removes a record from the table.
@@ -1009,7 +1039,7 @@ abstract class MySQLQuery{
                 $vals[] = $colObjOrVal;
             }
         }
-        $query = 'delete from '.$this->_schemaPrefix().$this->getStructureName();
+        $query = 'delete from '.$this->getStructureName();
         $this->setQuery($query.$this->createWhereConditions($cols, $vals, $valsConds, $jointOps).';', 'delete');
     }
     /**
@@ -1289,7 +1319,7 @@ abstract class MySQLQuery{
                 $valsArr[] = $colObjOrVal;
             }
         }
-        $this->setQuery('update '.$this->_schemaPrefix().$this->getStructureName().' set '.$colsStr.$this->createWhereConditions($colsArr, $valsArr, $valsConds, $jointOps).';', 'update');
+        $this->setQuery('update '.$this->getStructureName().' set '.$colsStr.$this->createWhereConditions($colsArr, $valsArr, $valsConds, $jointOps).';', 'update');
     }
     /**
      * Checks if the query represents a blob insert or update.
