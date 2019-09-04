@@ -32,6 +32,12 @@ use phMysql\MySQLQuery;
  */
 class MySQLTable {
     /**
+     * The name of database schema that the table belongs to.
+     * @var string 
+     * @since 1.6.1
+     */
+    private $schema;
+    /**
      * A comment to add to the column.
      * @var string|null 
      * @since 1.6.1
@@ -125,6 +131,44 @@ class MySQLTable {
             'created-on'=>false,
             'last-updated'=>false
         ];
+        $this->schema = null;
+    }
+    /**
+     * Returns the name of the database that the table belongs to.
+     * @return string|null The name of the database that the table belongs to.
+     * If it is not set, the method will return null.
+     * @since 1.6.1
+     */
+    public function getDatabaseName() {
+        return $this->schema;
+    }
+    /**
+     * Sets the name of the database that the table belongs to.
+     * @param string $name Schema name (or database name).
+     * @return boolean If it was set, the method will return true. If not, 
+     * it will return false.
+     * @since 1.6.1
+     */
+    public function setDatabaseName($name) {
+        $trimmed = trim($name);
+        $len = strlen($trimmed);
+        if($len > 0){
+            for ($x = 0 ; $x < $len ; $x++){
+                $ch = $trimmed[$x];
+                if($x == 0 && ($ch >= '0' && $ch <= '9')){
+                    return false;
+                }
+                if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
+
+                }
+                else{
+                    return false;
+                }
+            }
+            $this->schema = $trimmed;
+            return true;
+        }
+        return false;
     }
     /**
      * Sets version number of MySQL server.
@@ -314,7 +358,7 @@ class MySQLTable {
                     return false;
                 }
             }
-            $key->setSourceTable($this->getName());
+            $key->setOwner($this);
             array_push($this->foreignKeys, $key);
             return true;
         }
@@ -486,16 +530,16 @@ class MySQLTable {
                     if($hasAllCols){
                         $allAdded = true;
                         foreach ($refColsArr as $col){
-                            $allAdded = $allAdded && $fk->addReferenceCol($refTable->getCol($col)->getName());
+                            $allAdded = $allAdded && $fk->addSourceCol($refTable->getCol($col)->getName());
                         }
                         if($allAdded){
-                            if($fk->setReferenceTable($refTable->getName()) === true){
+                            if($fk->setSource($refTable) === true){
                                 foreach ($targetColsArr as $col){
                                     $hasAllCols = $hasAllCols && $this->hasColumn($col);
                                 }
                                 if($hasAllCols){
                                     foreach ($targetColsArr as $col){
-                                        $allAdded = $allAdded && $fk->addSourceCol($this->getCol($col)->getName());
+                                        $allAdded = $allAdded && $fk->addOwnerCol($this->getCol($col)->getName());
                                     }
                                     if($allAdded){
                                         $fk->setOnDelete($ondelete);
@@ -560,10 +604,16 @@ class MySQLTable {
 
     /**
      * Returns the name of the table.
+     * @param boolean $dbPrefix A boolean. If its set to true, the name of 
+     * the table will be prefixed with the name of the database that the 
+     * table belongs to. Default is true.
      * @return string The name of the table. Default return value is 'table'.
      * @since 1.0
      */
-    public function getName(){
+    public function getName($dbPrefix=true){
+        if($dbPrefix === true && $this->getDatabaseName() !== null){
+            return $this->getDatabaseName().'.'.$this->tableName;
+        }
         return $this->tableName;
     }
     /**
