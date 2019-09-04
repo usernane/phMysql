@@ -363,6 +363,8 @@ class MySQLLink{
     }
     /**
      * Execute MySQL query.
+     * Note that the method does not support the execution of multi-queries in 
+     * one transaction. It supports only one SQL query per transaction.
      * @param MySQLQuery $query an object of type 'MySQLQuery'.
      * @return boolean true if the query was executed successfully, Other than that, 
      * the method will return false in case of error.
@@ -374,21 +376,25 @@ class MySQLLink{
             $this->currentRow = -1;
             $this->lastQuery = $query;
             if($this->isConnected()){
-                $eploded = explode(';', trim($query->getQuery(), ';'));
+                //$eploded = explode(';', trim($query->getQuery(), ';'));
                 if(!$query->isBlobInsertOrUpdate()){
                     mysqli_query($this->link, 'set collation_connection =\''.$query->getStructure()->getCollation().'\'');
                 }
-                if(count($eploded) != 1){
-                    foreach ($eploded as $xQuery){
-                        if(strlen(trim($xQuery)) != 0){
-                            $r = mysqli_query($this->link, $xQuery);
-                            if($r === false){
-                                $this->lastErrorMessage = $this->link->error;
-                                $this->lastErrorNo = $this->link->errno;
-                                break;
-                            }
-                        }
-                    }
+                //this part has a bug. The bug can happen if query body 
+                //contain other ';'. Example: insert into articles (id,articte_text) 
+                // values (99, 'This is An example; ;; Can Cause a bug;;')
+//                if(count($eploded) != 1){
+//                    foreach ($eploded as $xQuery){
+//                        if(strlen(trim($xQuery)) != 0){
+//                            $r = mysqli_query($this->link, $xQuery);
+//                            if($r === false){
+//                                $this->lastErrorMessage = $this->link->error;
+//                                $this->lastErrorNo = $this->link->errno;
+//                                break;
+//                            }
+//                        }
+//                    }
+
 //                    $r = mysqli_multi_query($this->link, $query->getQuery());
 //                    while(mysqli_more_results($this->link)){
 //                        $x = mysqli_store_result($this->link);
@@ -399,45 +405,45 @@ class MySQLLink{
 //                        $this->lastErrorNo = $this->link->errno;
 //                    }
                     $query->setIsBlobInsertOrUpdate(false);
-                    return $r;
-                }
-                if($query->getType() == 'select' || $query->getType() == 'show'
-                   || $query->getType() == 'describe' ){
+                    //return $r;
+            }
+            if($query->getType() == 'select' || $query->getType() == 'show'
+               || $query->getType() == 'describe' ){
 
-                    $r = mysqli_query($this->link, $query->getQuery());
-                    if($r){
-                        $this->result = $r;
-                        $this->lastErrorNo = 0;
-                        return true;
-                    }
-                    else{
-                        $this->lastErrorMessage = $this->link->error;
-                        $this->lastErrorNo = $this->link->errno;
-                        $this->result = null;
-                        $query->setIsBlobInsertOrUpdate(false);
-                        return false;
-                    }
+                $r = mysqli_query($this->link, $query->getQuery());
+                if($r){
+                    $this->result = $r;
+                    $this->lastErrorNo = 0;
+                    return true;
                 }
                 else{
+                    $this->lastErrorMessage = $this->link->error;
+                    $this->lastErrorNo = $this->link->errno;
                     $this->result = null;
-                    $r = mysqli_query($this->link, $query->getQuery());
-                    if($r == false){
-                        $this->lastErrorMessage = $this->link->error;
-                        $this->lastErrorNo = $this->link->errno;
-                        $this->result = null;
-                        $query->setIsBlobInsertOrUpdate(false);
-                        return false;
-                    }
-                    else{
-                        $this->lastErrorMessage = 'NO ERRORS';
-                        $this->lastErrorNo = 0;
-                        $this->result = null;
-                        $query->setIsBlobInsertOrUpdate(false);
-                        return true;
-                    }
+                    $query->setIsBlobInsertOrUpdate(false);
+                    return false;
+                }
+            }
+            else{
+                $this->result = null;
+                $r = mysqli_query($this->link, $query->getQuery());
+                if($r == false){
+                    $this->lastErrorMessage = $this->link->error;
+                    $this->lastErrorNo = $this->link->errno;
+                    $this->result = null;
+                    $query->setIsBlobInsertOrUpdate(false);
+                    return false;
+                }
+                else{
+                    $this->lastErrorMessage = 'NO ERRORS';
+                    $this->lastErrorNo = 0;
+                    $this->result = null;
+                    $query->setIsBlobInsertOrUpdate(false);
+                    return true;
                 }
             }
         }
+ //       }
         return false;
     }
     public function __toString() {
