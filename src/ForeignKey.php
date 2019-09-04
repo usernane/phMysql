@@ -45,13 +45,6 @@ class ForeignKey {
      */
     private $sourceTableObj;
     /**
-     * A constant that is returned by some methods to tell that the 
-     * name of the foreign key is invalid.
-     * @var string 
-     * @since 1.2
-     */
-    const INV_KEY_NAME = 'inv_key_nm';
-    /**
      * An array of allowed conditions for 'on delete' and 'on update'.
      * @var array 
      * @since 1.0 
@@ -106,26 +99,28 @@ class ForeignKey {
      * @since 1.1
      */
     public function setKeyName($name) {
-        if($this->validateAttr($name) == true){
-            $this->keyName = $name;
+        $trim = trim($name);
+        if($this->validateAttr($trim) == true){
+            $this->keyName = $trim;
             return true;
         }      
-        return ForeignKey::INV_KEY_NAME;
+        return false;
     }
     /**
      * A method that is used to validate the names of the key attributes (such as source column 
      * name or source table name).
-     * @param string $name The string to validate. It must be a string and its not empty. 
+     * @param string $trimmed The string to validate. It must be a string and its not empty. 
      * Also it must not contain any spaces or any characters other than A-Z, a-z and 
      * underscore.
      * @return boolean true if the given parameter is valid. false in 
      * case if the given parameter is invalid.
      */
-    private function validateAttr($name){
-        if(strlen($name) != 0){
-            if(strpos($name, ' ') === false){
-                for ($x = 0 ; $x < strlen($name) ; $x++){
-                    $ch = $name[$x];
+    private function validateAttr($trimmed){
+        $len = strlen($trimmed);
+        if($len != 0){
+            if(strpos($trimmed, ' ') === false){
+                for ($x = 0 ; $x < $len ; $x++){
+                    $ch = $trimmed[$x];
                     if($x == 0 && ($ch >= '0' && $ch <= '9')){
                         return false;
                     }
@@ -303,7 +298,7 @@ class ForeignKey {
     public function setOnUpdate($val){
         $fix = strtolower(trim($val));
         if(in_array($fix, self::CONDITIONS)){
-            $this->onUpdateCondition = $val;
+            $this->onUpdateCondition = $fix;
         }
         elseif ($val == null) {
             $this->onUpdateCondition = null;
@@ -361,8 +356,8 @@ class ForeignKey {
                 $this->addOwnerCol($col);
             }
         }
-        else if($this->validateAttr($ownerCols)){
-            $this->ownerCols[] = $ownerCols;
+        else{
+            $this->addOwnerCol($ownerCols);
         }
         if(gettype($sourceCols) == 'array'){
             foreach ($sourceCols as $col){
@@ -370,9 +365,7 @@ class ForeignKey {
             }
         }
         else{
-            if($this->validateAttr($sourceCols)){
-                $this->referencedTableCols[] = $sourceCols;
-            }
+            $this->addSourceCol($sourceCols);
         }
     }
 }
