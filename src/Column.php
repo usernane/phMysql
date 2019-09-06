@@ -391,19 +391,12 @@ class Column{
     }
     /**
      * Sets the value of the property $isUnique.
-     * @param boolean $bool true if the column value is unique. false 
+     * @param boolean $bool True if the column value is unique. false 
      * if not.
-     * @return boolean true if the value of the property is updated. The only case 
-     * at which the method will return false is when the passed parameter is 
-     * not a boolean.
      * @since 1.0
      */
     public function setIsUnique($bool){
-        if(gettype($bool) == 'boolean'){
-            $this->isUnique = $bool;
-            return true;
-        }
-        return false;
+        $this->isUnique = $bool === true;
     }
     /**
      * Returns the value of the property $isUnique.
@@ -421,7 +414,7 @@ class Column{
      * @param string $name The name to set.
      * @return boolean The method will return true if the column name updated. 
      * If the given value is null or invalid string, the method will return 
-     * Column::INV_COL_NAME.
+     * false.
      * @since 1.0
      */
     public function setName($name){
@@ -437,14 +430,14 @@ class Column{
 
                     }
                     else{
-                        return Column::INV_COL_NAME;
+                        return false;
                     }
                 }
                 $this->name = $trimmed;
                 return true;
             }
         }
-        return Column::INV_COL_NAME;
+        return false;
     }
     /**
      * Returns the name of the column.
@@ -495,21 +488,14 @@ class Column{
      * Note that once the column become primary, it becomes unique by default.
      * @param boolean $bool <b>true</b> if the column is primary key. false 
      * if not.
-     * @return boolean The method will return true If the property value is 
-     * updated. If the given value is not a boolean, the method will return 
-     * false.
      * @since 1.0
      */
     public function setIsPrimary($bool){
-        if(gettype($bool) == 'boolean'){
-            $this->isPrimary = $bool;
-            if($bool === true){
-                $this->setIsNull(false);
-                $this->setIsUnique(true);
-            }
-            return true;
+        $this->isPrimary = $bool === true;
+        if($this->isPrimary() === true){
+            $this->setIsNull(false);
+            $this->setIsUnique(true);
         }
-        return false;
     }
     /**
      * Checks if the column is a primary key or not.
@@ -589,6 +575,12 @@ class Column{
         }
         else if($type == 'int'){
             if(gettype($default) == 'integer'){
+                $this->default = $default;
+                $retVal = true;
+            }
+        }
+        else if($type == 'float' || $type == 'decimal' || $type == 'double'){
+            if(gettype($default) == 'double' || gettype($default) == 'integer'){
                 $this->default = $default;
                 $retVal = true;
             }
@@ -742,7 +734,12 @@ class Column{
             $retVal .= $type.'('.$this->getSize().') ';
         }
         else if($type == 'decimal' || $type == 'float' || $type == 'double'){
-            $retVal .= $type.'('.$this->getSize().','.$this->getScale().') ';
+            if($this->getSize() != 0){
+                $retVal .= $type.'('.$this->getSize().','.$this->getScale().') ';
+            }
+            else{
+                $retVal .= $type.' ';
+            }
         }
         else{
             $retVal .= $type.' ';
@@ -774,7 +771,7 @@ class Column{
             $retVal .= 'unique ';
         }
         $default = $this->getDefault();
-        if($type == 'varchar'){
+        if($type == 'varchar' || $type == 'text' || $type == 'mediumtext'){
             $retVal .= 'collate '.$this->getCollation().' ';
         }
         if($default !== null){
@@ -802,8 +799,8 @@ class Column{
         }
         $comment = $this->getComment();
         if($comment !== null){
-            $retVal .= 'comment \''.$comment.'\' ';
+            $retVal .= 'comment \''.$comment.'\'';
         }
-        return $retVal;
+        return trim($retVal);
     }
 }
