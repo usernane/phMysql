@@ -29,6 +29,10 @@ class ArticleQuery extends MySQLQuery{
         $this->table->addColumn('author-name', new Column('author_name', 'varchar', 20));
         $this->table->getCol('author-name')->setIsPrimary(true);
         $this->table->addColumn('content', new Column('content', 'varchar', 5000));
+        
+        $this->table->addReference('phMysql\tests\UsersQuery', [
+            'author-id'=>'user-id'
+        ], 'author_fk');
     }
     /**
      * 

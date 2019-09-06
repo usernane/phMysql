@@ -8,6 +8,8 @@
 
 namespace phMysql\tests;
 use phMysql\ForeignKey;
+use phMysql\MySQLTable;
+use phMysql\Column;
 use PHPUnit\Framework\TestCase;
 /**
  * Description of FKTest
@@ -15,6 +17,14 @@ use PHPUnit\Framework\TestCase;
  * @author Ibrahim
  */
 class FKTest extends TestCase{
+    /**
+     * @test
+     */
+    public function testSetOwner00() {
+        $fk = new ForeignKey();
+        $fk->setOwner(null);
+        $this->assertNull($fk->getOwner());
+    }
     /**
      * @test
      */
@@ -31,22 +41,63 @@ class FKTest extends TestCase{
         return $fk;
     }
     /**
-     * 
-     * @param ForeignKey $fk
      * @test
-     * @depends testConstructor00
      */
-    public function testAddSourceCol($fk) {
-        $this->assertFalse($fk->addSourceCol('no-link'));
+    public function testConstructor01() {
+        $owner = new MySQLTable('users');
+        $owner->addColumn('user-id', new Column('id', 'int'));
+        $owner->addColumn('user-name', new Column('name', 'varchar'));
+        $owner->addColumn('user-password', new Column('password', 'varchar'));
+        $owner->addColumn('user-email', new Column('email', 'varchar'));
+        $source = new MySQLTable('anothet_table');
+        $source->addColumn('user-id', new Column('user_id', 'int'));
+        $source->addColumn('email', new Column('email', 'int'));
+        $source->addColumn('email-2', new Column('email_2', 'varchar'));
+        $fk = new ForeignKey('new_key',$owner,$source,[
+            'user-id'=>'user-id',
+            'user-email'=>'email-2'
+        ]);
+        $this->assertNotNull($fk->getOwner());
+        $this->assertEquals(2,count($fk->getOwnerCols()));
+        $this->assertEquals(2,count($fk->getSourceCols()));
+        return $fk;
+    }
+    /**
+     * @test
+     * @param ForeignKey $fk
+     * @depends testConstructor01
+     */
+    public function testRemoveReference00($fk) {
+        $this->assertFalse($fk->removeReference('not-exist'));
+        $this->assertEquals(2,count($fk->getOwnerCols()));
+        $this->assertEquals(2,count($fk->getSourceCols()));
+        $this->assertTrue($fk->removeReference(' user-id '));
+        $this->assertEquals(1,count($fk->getOwnerCols()));
+        $this->assertEquals(1,count($fk->getSourceCols()));
+        $this->assertFalse($fk->removeReference(' email-2 '));
+        $this->assertTrue($fk->removeReference(' user-email'));
+        $this->assertEquals(0,count($fk->getOwnerCols()));
+        $this->assertEquals(0,count($fk->getSourceCols()));
+        return $fk;
     }
     /**
      * 
      * @param ForeignKey $fk
-     * @test
-     * @depends testConstructor00
+     * @depends testRemoveReference00
      */
-    public function testAddOwnerCol($fk) {
-        $this->assertFalse($fk->addOwnerCol('no-link'));
+    public function testAddReference00($fk) {
+        $this->assertTrue($fk->addReference('user-id'));
+        $this->assertEquals(1,count($fk->getOwnerCols()));
+        $this->assertEquals(1,count($fk->getSourceCols()));
+        $this->assertTrue($fk->addReference('user-id'));
+        $this->assertEquals(1,count($fk->getOwnerCols()));
+        $this->assertEquals(1,count($fk->getSourceCols()));
+        $this->assertFalse($fk->addReference('user-email'));
+        $this->assertEquals(1,count($fk->getOwnerCols()));
+        $this->assertEquals(1,count($fk->getSourceCols()));
+        $this->assertTrue($fk->addReference('user-email','email-2'));
+        $this->assertEquals(2,count($fk->getOwnerCols()));
+        $this->assertEquals(2,count($fk->getSourceCols()));
     }
     /**
      * @test

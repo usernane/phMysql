@@ -1,6 +1,8 @@
 <?php
 namespace phMysql\tests;
 use PHPUnit\Framework\TestCase;
+use phMysql\ForeignKey;
+use phMysql\MySQLTable;
 use phMysql\tests\QueryTestObj;
 use phMysql\tests\ArticleQuery;
 /**
@@ -9,6 +11,23 @@ use phMysql\tests\ArticleQuery;
  * @author Ibrahim
  */
 class MySQLQueryTest extends TestCase{
+    /**
+     * @test
+     */
+    public function testAddPrimaryKey00() {
+        $aq = new ArticleQuery();
+        $aq->addPrimaryKey($aq->getStructure());
+        $this->assertEquals("alter table articles add constraint articles_pk primary key (article_id,author_name);\n"
+                . "alter table articles modify article_id int(11) not null unique auto_increment;",$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testAddForeignKey00() {
+        $aq = new ArticleQuery();
+        $aq->addForeignKey($aq->getStructure()->getForeignKeys()[0]);
+        $this->assertEquals("alter table articlesadd constraint author_fk foreign key (author_id) references system_users(user_id) on delete set null on update set null",$aq->getQuery());
+    }
     /**
      * @test
      */
