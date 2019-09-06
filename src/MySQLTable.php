@@ -391,6 +391,24 @@ class MySQLTable {
         return $count;
     }
     /**
+     * Returns an array which contains all added foreign keys.
+     * @return array An array which contains all added foreign keys. The keys 
+     * are added as an objects of type 'ForeignKey'.
+     * @since 1.6.1
+     */
+    public function getForeignKeys() {
+        return $this->foreignKeys;
+    }
+    /**
+     * Returns an associative array that contains table columns.
+     * @return array An associative array that contains table columns. The indices 
+     * will be columns names and the values are objects of type 'Column'.
+     * @since 1.6.1
+     */
+    public function getColumns() {
+        return $this->colSet;
+    }
+    /**
      * Returns a string that can be used to alter the table and add primary 
      * key constraint to it.
      * @return string A string that can be used to alter the table and add primary 
@@ -399,33 +417,7 @@ class MySQLTable {
      * @since 1.5
      */
     public function getCreatePrimaryKeyStatement() {
-        $primaryCount = $this->primaryKeyColsCount();
-        if($primaryCount != 0){
-            $stm = 'alter table '.$this->getName().' add constraint '.$this->getPrimaryKeyName().' primary key (';
-            $index = 0;
-            $alterStm = '';
-            foreach ($this->colSet as $col){
-                if($col->isPrimary()){
-                    if($index + 1 == $primaryCount){
-                        $stm .= $col->getName().')';
-                    }
-                    else{
-                        $stm .= $col->getName().',';
-                    }
-                    if($col->isAutoInc()){
-                        $alterStm .= 'alter table '.$this->getName().' modify '.$col;
-                    }
-                    $index++;
-                }
-            }
-            if(strlen($stm) !== 0){
-                $stm .= ';'.MySQLQuery::NL.$alterStm;
-            }
-            return $stm;
-        }
-        else{
-            return '';
-        }
+        
     }
     /**
      * Sets a comment which will appear with the table.
@@ -449,51 +441,13 @@ class MySQLTable {
     }
     /**
      * Adds a foreign key to the table.
-     * @param MySQLTable $refTable The table that will be referenced.
-     * @param string $refColName The name of the column that will be referenced. It must 
-     * be a column in the referenced table. The value of this attribute is a 
-     * value that once passed to the method MySQLTable::getColumn() will 
-     * return an object of type 'Column'.
-     * @param string $targetCol The target column. It must be a column in the current 
-     * instance. The value of this attribute is a 
-     * value that once passed to the method MySQLTable::getColumn() will 
-     * return an object of type 'Column'.
-     * @param string $keyname The name of the foreign key.
-     * @param string $onupdate The 'on update' condition for the key. it can be one 
-     * of the following: 
-     * <ul>
-     * <li>set null</li>
-     * <li>cascade</li>
-     * <li>restrict</li>
-     * <li>set default</li>
-     * <li>no action</li>
-     * </ul>
-     * Default value is 'set null'.
-     * @param string $ondelete The 'on delete' condition for the key. it can be one 
-     * of the following: 
-     * <ul>
-     * <li>set null</li>
-     * <li>cascade</li>
-     * <li>restrict</li>
-     * <li>set default</li>
-     * <li>no action</li>
-     * </ul>
-     * Default value is 'set null'.
-     * @return boolean true if the key is added. false otherwise.
-     * @see ForeignKey
-     * @since 1.0
-     */
-    public function addReference($refTable,$refColName,$targetCol,$keyname,$onupdate='set null',$ondelete='set null'){
-        return $this->addMultiReference($refTable, array($refColName), array($targetCol), $keyname, $onupdate, $ondelete);
-    }
-    /**
-     * Adds a foreign key which references multiple columns.
-     * @param MySQLTable $refTable The referenced table.
-     * @param array $refColsArr An array which contains the names of referenced 
-     * columns. The names of columns  must in the referenced table. 
-     * If one of the names is passed to the method MySQLTable::getColumn(), it 
-     * should return an object of type 'Column'.
-     * @param array $targetColsArr An array which contains the targeted columns. 
+     * @param MySQLTable|string $refTable The referenced table. It is the table that 
+     * will contain original values. This value can be an object of type 
+     * 'MySQLTable' or the namespace of a class which is a sub-class of 
+     * the class 'MySQLQuery'.
+     * @param array $cols An associative array that contains key columns. 
+     * The indices must be names of columns which exist in 'this' table and 
+     * the values must be columns from regerenced table. 
      * @param string $keyname The name of the key.
      * @param string $onupdate The 'on update' condition for the key. it can be one 
      * of the following: 
@@ -518,38 +472,28 @@ class MySQLTable {
      * @return boolean
      * @since 1.5
      */
-    public function addMultiReference($refTable,$refColsArr,$targetColsArr,$keyname,$onupdate='set null',$ondelete='set null') {
+    public function addReference($refTable,$cols,$keyname,$onupdate='set null',$ondelete='set null') {
+        if(!($refTable instanceof MySQLTable)){
+            if(class_exists($refTable)){
+                $q = new $refTable();
+                if($q instanceof MySQLQuery){
+                    $refTable = $q->getStructure();
+                }
+            }
+        }
         if($refTable instanceof MySQLTable){
-            if(count($refColsArr) == count($targetColsArr)){
-                $fk = new ForeignKey();
-                if($fk->setKeyName($keyname) === true){
-                    $hasAllCols = true;
-                    foreach ($refColsArr as $col){
-                        $hasAllCols = $hasAllCols && $refTable->hasColumn($col);
-                    }
-                    if($hasAllCols){
-                        $allAdded = true;
-                        foreach ($refColsArr as $col){
-                            $allAdded = $allAdded && $fk->addSourceCol($refTable->getCol($col)->getName());
-                        }
-                        if($allAdded){
-                            if($fk->setSource($refTable) === true){
-                                foreach ($targetColsArr as $col){
-                                    $hasAllCols = $hasAllCols && $this->hasColumn($col);
-                                }
-                                if($hasAllCols){
-                                    foreach ($targetColsArr as $col){
-                                        $allAdded = $allAdded && $fk->addOwnerCol($this->getCol($col)->getName());
-                                    }
-                                    if($allAdded){
-                                        $fk->setOnDelete($ondelete);
-                                        $fk->setOnUpdate($onupdate);
-                                        return $this->addForeignKey($fk);
-                                    }
-                                }
-                            }
-                        }
-                    }
+            $fk = new ForeignKey();
+            $fk->setOwner($this);
+            $fk->setSource($refTable);
+            if($fk->setKeyName($keyname) === true){
+                foreach ($cols as $target => $source){
+                    $fk->addReference($target, $source);
+                }
+                if(count($fk->getSourceCols()) != 0){
+                    $fk->setOnUpdate($onupdate);
+                    $fk->setOnDelete($ondelete);
+                    $this->foreignKeys[] = $fk;
+                    return true;
                 }
             }
         }
