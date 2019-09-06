@@ -24,11 +24,12 @@
  */
 namespace phMysql;
 use Exception;
+use phMysql\MySQLTable;
 /**
  * A base class that is used to construct MySQL queries. It can be used as a base 
  * class for constructing other MySQL queries.
  * @author Ibrahim
- * @version 1.8.7
+ * @version 1.8.8
  */
 abstract class MySQLQuery{
     /**
@@ -240,49 +241,84 @@ abstract class MySQLQuery{
         $this->setQuery($q, 'alter');
     }
     /**
+     * Constructs a query that can be used to add a primary key to a table.
+     * @param MySQLTable $table The table that will have the primary key.
+     * @since 1.8.8
+     */
+    public function addPrimaryKey($table) {
+        if($table instanceof MySQLTable){
+            $primaryCount = $table->primaryKeyColsCount();
+            if($primaryCount != 0){
+                $stm = 'alter table '.$table->getName().' add constraint '.$table->getPrimaryKeyName().' primary key (';
+                $index = 0;
+                $alterStm = '';
+                foreach ($table->getColumns() as $col){
+                    if($col->isPrimary()){
+                        if($index + 1 == $primaryCount){
+                            $stm .= $col->getName().')';
+                        }
+                        else{
+                            $stm .= $col->getName().',';
+                        }
+                        if($col->isAutoInc()){
+                            $alterStm .= 'alter table '.$table->getName().' modify '.$col.'auto_increment;';
+                        }
+                        $index++;
+                    }
+                }
+                if(strlen($stm) !== 0){
+                    $stm .= ';'.MySQLQuery::NL.$alterStm;
+                    $this->setQuery($stm, 'alter');
+                    return;
+                }
+                $this->setQuery('', 'alter');
+            }
+        }
+    }
+    /**
      * Constructs a query that can be used to alter a table and add a 
      * foreign key to it.
      * @param ForeignKey $key An object of type <b>ForeignKey</b>.
      * @since 1.4
      */
-    public function foreignKey($key){
+    public function addForeignKey($key){
         $ownerTable = $key->getOwner();
         $sourceTable = $key->getSource();
         if($sourceTable !== null && $ownerTable !== null){
-            $query = 'alter table '.$ownerTable->getName().self::NL
+            $query = 'alter table '.$ownerTable->getName()
                     . 'add constraint '.$key->getKeyName().' foreign key (';
             $ownerCols = $key->getOwnerCols();
             $ownerCount = count($ownerCols);
             $i0 = 0;
-            foreach ($this->sourceOwnerCols as $col){
+            foreach ($ownerCols as $col){
                 if($i0 + 1 == $ownerCount){
-                    $query .= '    '.$col.') ';
+                    $query .= $col->getName().') ';
                 }
                 else{
-                    $query .= '    '.$col.','.self::NL;
+                    $query .= $col->getName().', ';
                 }
                 $i0++;
             }
-            $query .= 'references '.$sourceTable->getName().'('.self::NL;
+            $query .= 'references '.$sourceTable->getName().'(';
             $sourceCols = $key->getSourceCols();
             $refCount = count($sourceCols);
             $i1 = 0;
-            foreach ($this->referencedTableCols as $col){
+            foreach ($sourceCols as $col){
                 if($i1 + 1 == $refCount){
-                    $query .= '    '.$col.') '.self::NL;
+                    $query .= $col->getName().') ';
                 }
                 else{
-                    $query .= '    '.$col.','.self::NL;
+                    $query .= $col->getName().', ';
                 }
                 $i1++;
             }
-            $onDelete = $this->getOnDelete();
+            $onDelete = $key->getOnDelete();
             if($onDelete !== null){
-                $retVal .= 'on delete '.$onDelete.' ';
+                $query .= 'on delete '.$onDelete.' ';
             }
-            $onUpdate = $this->getOnUpdate();
+            $onUpdate = $key->getOnUpdate();
             if($onUpdate !== null){
-                $retVal .= 'on update '.$onUpdate;
+                $query .= 'on update '.$onUpdate;
             }
         }
         $this->setQuery($query, 'alter');
@@ -291,7 +327,7 @@ abstract class MySQLQuery{
      * Constructs a query that can be used to create a new table.
      * @param MySQLTable $table an instance of <b>MySQLTable</b>.
      * @param boolean $inclSqlComments If set to true, a set of comment will appear 
-     * in the generated SQL which descripe what is happening in every SQL Statement.
+     * in the generated SQL which description what is happening in every SQL Statement.
      * @since 1.4
      */
     private function createTable($table,$inclSqlComments=false){
@@ -327,7 +363,11 @@ abstract class MySQLQuery{
                 if($inclSqlComments === true){
                     $query .= '-- Add Primary key to the table.'.self::NL;
                 }
-                $query .= $table->getCreatePrimaryKeyStatement().';'.self::NL;
+                $this->addPrimaryKey($table);
+                $q = $this->getQuery();
+                if(strlen($q) != 0){
+                    $query .= $q.';'.self::NL;
+                }
             }
             //add forign keys
             $count2 = count($table->forignKeys());
@@ -335,7 +375,7 @@ abstract class MySQLQuery{
                 $query .= '-- Add Forign keys to the table.'.self::NL;
             }
             for($x = 0 ; $x < $count2 ; $x++){
-                $this->foreignKey($table->forignKeys()[$x]);
+                $this->addForeignKey($table->forignKeys()[$x]);
                 $query .= $this->getQuery().';'.self::NL;
             }
             if($inclSqlComments === true){
