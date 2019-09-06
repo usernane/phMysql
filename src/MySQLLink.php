@@ -376,74 +376,78 @@ class MySQLLink{
             $this->currentRow = -1;
             $this->lastQuery = $query;
             if($this->isConnected()){
-                //$eploded = explode(';', trim($query->getQuery(), ';'));
+                
                 if(!$query->isBlobInsertOrUpdate()){
                     mysqli_query($this->link, 'set collation_connection =\''.$query->getStructure()->getCollation().'\'');
                 }
                 //this part has a bug. The bug can happen if query body 
                 //contain other ';'. Example: insert into articles (id,articte_text) 
                 // values (99, 'This is An example; ;; Can Cause a bug;;')
-//                if(count($eploded) != 1){
-//                    foreach ($eploded as $xQuery){
-//                        if(strlen(trim($xQuery)) != 0){
-//                            $r = mysqli_query($this->link, $xQuery);
-//                            if($r === false){
-//                                $this->lastErrorMessage = $this->link->error;
-//                                $this->lastErrorNo = $this->link->errno;
-//                                break;
-//                            }
-//                        }
-//                    }
+                $qType = $query->getType();
+                if($qType != 'insert'){
+                    $eploded = explode(';', trim($query->getQuery(), ';'));
+                    if(count($eploded) != 1){
+                        foreach ($eploded as $xQuery){
+                            if(strlen(trim($xQuery)) != 0){
+                                $r = mysqli_query($this->link, $xQuery);
+                                if($r === false){
+                                    $this->lastErrorMessage = $this->link->error;
+                                    $this->lastErrorNo = $this->link->errno;
+                                    break;
+                                }
+                            }
+                        }
 
-//                    $r = mysqli_multi_query($this->link, $query->getQuery());
-//                    while(mysqli_more_results($this->link)){
-//                        $x = mysqli_store_result($this->link);
-//                        mysqli_next_result($this->link);
-//                    }
-//                    if($r !== true){
-//                        $this->lastErrorMessage = $this->link->error;
-//                        $this->lastErrorNo = $this->link->errno;
-//                    }
-                    $query->setIsBlobInsertOrUpdate(false);
-                    //return $r;
-            }
-            if($query->getType() == 'select' || $query->getType() == 'show'
-               || $query->getType() == 'describe' ){
+                        $r = mysqli_multi_query($this->link, $query->getQuery());
+                        while(mysqli_more_results($this->link)){
+                            $x = mysqli_store_result($this->link);
+                            mysqli_next_result($this->link);
+                        }
+                        if($r !== true){
+                            $this->lastErrorMessage = $this->link->error;
+                            $this->lastErrorNo = $this->link->errno;
+                        }
+                        $query->setIsBlobInsertOrUpdate(false);
+                        return $r;
+                    }
+                }
+                if($query->getType() == 'select' || $query->getType() == 'show'
+                   || $query->getType() == 'describe' ){
 
-                $r = mysqli_query($this->link, $query->getQuery());
-                if($r){
-                    $this->result = $r;
-                    $this->lastErrorNo = 0;
-                    return true;
+                    $r = mysqli_query($this->link, $query->getQuery());
+                    if($r){
+                        $this->result = $r;
+                        $this->lastErrorNo = 0;
+                        return true;
+                    }
+                    else{
+                        $this->lastErrorMessage = $this->link->error;
+                        $this->lastErrorNo = $this->link->errno;
+                        $this->result = null;
+                        $query->setIsBlobInsertOrUpdate(false);
+                        return false;
+                    }
                 }
                 else{
-                    $this->lastErrorMessage = $this->link->error;
-                    $this->lastErrorNo = $this->link->errno;
                     $this->result = null;
-                    $query->setIsBlobInsertOrUpdate(false);
-                    return false;
-                }
-            }
-            else{
-                $this->result = null;
-                $r = mysqli_query($this->link, $query->getQuery());
-                if($r == false){
-                    $this->lastErrorMessage = $this->link->error;
-                    $this->lastErrorNo = $this->link->errno;
-                    $this->result = null;
-                    $query->setIsBlobInsertOrUpdate(false);
-                    return false;
-                }
-                else{
-                    $this->lastErrorMessage = 'NO ERRORS';
-                    $this->lastErrorNo = 0;
-                    $this->result = null;
-                    $query->setIsBlobInsertOrUpdate(false);
-                    return true;
+                    $r = mysqli_query($this->link, $query->getQuery());
+                    if($r == false){
+                        $this->lastErrorMessage = $this->link->error;
+                        $this->lastErrorNo = $this->link->errno;
+                        $this->result = null;
+                        $query->setIsBlobInsertOrUpdate(false);
+                        return false;
+                    }
+                    else{
+                        $this->lastErrorMessage = 'NO ERRORS';
+                        $this->lastErrorNo = 0;
+                        $this->result = null;
+                        $query->setIsBlobInsertOrUpdate(false);
+                        return true;
+                    }
                 }
             }
         }
- //       }
         return false;
     }
     public function __toString() {
