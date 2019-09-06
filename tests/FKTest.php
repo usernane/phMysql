@@ -43,6 +43,16 @@ class FKTest extends TestCase{
     /**
      * @test
      */
+    public function testConstructor02() {
+        $fk = new ForeignKey('invalid name');
+        $this->assertEquals('key_name',$fk->getKeyName());
+        $this->assertFalse($fk->setKeyName('0invalid'));
+        $this->assertEquals('key_name',$fk->getKeyName());
+        return $fk;
+    }
+    /**
+     * @test
+     */
     public function testConstructor01() {
         $owner = new MySQLTable('users');
         $owner->addColumn('user-id', new Column('id', 'int'));
@@ -71,11 +81,11 @@ class FKTest extends TestCase{
         $this->assertFalse($fk->removeReference('not-exist'));
         $this->assertEquals(2,count($fk->getOwnerCols()));
         $this->assertEquals(2,count($fk->getSourceCols()));
-        $this->assertTrue($fk->removeReference(' user-id '));
-        $this->assertEquals(1,count($fk->getOwnerCols()));
-        $this->assertEquals(1,count($fk->getSourceCols()));
         $this->assertFalse($fk->removeReference(' email-2 '));
+        $this->assertEquals(2,count($fk->getOwnerCols()));
+        $this->assertEquals(2,count($fk->getSourceCols()));
         $this->assertTrue($fk->removeReference(' user-email'));
+        $this->assertTrue($fk->removeReference(' user-id'));
         $this->assertEquals(0,count($fk->getOwnerCols()));
         $this->assertEquals(0,count($fk->getSourceCols()));
         return $fk;
