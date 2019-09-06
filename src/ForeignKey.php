@@ -27,7 +27,9 @@ use phMysql\MySQLTable;
 use phMysql\Column;
 /**
  * A class that represents a foreign key.
- *
+ * A foreign key must have an owner table and a source table. The 
+ * source table will contain original values and the owner is simply the table 
+ * that ownes the key. 
  * @author Ibrahim
  * @version 1.3.1
  */
@@ -46,6 +48,14 @@ class ForeignKey {
     private $sourceTableObj;
     /**
      * An array of allowed conditions for 'on delete' and 'on update'.
+     * The array have the following strings:
+     * <ul>
+     * <li>set null</li>
+     * <li>restrict</li>
+     * <li>set default</li>
+     * <li>no action</li>
+     * <li>cascade</li>
+     * </ul>
      * @var array 
      * @since 1.0 
      */
@@ -64,7 +74,7 @@ class ForeignKey {
      * @var array 
      * @since 1.3
      */
-    private $referencedTableCols;
+    private $sourceCols;
     /**
      * The 'on delete' condition.
      * @var string 
@@ -137,6 +147,68 @@ class ForeignKey {
         return false;
     }
     /**
+     * Removes a column from the key given owner column name.
+     * @param string $ownerColName The name of the owner column name.
+     * @return boolean If a column which has the given name was found and removed, 
+     * the method will return true. Other than that, the method will return false.
+     * @since 1.3.1
+     */
+    public function removeReference($ownerColName) {
+        $trimmed = trim($ownerColName);
+        $colIndex = 0;
+        foreach ($this->getOwnerCols() as $k => $v){
+            if($k == $trimmed){
+                $sourceIndex = 0;
+                foreach ($this->getSourceCols() as $sK => $sV){
+                    if($sourceIndex == $colIndex){
+                        unset($this->sourceCols[$sK]);
+                        unset($this->ownerCols[$k]);
+                        return true;
+                    }
+                    $sourceIndex++;
+                }
+            }
+            $colIndex++;
+        }
+        return false;
+    }
+    /**
+     * Add a column reference to the foreign key.
+     * Note that before using this method, the owner table and the source 
+     * table must be set. In addition, the two columns must have same data type.
+     * @param string $ownerColName The name of the column that belongs to the owner. 
+     * This one will take the value from source column.
+     * @param string $sourceColName The name of the column that belongs to the 
+     * source. The value of the owner column will be taken from this column. If 
+     * not provided, it will assume that the name of the source column is 
+     * the same as the owner column.
+     * @return boolean If the reference is created, the method will return true. 
+     * Other than that, the method will return false.
+     * @since 1.3.1
+     */
+    public function addReference($ownerColName,$sourceColName=null) {
+        $ownerTbl = $this->getOwner();
+        if($ownerTbl !== null){
+            $ownerColName = trim($ownerColName);
+            $sourceTbl = $this->getSource();
+            if($sourceTbl !== null){
+                $ownerCol = $ownerTbl->getCol($ownerColName);
+                if($ownerCol instanceof Column){
+                    $sourceColName = $sourceColName === null ? $ownerColName : trim($sourceColName);
+                    $sourceCol = $sourceTbl->getCol($sourceColName);
+                    if($sourceCol instanceof Column){
+                        if($sourceCol->getType() == $ownerCol->getType()){
+                            $this->ownerCols[$ownerColName] = $ownerCol;
+                            $this->sourceCols[$sourceColName] = $sourceCol;
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    /**
      * Returns the name of the key.
      * @return string The name of the key.
      * @since 1.0
@@ -145,64 +217,24 @@ class ForeignKey {
         return $this->keyName;
     }
     /**
-     * Returns an array which contains the names of the columns 
-     * that will contain the value of the referenced columns.
-     * @return array An array which contains the names of the columns 
-     * that will contain the value of the referenced columns.
-     * @return array the name of the source column.
+     * Returns an associative array which contains the columns that belongs to 
+     * the table that will contain the key.
+     * @return array An associative array. The indices will represent columns 
+     * names and the values are objects of type 'Column'.
      * @since 1.3
      */
     public function getOwnerCols() {
         return $this->ownerCols;
     }
     /**
-     * Adds new column to the set of owner table columns.
-     * This method will work only if the owner table is set. Also, the given 
-     * column name must belong to the owner table.
-     * @param string $colName The name of the column as specified while 
-     * initializing the owner table.
-     * @return boolean true if the source column name is added. false in 
-     * case if the given name is invalid.
-     * @since 1.3
-     */
-    public function addOwnerCol($colName) {
-        $owner = $this->getOwner();
-        if($owner !== null){
-            $col = $owner->getCol($colName);
-            if($col instanceof Column){
-                $this->ownerCols[] = $col->getName();
-                return true;
-            }
-        }
-        return false;
-    }
-    /**
-     * Returns an array that contains the names of the referenced columns.
-     * @return string An array that contains the names of the referenced columns.
+     * Returns an associative array which contains the columns that will be 
+     * referenced.
+     * @return array An associative array. The indices will represent columns 
+     * names and the values are objects of type 'Column'.
      * @since 1.3
      */
     public function getSourceCols(){
-        return $this->referencedTableCols;
-    }
-    /**
-     * Adds new source column.
-     * This method will work only if the source table is set. Also, the given 
-     * column name must belong to the source table.
-     * @param string $colName The name of the column as specified while 
-     * initializing the owner table.
-     * @return boolean true if source column is added. false otherwise.
-     * @since 1.3
-     */
-    public function addSourceCol($colName){
-        $source = $this->getSource();
-        if($source !== null){
-            $col = $source->getCol($colName);
-            if($col instanceof Column){
-                $this->referencedTableCols[] = $col->getName();
-                return true;
-            }
-        }
-        return false;
+        return $this->sourceCols;
     }
     /**
      * Sets the table who owns the key.
@@ -239,7 +271,7 @@ class ForeignKey {
     public function setSource($table) {
         if($table instanceof MySQLTable){
             $this->sourceTableObj = $table;
-            $this->referencedTableCols = [];
+            $this->sourceCols = [];
         }
     }
     /**
@@ -325,22 +357,18 @@ class ForeignKey {
      * Also it must not contain any spaces or any characters other than A-Z, a-z and 
      * underscore. The default value is 'key_name'.
      * @param MySQLTable $ownerTable The table that will contain the key.
-     * @param array|string $ownerCols An array that contains the names of the columns that 
-     * will be reference the source table. They must belong to the owner table. Also, 
-     * it can be a string if it is only one column.
      * @param MySQLTable $sourceTable The name of the table that contains the 
      * original values.
-     * @param array|string $sourceCols An array that contains the names of the columns that 
-     * will be referenced. They must belong to the source table. Also, 
-     * it can be a string if it is only one column.
+     * @param array|string $cols An associative array that contains the names of key 
+     * columns. The indices must be columns in the owner table and the values are 
+     * columns in the source columns. 
      */
     public function __construct(
             $name='key_name',
             $ownerTable=null,
-            $ownerCols=null,
             $sourceTable=null,
-            $sourceCols=null) {
-        $this->referencedTableCols = [];
+            $cols=[]) {
+        $this->sourceCols = [];
         $this->ownerCols = [];
         if($sourceTable instanceof MySQLTable){
             $this->setSource($sourceTable);
@@ -351,21 +379,10 @@ class ForeignKey {
         if($this->setKeyName($name) !== true){
             $this->setKeyName('key_name');
         }
-        if(gettype($ownerCols) == 'array'){
-            foreach ($ownerCols as $col){
-                $this->addOwnerCol($col);
+        if(gettype($cols) == 'array'){
+            foreach ($cols as $k => $v){
+                $this->addReference($k, $v);
             }
-        }
-        else{
-            $this->addOwnerCol($ownerCols);
-        }
-        if(gettype($sourceCols) == 'array'){
-            foreach ($sourceCols as $col){
-                $this->addSourceCol($col);
-            }
-        }
-        else{
-            $this->addSourceCol($sourceCols);
         }
     }
 }
