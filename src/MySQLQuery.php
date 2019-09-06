@@ -286,7 +286,7 @@ abstract class MySQLQuery{
         $sourceTable = $key->getSource();
         if($sourceTable !== null && $ownerTable !== null){
             $query = 'alter table '.$ownerTable->getName()
-                    . 'add constraint '.$key->getKeyName().' foreign key (';
+                    . ' add constraint '.$key->getKeyName().' foreign key (';
             $ownerCols = $key->getOwnerCols();
             $ownerCount = count($ownerCols);
             $i0 = 0;
@@ -299,7 +299,7 @@ abstract class MySQLQuery{
                 }
                 $i0++;
             }
-            $query .= 'references '.$sourceTable->getName().'(';
+            $query .= 'references '.$key->getSourceName().'(';
             $sourceCols = $key->getSourceCols();
             $refCount = count($sourceCols);
             $i1 = 0;
