@@ -26,7 +26,7 @@ class MySQLQueryTest extends TestCase{
     public function testAddForeignKey00() {
         $aq = new ArticleQuery();
         $aq->addForeignKey($aq->getStructure()->getForeignKeys()[0]);
-        $this->assertEquals("alter table articlesadd constraint author_fk foreign key (author_id) references system_users(user_id) on delete set null on update set null",$aq->getQuery());
+        $this->assertEquals("alter table articles add constraint author_fk foreign key (author_id) references system_users(user_id) on delete set null on update set null",$aq->getQuery());
     }
     /**
      * @test
