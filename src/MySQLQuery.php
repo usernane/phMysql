@@ -261,7 +261,7 @@ abstract class MySQLQuery{
                             $stm .= $col->getName().',';
                         }
                         if($col->isAutoInc()){
-                            $alterStm .= 'alter table '.$table->getName().' modify '.$col.'auto_increment;';
+                            $alterStm .= 'alter table '.$table->getName().' modify '.$col.' auto_increment;';
                         }
                         $index++;
                     }
