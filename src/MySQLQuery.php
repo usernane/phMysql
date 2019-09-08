@@ -1003,7 +1003,7 @@ abstract class MySQLQuery{
                             $vals .= '\''.self::escapeMySQLSpeciarChars($colObjOrVal).'\''.$comma;
                         }
                         else if($type == 'decimal' || $type == 'double' || $type == 'float'){
-                            $vals .= '\''.$valOrColIndex.'\''.$comma;
+                            $vals .= '\''.$colObjOrVal.'\''.$comma;
                         }
                         else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
                             $fixedPath = str_replace('\\', '/', $colObjOrVal);
