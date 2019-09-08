@@ -65,7 +65,7 @@ abstract class MySQLQuery{
      * @since 1.1
      */
     const Q_TYPES = array(
-        'select','update','delete','insert','show','create','alter'
+        'select','update','delete','insert','show','create','alter','drop'
     );
     /**
      * A constant for the query 'select * from'.
@@ -359,7 +359,7 @@ abstract class MySQLQuery{
             $query .= 'DEFAULT CHARSET = '.$table->getCharSet().self::NL;
             $query .= 'collate = '.$table->getCollation().';'.self::NL;
             $coutPk = $this->getStructure()->primaryKeyColsCount();
-            if($coutPk > 1){
+            if($coutPk >= 1){
                 if($inclSqlComments === true){
                     $query .= '-- Add Primary key to the table.'.self::NL;
                 }
