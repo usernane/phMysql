@@ -14,11 +14,57 @@ class MySQLQueryTest extends TestCase{
     /**
      * @test
      */
+    public function testSelectCount00() {
+        $aq = new ArticleQuery();
+        $aq->selectCount();
+        $this->assertEquals('select count(*) as count from articles;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectCount01() {
+        $aq = new ArticleQuery();
+        $aq->selectCount([
+            'as'=>'atrticles count'
+        ]);
+        $this->assertEquals('select count(*) as atrticles_count from articles;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectCount02() {
+        $aq = new ArticleQuery();
+        $aq->selectCount([
+            'where'=>[
+                'author-name'=>'Ibrahim Ali'
+            ]
+        ]);
+        $this->assertEquals('select count(*) as count from '
+                . 'articles where author_name = \'Ibrahim Ali\';',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectCount03() {
+        $aq = new ArticleQuery();
+        $aq->selectCount([
+            'where'=>[
+                'author-name'=>'Ibrahim Ali',
+                'last-updated'=>'2019-09-09'
+            ]
+        ]);
+        $this->assertEquals('select count(*) as count from '
+                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'date(last_updated) = \'2019-09-09\';',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
     public function testAddPrimaryKey00() {
         $aq = new ArticleQuery();
         $aq->addPrimaryKey($aq->getStructure());
         $this->assertEquals("alter table articles add constraint articles_pk primary key (article_id,author_name);\n"
-                . "alter table articles modify article_id int(11) not null unique auto_increment;",$aq->getQuery());
+                . "alter table articles modify article_id int(11) not null unique auto_increment;\n",$aq->getQuery());
     }
     /**
      * @test
