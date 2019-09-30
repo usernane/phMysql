@@ -1200,82 +1200,46 @@ abstract class MySQLQuery{
                 //then check value
                 $valUpper = gettype($vals[$index]) != 'array' ? strtoupper(trim($vals[$index])) : '';
                 if($valUpper == 'IS NULL' || $valUpper == 'IS NOT NULL'){
-                    if($index + 1 == $count){
-                        $where .= $col->getName().' '.$valUpper.'';
-                    }
-                    else{
-                        $where .= $col->getName().' '.$valUpper.' '.$jointOps[$index].' ';
-                    }
+                    $where .= $col->getName().' '.$valUpper.' ';
                 }
                 else{
-                    if($index + 1 == $count){
-                        if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\'' ;
-                        }
-                        else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= '\''.$vals[$index].'\'' ;
-                        }
-                        else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
-                            if(gettype($vals[$index]) == 'array'){
-                                $value = $vals[$index];
-                                if(isset($value['value'])){
-                                    if(isset($value['format'])){
-                                        $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
-                                    }
-                                    else{
-                                        $str = $this->createDateCondition($value['value'], $col->getName());
-                                    }
-                                    if(strlen($str) !== 0){
-                                        $where .= '('.$str.') ';
-                                    }
+                    if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                        $where .= $col->getName().' '.$equalityCond.' ';
+                        $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ' ;
+                    }
+                    else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
+                        $where .= $col->getName().' '.$equalityCond.' ';
+                        $where .= '\''.$vals[$index].'\' ' ;
+                    }
+                    else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
+                        if(gettype($vals[$index]) == 'array'){
+                            $value = $vals[$index];
+                            if(isset($value['value'])){
+                                if(isset($value['format'])){
+                                    $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
                                 }
-                            }
-                            else{
-                                $where .= 'date('.$col->getName().') '.$equalityCond.' ';
-                                $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
+                                else{
+                                    $str = $this->createDateCondition($value['value'], $col->getName());
+                                }
+                                if(strlen($str) !== 0){
+                                    $where .= '('.$str.') ';
+                                }
                             }
                         }
                         else{
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= $vals[$index];
+                            $where .= 'date('.$col->getName().') '.$equalityCond.' ';
+                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
                         }
                     }
                     else{
-                        if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' '.$jointOps[$index].' ' ;
-                        }
-                        else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= '\''.$vals[$index].'\'' ;
-                        }
-                        else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
-                            if(gettype($vals[$index]) == 'array'){
-                                $value = $vals[$index];
-                                if(isset($value['value'])){
-                                    if(isset($value['format'])){
-                                        $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
-                                    }
-                                    else{
-                                        $str = $this->createDateCondition($value['value'], $col->getName());
-                                    }
-                                    if(strlen($str) !== 0){
-                                        $where .= '('.$str.') '.$jointOps[$index].' ';
-                                    }
-                                }
-                            }
-                            else{
-                                $where .= 'date('.$col->getName().') '.$equalityCond.' ';
-                                $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
-                            }
-                        }
-                        else{
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= $vals[$index].' '.$jointOps[$index].' ';
-                        }
+                        $where .= $col->getName().' '.$equalityCond.' ';
+                        $where .= $vals[$index].' ';
                     }
+                }
+                
+                if($index + 1 < $count){
+                    //add the condition at the end.
+                    $where .= $jointOps[$index].' ';
                 }
             }
             $index++;
