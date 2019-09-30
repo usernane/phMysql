@@ -18,7 +18,7 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->addPrimaryKey($aq->getStructure());
         $this->assertEquals("alter table articles add constraint articles_pk primary key (article_id,author_name);\n"
-                . "alter table articles modify article_id int(11) not null unique auto_increment;",$aq->getQuery());
+                . "alter table articles modify article_id int(11) not null unique auto_increment;\n",$aq->getQuery());
     }
     /**
      * @test
