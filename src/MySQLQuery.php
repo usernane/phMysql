@@ -1278,6 +1278,11 @@ abstract class MySQLQuery{
                 $comma = ',';
             }
             if($colObjOrNewVal instanceof Column){
+                if($newValOrIndex === null){
+                    $colsStr .= ' '.$colObjOrNewVal->getName().' = null'.$comma;
+                    $index++;
+                    continue;
+                }
                 $newValLower = strtolower($newValOrIndex);
                 if(trim($newValLower) !== 'null'){
                     $type = $colObjOrNewVal->getType();
@@ -1329,6 +1334,11 @@ abstract class MySQLQuery{
                     $column = $this->getStructure()->getCol($newValOrIndex);
                 }
                 if($column instanceof Column){
+                    if($colObjOrNewVal === null){
+                        $colsStr .= ' '.$column->getName().' = null'.$comma;
+                        $index++;
+                        continue;
+                    }
                     $newValLower = strtolower($colObjOrNewVal);
                     if(trim($newValLower) !== 'null'){
                         $type = $column->getType();
