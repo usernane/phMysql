@@ -78,7 +78,7 @@ class MySQLTable {
      * @var array 
      * @since 1.0
      */
-    private $foreignKeys = array();
+    private $foreignKeys = [];
     /**
      * The name of the table.
      * @var string
@@ -299,6 +299,21 @@ class MySQLTable {
         return $this->mysqlVnum;
     }
     /**
+     * Returns an array that contains all columns names as they will appear in 
+     * the database.
+     * @return array An array that contains all columns names as they will appear in 
+     * the database.
+     * @since 1.6.2
+     */
+    public function getColsNames() {
+        $columns = $this->getColumns();
+        $retVal = [];
+        foreach ($columns as $colObj){
+            $retVal[] = $colObj->getName();
+        }
+        return $retVal;
+    }
+    /**
      * Sets the order of the table in the database.
      * The order of the table describes the dependencies between tables. For example, 
      * if we have three tables, 'A', 'B' and 'C'. Let's assume that table 'B' 
@@ -408,17 +423,6 @@ class MySQLTable {
      */
     public function getColumns() {
         return $this->colSet;
-    }
-    /**
-     * Returns a string that can be used to alter the table and add primary 
-     * key constraint to it.
-     * @return string A string that can be used to alter the table and add primary 
-     * key constraint to it. If the table has no primary keys or has only one, 
-     * the returned string will be empty.
-     * @since 1.5
-     */
-    public function getCreatePrimaryKeyStatement() {
-        
     }
     /**
      * Sets a comment which will appear with the table.
