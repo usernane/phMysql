@@ -28,7 +28,7 @@ use phMysql\MySQLQuery;
  * A class that represents MySQL table.
  *
  * @author Ibrahim
- * @version 1.6.1
+ * @version 1.6.2
  */
 class MySQLTable {
     /**
