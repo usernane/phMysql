@@ -33,6 +33,7 @@ class JoinTable extends MySQLTable{
             $this->rightTable = new MySQLTable('right_table');
         }
         $this->joinType = 'left';
+        $this->_addAndValidateColmns();
     }
     public function getJoinType() {
         return $this->joinType;
@@ -58,25 +59,52 @@ class JoinTable extends MySQLTable{
         foreach ($rightColsKeys as $col){
             foreach ($leftColsKeys as $col2){
                 if($col == $col2){
-                    $commonColsKeys[] = $commonColsKeys;
+                    $commonColsKeys[] = $col2;
                 }
             }
         }
+        $commonCols = [];
+        $rightCols = $this->getRightTable()->getColsNames();
+        $leftCols = $this->getLeftTable()->getColsNames();
+        foreach ($rightCols as $col){
+            foreach ($leftCols as $col2){
+                if($col == $col2){
+                    $commonCols[] = $col2;
+                }
+            }
+        }
+        $colsArr = [];
         foreach ($leftColsKeys as $col){
             if(in_array($col, $commonColsKeys)){
-                $this->addColumn('left-'.$col, $this->getLeftTable()->getCol($col));
+                $colsArr['left-'.$col] = $this->getLeftTable()->getCol($col);
             }
             else{
-                $this->addColumn($col, $this->getLeftTable()->getCol($col));
+                $colsArr[$col] = $this->getLeftTable()->getCol($col);
             }
         }
         foreach ($rightColsKeys as $col){
             if(in_array($col, $commonColsKeys)){
-                $this->addColumn('right-'.$col, $this->getRightTable()->getCol($col));
+                $colsArr['right-'.$col] = $this->getRightTable()->getCol($col);
             }
             else{
-                $this->addColumn($col, $this->getRightTable()->getCol($col));
+                $colsArr[$col] = $this->getRightTable()->getCol($col);
             }
+        }
+        $index = 0;
+        $leftCount = count($leftCols);
+        foreach ($colsArr as $colkey => $colObj){
+            if($colObj instanceof Column){
+                if(in_array($colObj->getName(), $commonCols)){
+                    if($index < $leftCount){
+                        $colObj->setName('left_'.$colObj->getName());
+                    }
+                    else{
+                        $colObj->setName('right_'.$colObj->getName());
+                    }
+                }
+            }
+            $this->addColumn($colkey, $colObj);
+            $index++;
         }
     }
 }
