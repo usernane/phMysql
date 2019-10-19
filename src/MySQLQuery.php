@@ -323,6 +323,48 @@ abstract class MySQLQuery{
         }
         $this->setQuery($query, 'alter');
     }
+    public static function join($left,$right,$name='join_table',$joinType='join') {
+        if(!($left instanceof MySQLTable)){
+            if(!($left instanceof MySQLQuery)){
+                if(class_exists($left)){
+                    $o = new $left();
+                    if($o instanceof MySQLQuery){
+                        $left = $o->getStructure();
+                    }
+                    else{
+                        return false;
+                    }
+                }
+                else{
+                    return false;
+                }
+            }
+            else{
+                $left = $left->getStructure();
+            }
+        }
+        if(!($right instanceof MySQLTable)){
+            if(!($right instanceof MySQLQuery)){
+                if(class_exists($right)){
+                    $o = new $right();
+                    if($o instanceof MySQLQuery){
+                        $right = $o->getStructure();
+                    }
+                    else{
+                        return false;
+                    }
+                }
+                else{
+                    return false;
+                }
+            }
+            else{
+                $right = $right->getStructure();
+            }
+        }
+        $joinTable = new JoinTable($left, $right, $name);
+        return $joinTable;
+    }
     /**
      * Constructs a query that can be used to create a new table.
      * @param MySQLTable $table an instance of <b>MySQLTable</b>.
