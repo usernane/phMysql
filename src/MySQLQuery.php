@@ -323,48 +323,6 @@ abstract class MySQLQuery{
         }
         $this->setQuery($query, 'alter');
     }
-    public static function join($left,$right,$name='join_table',$joinType='join') {
-        if(!($left instanceof MySQLTable)){
-            if(!($left instanceof MySQLQuery)){
-                if(class_exists($left)){
-                    $o = new $left();
-                    if($o instanceof MySQLQuery){
-                        $left = $o->getStructure();
-                    }
-                    else{
-                        return false;
-                    }
-                }
-                else{
-                    return false;
-                }
-            }
-            else{
-                $left = $left->getStructure();
-            }
-        }
-        if(!($right instanceof MySQLTable)){
-            if(!($right instanceof MySQLQuery)){
-                if(class_exists($right)){
-                    $o = new $right();
-                    if($o instanceof MySQLQuery){
-                        $right = $o->getStructure();
-                    }
-                    else{
-                        return false;
-                    }
-                }
-                else{
-                    return false;
-                }
-            }
-            else{
-                $right = $right->getStructure();
-            }
-        }
-        $joinTable = new JoinTable($left, $right, $name);
-        return $joinTable;
-    }
     /**
      * Constructs a query that can be used to create a new table.
      * @param MySQLTable $table an instance of <b>MySQLTable</b>.
@@ -438,10 +396,10 @@ abstract class MySQLQuery{
         $query = ''.$query;
         if($query){
             $mysqlSpecial = array(
-                "\\","'"
+                "\\","'","\0","\b","\n"
             );
             $mysqlSpecialEsc = array(
-                "\\\\","\'"
+                "\\\\","\'","\\0","\\b","\\n"
             );
             $count = count($mysqlSpecial);
             for($i = 0 ; $i < $count ; $i++){
@@ -1216,11 +1174,11 @@ abstract class MySQLQuery{
         if($colsCount == 0 || $valsCount == 0){
             return '';
         }
-        while ($colsCount > $condsCount){
+        while ($colsCount != $condsCount){
             $valsConds[] = '=';
             $condsCount = count($valsConds);
         }
-        while (($colsCount - 1) > $joinOpsCount){
+        while (($colsCount - 1) != $joinOpsCount){
             $jointOps[] = 'and';
             $joinOpsCount = count($jointOps);
         }
@@ -1228,7 +1186,6 @@ abstract class MySQLQuery{
             return '';
         }
         $index = 0;
-        $count = count($cols);
         $where = ' where ';
         $supportedConds = ['=','!=','<','<=','>','>='];
         foreach ($cols as $col){
@@ -1242,46 +1199,82 @@ abstract class MySQLQuery{
                 //then check value
                 $valUpper = gettype($vals[$index]) != 'array' ? strtoupper(trim($vals[$index])) : '';
                 if($valUpper == 'IS NULL' || $valUpper == 'IS NOT NULL'){
-                    $where .= $col->getName().' '.$valUpper.' ';
+                    if($index + 1 == $colsCount){
+                        $where .= $col->getName().' '.$valUpper.'';
+                    }
+                    else{
+                        $where .= $col->getName().' '.$valUpper.' '.$jointOps[$index].' ';
+                    }
                 }
                 else{
-                    if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                        $where .= $col->getName().' '.$equalityCond.' ';
-                        $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ' ;
-                    }
-                    else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
-                        $where .= $col->getName().' '.$equalityCond.' ';
-                        $where .= '\''.$vals[$index].'\' ' ;
-                    }
-                    else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
-                        if(gettype($vals[$index]) == 'array'){
-                            $value = $vals[$index];
-                            if(isset($value['value'])){
-                                if(isset($value['format'])){
-                                    $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
+                    if($index + 1 == $colsCount){
+                        if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                            $where .= $col->getName().' '.$equalityCond.' ';
+                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\'' ;
+                        }
+                        else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
+                            $where .= $col->getName().' '.$equalityCond.' ';
+                            $where .= '\''.$vals[$index].'\'' ;
+                        }
+                        else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
+                            if(gettype($vals[$index]) == 'array'){
+                                $value = $vals[$index];
+                                if(isset($value['value'])){
+                                    if(isset($value['format'])){
+                                        $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
+                                    }
+                                    else{
+                                        $str = $this->createDateCondition($value['value'], $col->getName());
+                                    }
+                                    if(strlen($str) !== 0){
+                                        $where .= '('.$str.') ';
+                                    }
                                 }
-                                else{
-                                    $str = $this->createDateCondition($value['value'], $col->getName());
-                                }
-                                if(strlen($str) !== 0){
-                                    $where .= '('.$str.') ';
-                                }
+                            }
+                            else{
+                                $where .= 'date('.$col->getName().') '.$equalityCond.' ';
+                                $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
                             }
                         }
                         else{
-                            $where .= 'date('.$col->getName().') '.$equalityCond.' ';
-                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
+                            $where .= $col->getName().' '.$equalityCond.' ';
+                            $where .= $vals[$index];
                         }
                     }
                     else{
-                        $where .= $col->getName().' '.$equalityCond.' ';
-                        $where .= $vals[$index].' ';
+                        if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
+                            $where .= $col->getName().' '.$equalityCond.' ';
+                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' '.$jointOps[$index].' ' ;
+                        }
+                        else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
+                            $where .= $col->getName().' '.$equalityCond.' ';
+                            $where .= '\''.$vals[$index].'\'' ;
+                        }
+                        else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
+                            if(gettype($vals[$index]) == 'array'){
+                                $value = $vals[$index];
+                                if(isset($value['value'])){
+                                    if(isset($value['format'])){
+                                        $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
+                                    }
+                                    else{
+                                        $str = $this->createDateCondition($value['value'], $col->getName());
+                                    }
+                                    if(strlen($str) !== 0){
+                                        $where .= '('.$str.') '.$jointOps[$index].' ';
+                                    }
+                                }
+                            }
+                            else{
+                                $where .= 'date('.$col->getName().') '.$equalityCond.' ';
+                                $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' '.$jointOps[$index].' ';
+                            }
+                        }
+                        else{
+                            $where .= $col->getName().' '.$equalityCond.' ';
+                            $where .= $vals[$index].' '.$jointOps[$index].' ';
+                        }
                     }
-                }
-                
-                if($index + 1 < $count){
-                    //add the condition at the end.
-                    $where .= $jointOps[$index].' ';
                 }
             }
             $index++;
@@ -1320,11 +1313,6 @@ abstract class MySQLQuery{
                 $comma = ',';
             }
             if($colObjOrNewVal instanceof Column){
-                if($newValOrIndex === null){
-                    $colsStr .= ' '.$colObjOrNewVal->getName().' = null'.$comma;
-                    $index++;
-                    continue;
-                }
                 $newValLower = strtolower($newValOrIndex);
                 if(trim($newValLower) !== 'null'){
                     $type = $colObjOrNewVal->getType();
@@ -1376,11 +1364,6 @@ abstract class MySQLQuery{
                     $column = $this->getStructure()->getCol($newValOrIndex);
                 }
                 if($column instanceof Column){
-                    if($colObjOrNewVal === null){
-                        $colsStr .= ' '.$column->getName().' = null'.$comma;
-                        $index++;
-                        continue;
-                    }
                     $newValLower = strtolower($colObjOrNewVal);
                     if(trim($newValLower) !== 'null'){
                         $type = $column->getType();
