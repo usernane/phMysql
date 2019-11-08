@@ -14,6 +14,42 @@ class MySQLQueryTest extends TestCase{
     /**
      * @test
      */
+    public function testInsert000() {
+        $aq = new ArticleQuery();
+        $aq->insertRecord([
+            'author-id'=>66
+        ]);
+        $this->assertEquals('insert into articles (author_id) values (66);',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testInsert001() {
+        $aq = new ArticleQuery();
+        $aq->insertRecord([
+            'author-id'=>66,
+            'author-name'=>'Ibrahim',
+            'content'=>null
+        ]);
+        $this->assertEquals('insert into articles (author_id,author_name,content) '
+                . 'values (66,\'Ibrahim\',null);',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testInsert002() {
+        $aq = new ArticleQuery();
+        $aq->insertRecord([
+            'author-id'=>66,
+            'author-name'=>'Ibrahim',
+            'content'=>'null'
+        ]);
+        $this->assertEquals('insert into articles (author_id,author_name,content) '
+                . 'values (66,\'Ibrahim\',null);',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
     public function testSelectCount00() {
         $aq = new ArticleQuery();
         $aq->selectCount();
@@ -55,7 +91,103 @@ class MySQLQueryTest extends TestCase{
         ]);
         $this->assertEquals('select count(*) as count from '
                 . 'articles where author_name = \'Ibrahim Ali\' and '
-                . 'date(last_updated) = \'2019-09-09\';',$aq->getQuery());
+                . 'last_updated >= \'2019-09-09 00:00:00\' and last_updated <= \'2019-09-09 23:59:59\';',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectCount04() {
+        $aq = new ArticleQuery();
+        $aq->selectCount([
+            'where'=>[
+                'author-name'=>'Ibrahim Ali',
+                'last-updated'=>'2019-09-09'
+            ],
+            'conditions'=>['=','<']
+        ]);
+        $this->assertEquals('select count(*) as count from '
+                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'last_updated < \'2019-09-09 00:00:00\';',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectCount05() {
+        $aq = new ArticleQuery();
+        $aq->selectCount([
+            'where'=>[
+                'author-name'=>'Ibrahim Ali',
+                'last-updated'=>'2019-09-09'
+            ],
+            'conditions'=>['=','<=']
+        ]);
+        $this->assertEquals('select count(*) as count from '
+                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'last_updated <= \'2019-09-09 23:59:59\';',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectCount06() {
+        $aq = new ArticleQuery();
+        $aq->selectCount([
+            'where'=>[
+                'author-name'=>'Ibrahim Ali',
+                'last-updated'=>'2019-09-09 06:00:00'
+            ],
+            'conditions'=>['=','<=']
+        ]);
+        $this->assertEquals('select count(*) as count from '
+                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'last_updated <= \'2019-09-09 06:00:00\';',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectCount07() {
+        $aq = new ArticleQuery();
+        $aq->selectCount([
+            'where'=>[
+                'author-name'=>'Ibrahim Ali',
+                'last-updated'=>'2019-09-09'
+            ],
+            'conditions'=>['=','>']
+        ]);
+        $this->assertEquals('select count(*) as count from '
+                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'last_updated > \'2019-09-09 23:59:59\';',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectCount08() {
+        $aq = new ArticleQuery();
+        $aq->selectCount([
+            'where'=>[
+                'author-name'=>'Ibrahim Ali',
+                'last-updated'=>'2019-09-09'
+            ],
+            'conditions'=>['=','>=']
+        ]);
+        $this->assertEquals('select count(*) as count from '
+                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'last_updated >= \'2019-09-09 00:00:00\';',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectCount09() {
+        $aq = new ArticleQuery();
+        $aq->selectCount([
+            'where'=>[
+                'author-name'=>'Ibrahim Ali',
+                'last-updated'=>'2019-09-09'
+            ],
+            'conditions'=>['=','!=']
+        ]);
+        $this->assertEquals('select count(*) as count from '
+                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'last_updated < \'2019-09-09 00:00:00\' and last_updated > \'2019-09-09 23:59:59\';',$aq->getQuery());
     }
     /**
      * @test
@@ -273,5 +405,55 @@ class MySQLQueryTest extends TestCase{
             ]
         ]);
         $this->assertEquals('select * from first_table where col_03 = \'7U\' and col_00 = \'*I\' and col_02 = \'X\' group by col_03, col_00 order by col_00;',$obj->getQuery());
+    }
+    public function testSelect012() {
+        $aq = new ArticleQuery();
+        //testing sql injection
+        $aq->select([
+            'where'=>['author-id'=>'5;drop table random;']
+        ]);
+        $this->assertEquals('select * from articles where author_id = 5;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelect013() {
+        $aq = new ArticleQuery();
+        //testing sql injection
+        $aq->select([
+            'where'=>['author-id'=>'drop table random;']
+        ]);
+        $this->assertEquals('select * from articles where author_id = 0;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelect014() {
+        $aq = new ArticleQuery();
+        $aq->select([
+            'where'=>['author-id'=>'is null']
+        ]);
+        $this->assertEquals('select * from articles where author_id is null;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelect015() {
+        $aq = new ArticleQuery();
+        $aq->select([
+            'where'=>['author-id'=>null]
+        ]);
+        $this->assertEquals('select * from articles where author_id is null;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelect016() {
+        $aq = new ArticleQuery();
+        $aq->select([
+            'where'=>['author-id'=>null],
+            'conditions'=>['!=']
+        ]);
+        $this->assertEquals('select * from articles where author_id is not null;',$aq->getQuery());
     }
 }

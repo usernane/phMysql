@@ -1016,66 +1016,14 @@ abstract class MySQLQuery{
                 //a value as an index with an object of type Column
                 $cols .= $colObjOrVal->getName().$comma;
                 if($valOrColIndex !== 'null'){
-                    $type = $colObjOrVal->getType();
-                    if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
-                        $vals .= '\''.self::escapeMySQLSpeciarChars($valOrColIndex).'\''.$comma;
-                    }
-                    else if($type == 'decimal' || $type == 'double' || $type == 'float'){
-                        $vals .= '\''.$valOrColIndex.'\''.$comma;
-                    }
-                    else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
-                        $fixedPath = str_replace('\\', '/', $valOrColIndex);
-                        if(file_exists($fixedPath)){
-                            $file = fopen($fixedPath, 'r');
-                            $data = '';
-                            if($file !== false){
-                                $fileContent = fread($file, filesize($fixedPath));
-                                if($fileContent !== false){
-                                    $data = '\''. addslashes($fileContent).'\'';
-                                    $vals .= $data.$comma;
-                                    $this->setIsBlobInsertOrUpdate(true);
-                                }
-                                else{
-                                    $vals .= 'null'.$comma;
-                                }
-                                fclose($file);
-                            }
-                            else{
-                                $vals .= 'null'.$comma;
-                            }
-                        }
-                        else{
-                            $vals .= 'null'.$comma;
-                        }
+                    $cleanedVal = $colObjOrVal->cleanValue($valOrColIndex);
+                    if($cleanedVal === null){
+                        $vals .= 'null'.$comma;
                     }
                     else{
-                         $vals .= $valOrColIndex.$comma;
-                    }
-                }
-                else{
-                    $vals .= 'null'.$comma;
-                }
-            }
-            else{
-                //an index with a value
-                if(gettype($valOrColIndex) == 'integer'){
-                    $column = $this->getStructure()->getColByIndex($valOrColIndex);
-                }
-                else{
-                    $column = $this->getStructure()->getCol($valOrColIndex);
-                }
-                if($column instanceof Column){
-                    $cols .= $column->getName().$comma;
-                    if($colObjOrVal !== 'null'){
-                        $type = $column->getType();
-                        if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
-                            $vals .= '\''.self::escapeMySQLSpeciarChars($colObjOrVal).'\''.$comma;
-                        }
-                        else if($type == 'decimal' || $type == 'double' || $type == 'float'){
-                            $vals .= '\''.$colObjOrVal.'\''.$comma;
-                        }
-                        else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
-                            $fixedPath = str_replace('\\', '/', $colObjOrVal);
+                        $type = $colObjOrVal->getType();
+                        if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
+                            $fixedPath = str_replace('\\', '/', $valOrColIndex);
                             if(file_exists($fixedPath)){
                                 $file = fopen($fixedPath, 'r');
                                 $data = '';
@@ -1100,7 +1048,59 @@ abstract class MySQLQuery{
                             }
                         }
                         else{
-                            $vals .= $colObjOrVal.$comma;
+                            $vals .= $cleanedVal.$comma;
+                        }
+                    }
+                }
+                else{
+                    $vals .= 'null'.$comma;
+                }
+            }
+            else{
+                //an index with a value
+                if(gettype($valOrColIndex) == 'integer'){
+                    $column = $this->getStructure()->getColByIndex($valOrColIndex);
+                }
+                else{
+                    $column = $this->getStructure()->getCol($valOrColIndex);
+                }
+                if($column instanceof Column){
+                    $cols .= $column->getName().$comma;
+                    $type = $column->getType();
+                    if($colObjOrVal !== 'null'){
+                        $cleanedVal = $column->cleanValue($colObjOrVal);
+                        if($cleanedVal === null){
+                            $vals .= 'null'.$comma;
+                        }
+                        else{
+                            if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
+                                $fixedPath = str_replace('\\', '/', $valOrColIndex);
+                                if(file_exists($fixedPath)){
+                                    $file = fopen($fixedPath, 'r');
+                                    $data = '';
+                                    if($file !== false){
+                                        $fileContent = fread($file, filesize($fixedPath));
+                                        if($fileContent !== false){
+                                            $data = '\''. addslashes($fileContent).'\'';
+                                            $vals .= $data.$comma;
+                                            $this->setIsBlobInsertOrUpdate(true);
+                                        }
+                                        else{
+                                            $vals .= 'null'.$comma;
+                                        }
+                                        fclose($file);
+                                    }
+                                    else{
+                                        $vals .= 'null'.$comma;
+                                    }
+                                }
+                                else{
+                                    $vals .= 'null'.$comma;
+                                }
+                            }
+                            else{
+                                $vals .= $cleanedVal.$comma;
+                            }
                         }
                     }
                     else{
@@ -1113,7 +1113,7 @@ abstract class MySQLQuery{
         
         $cols = ' ('.$cols.')';
         $vals = ' ('.$vals.')';
-        $this->setQuery(self::INSERT.$this->getStructureName().$cols.' values '.$vals.';', 'insert');
+        $this->setQuery(self::INSERT.$this->getStructureName().$cols.' values'.$vals.';', 'insert');
     }
     /**
      * Removes a record from the table.
@@ -1197,84 +1197,53 @@ abstract class MySQLQuery{
             //then check if column object is given
             if($col instanceof Column){
                 //then check value
-                $valUpper = gettype($vals[$index]) != 'array' ? strtoupper(trim($vals[$index])) : '';
-                if($valUpper == 'IS NULL' || $valUpper == 'IS NOT NULL'){
-                    if($index + 1 == $colsCount){
-                        $where .= $col->getName().' '.$valUpper.'';
+                $cleanVal = $col->cleanValue($vals[$index]);
+                $valLower = gettype($vals[$index]) != 'array' ? strtolower(trim($vals[$index])) : '';
+                if($valLower == 'is null' || $valLower == 'is not null'){
+                    $where .= $col->getName().' '.$valLower.' ';
+                }
+                else if($cleanVal === null){
+                    if($equalityCond == '='){
+                        $where .= $col->getName().' is null ';
                     }
                     else{
-                        $where .= $col->getName().' '.$valUpper.' '.$jointOps[$index].' ';
+                        $where .= $col->getName().' is not null ';
                     }
                 }
                 else{
-                    if($index + 1 == $colsCount){
-                        if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\'' ;
+                    if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
+                        if($equalityCond == '='){
+                            $where .= $col->getName().' >= '.$cleanVal.' ';
+                            $cleanVal = $col->cleanValue($vals[$index],true);
+                            $where .= 'and '.$col->getName().' <= '.$cleanVal.' ';
                         }
-                        else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= '\''.$vals[$index].'\'' ;
+                        else if($equalityCond == '!='){
+                            $where .= $col->getName().' < '.$cleanVal.' ';
+                            $cleanVal = $col->cleanValue($vals[$index],true);
+                            $where .= 'and '.$col->getName().' > '.$cleanVal.' ';
                         }
-                        else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
-                            if(gettype($vals[$index]) == 'array'){
-                                $value = $vals[$index];
-                                if(isset($value['value'])){
-                                    if(isset($value['format'])){
-                                        $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
-                                    }
-                                    else{
-                                        $str = $this->createDateCondition($value['value'], $col->getName());
-                                    }
-                                    if(strlen($str) !== 0){
-                                        $where .= '('.$str.') ';
-                                    }
-                                }
-                            }
-                            else{
-                                $where .= 'date('.$col->getName().') '.$equalityCond.' ';
-                                $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' ';
-                            }
+                        else if($equalityCond == '>='){
+                            $where .= $col->getName().' >= '.$cleanVal.' ';
+                            $cleanVal = $col->cleanValue($vals[$index],true);
                         }
-                        else{
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= $vals[$index];
+                        else if($equalityCond == '<='){
+                            $cleanVal = $col->cleanValue($vals[$index],true);
+                            $where .= $col->getName().' <= '.$cleanVal.' ';
+                        }
+                        else if($equalityCond == '>'){
+                            $cleanVal = $col->cleanValue($vals[$index],true);
+                            $where .= $col->getName().' > '.$cleanVal.' ';
+                        }
+                        else if($equalityCond == '<'){
+                            $where .= $col->getName().' < '.$cleanVal.' ';
                         }
                     }
                     else{
-                        if($col->getType() == 'varchar' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' '.$jointOps[$index].' ' ;
-                        }
-                        else if($col->getType() == 'decimal' || $col->getType() == 'float' || $col->getType() == 'double'){
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= '\''.$vals[$index].'\'' ;
-                        }
-                        else if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
-                            if(gettype($vals[$index]) == 'array'){
-                                $value = $vals[$index];
-                                if(isset($value['value'])){
-                                    if(isset($value['format'])){
-                                        $str = $this->createDateCondition($value['value'], $col->getName(), $value['format']);
-                                    }
-                                    else{
-                                        $str = $this->createDateCondition($value['value'], $col->getName());
-                                    }
-                                    if(strlen($str) !== 0){
-                                        $where .= '('.$str.') '.$jointOps[$index].' ';
-                                    }
-                                }
-                            }
-                            else{
-                                $where .= 'date('.$col->getName().') '.$equalityCond.' ';
-                                $where .= '\''.self::escapeMySQLSpeciarChars($vals[$index]).'\' '.$jointOps[$index].' ';
-                            }
-                        }
-                        else{
-                            $where .= $col->getName().' '.$equalityCond.' ';
-                            $where .= $vals[$index].' '.$jointOps[$index].' ';
-                        }
+                        $where .= $col->getName().' '.$equalityCond.' '.$cleanVal.' ';
                     }
+                }
+                if($index + 1 != $colsCount){
+                    $where .= $jointOps[$index].' ';
                 }
             }
             $index++;

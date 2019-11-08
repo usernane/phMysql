@@ -26,7 +26,7 @@ namespace phMysql;
 /**
  * A class that represents a column in MySQL table.
  * @author Ibrahim
- * @version 1.6.3
+ * @version 1.6.4
  */
 class Column{
     /**
@@ -208,6 +208,45 @@ class Column{
         
         $this->setIsNull(false);
         $this->setIsUnique(false);
+    }
+    /**
+     * 
+     * @param string|int|double|null $val
+     * @param boolean $dateEndOfDay Description
+     * @return int|string|null
+     * @since 1.6.4
+     */
+    public function cleanValue($val,$dateEndOfDay=false) {
+        $type = $this->getType();
+        if($val === null){
+            return null;
+        }
+        else if($type == 'int'){
+            return intval($val);
+        }
+        else if($type == 'decimal' || $type == 'float' || $type == 'double'){
+            return '\''.floatval($val).'\'';
+        }
+        else if($type == 'varchar' || $type == 'text' || $type == 'mediumtext'){
+            return '\''.str_replace("'", "\'", $val).'\'';
+        }
+        else if($type == 'datetime' || $type == 'timestamp'){
+            $trimmed = trim($val);
+            if($this->_validateDateAndTime($trimmed)){
+                return '\''.$trimmed.'\'';
+            }
+            else if($this->_validateDate($trimmed)){
+                if($dateEndOfDay === true){
+                    return '\''.$trimmed.' 23:59:59\'';
+                }
+                else{
+                    return '\''.$trimmed.' 00:00:00\'';
+                }
+            }
+        }
+        else{
+            return '';
+        }
     }
     /**
      * Sets a comment which will appear with the column.
