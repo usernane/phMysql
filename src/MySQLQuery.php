@@ -988,15 +988,17 @@ abstract class MySQLQuery{
     }
     /**
      * Constructs a query that can be used to insert a new record.
-     * @param array $colsAndVals An associative array. The array can have two 
-     * possible structures:
-     * <ul>
-     * <li>A column index taken from MySQLTable object as an index with a 
-     * value as the value of the column (Recommended).</li>
-     * <li>A value as an index with an object of type 'Column' as it is value.</li>
-     * </ul>
-     * The second way is not recommended as it may cause some issues if two columns 
-     * have the same value.
+     * @param array $colsAndVals An associative array. The indices must be 
+     * columns names taken from the linked table. For example, if we have 
+     * a table which has two columns with names 'student-id' and 'registered-course', 
+     * then the array whould look like the following:
+     * <p>
+     * <code>[<br/>
+     * &nbsp;&nbsp;'student-id'=>55<br/>
+     * &nbsp;&nbsp;'registered-course'=>542<br/>]</code>
+     * </p>
+     * Note that it is possible for the index to be a numeric value such as 0 
+     * or 1. The numeric value will represents column position in the table.
      * @since 1.8.2
      */
     public function insertRecord($colsAndVals) {
@@ -1005,25 +1007,32 @@ abstract class MySQLQuery{
         $count = count($colsAndVals);
         $index = 0;
         $comma = '';
-        foreach($colsAndVals as $valOrColIndex=>$colObjOrVal){
+        $columnsWithVals = [];
+        foreach($colsAndVals as $colIndex=>$val){
             if($index + 1 == $count){
                 $comma = '';
             }
             else{
                 $comma = ',';
             }
-            if($colObjOrVal instanceof Column){
-                //a value as an index with an object of type Column
-                $cols .= $colObjOrVal->getName().$comma;
-                if($valOrColIndex !== 'null'){
-                    $cleanedVal = $colObjOrVal->cleanValue($valOrColIndex);
+            if(gettype($colIndex) == 'integer'){
+                $column = $this->getStructure()->getColByIndex($colIndex);
+            }
+            else{
+                $column = $this->getStructure()->getCol($colIndex);
+            }
+            if($column instanceof Column){
+                $columnsWithVals[] = $colIndex;
+                $cols .= $column->getName().$comma;
+                $type = $column->getType();
+                if($val !== 'null'){
+                    $cleanedVal = $column->cleanValue($val);
                     if($cleanedVal === null){
                         $vals .= 'null'.$comma;
                     }
                     else{
-                        $type = $colObjOrVal->getType();
                         if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
-                            $fixedPath = str_replace('\\', '/', $valOrColIndex);
+                            $fixedPath = str_replace('\\', '/', $colIndex);
                             if(file_exists($fixedPath)){
                                 $file = fopen($fixedPath, 'r');
                                 $data = '';
@@ -1056,61 +1065,18 @@ abstract class MySQLQuery{
                     $vals .= 'null'.$comma;
                 }
             }
-            else{
-                //an index with a value
-                if(gettype($valOrColIndex) == 'integer'){
-                    $column = $this->getStructure()->getColByIndex($valOrColIndex);
-                }
-                else{
-                    $column = $this->getStructure()->getCol($valOrColIndex);
-                }
-                if($column instanceof Column){
-                    $cols .= $column->getName().$comma;
-                    $type = $column->getType();
-                    if($colObjOrVal !== 'null'){
-                        $cleanedVal = $column->cleanValue($colObjOrVal);
-                        if($cleanedVal === null){
-                            $vals .= 'null'.$comma;
-                        }
-                        else{
-                            if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
-                                $fixedPath = str_replace('\\', '/', $valOrColIndex);
-                                if(file_exists($fixedPath)){
-                                    $file = fopen($fixedPath, 'r');
-                                    $data = '';
-                                    if($file !== false){
-                                        $fileContent = fread($file, filesize($fixedPath));
-                                        if($fileContent !== false){
-                                            $data = '\''. addslashes($fileContent).'\'';
-                                            $vals .= $data.$comma;
-                                            $this->setIsBlobInsertOrUpdate(true);
-                                        }
-                                        else{
-                                            $vals .= 'null'.$comma;
-                                        }
-                                        fclose($file);
-                                    }
-                                    else{
-                                        $vals .= 'null'.$comma;
-                                    }
-                                }
-                                else{
-                                    $vals .= 'null'.$comma;
-                                }
-                            }
-                            else{
-                                $vals .= $cleanedVal.$comma;
-                            }
-                        }
-                    }
-                    else{
-                        $vals .= 'null'.$comma;
-                    }
-                }
-            }
             $index++;
         }
-        
+        $table = $this->getStructure();
+        $columnsKeys = array_keys($table->getColumns());
+        if(count($columnsWithVals) != count($columnsKeys)){
+            foreach ($columnsKeys as $colKey){
+                $colObj = $table->getCol($colKey);
+                if($colObj->getDefault()){
+                    
+                }
+            }
+        }
         $cols = ' ('.$cols.')';
         $vals = ' ('.$vals.')';
         $this->setQuery(self::INSERT.$this->getStructureName().$cols.' values'.$vals.';', 'insert');

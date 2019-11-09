@@ -11,6 +11,79 @@ class ColumnTest extends TestCase{
     /**
      * @test
      */
+    public function testCleanValue00() {
+        $col = new Column('col', 'varchar');
+        $this->assertEquals('\'Hello World!\'',$col->cleanValue('Hello World!'));
+        $this->assertEquals('\'I wouln\\\'t do That\'',$col->cleanValue('I wouln\'t do That'));
+    }
+    /**
+     * @test
+     */
+    public function testCleanValue01() {
+        $col = new Column('col', 'text');
+        $this->assertEquals('\'Hello World!\'',$col->cleanValue('Hello World!'));
+        $this->assertEquals('\'I wouln\\\'t do That\'',$col->cleanValue('I wouln\'t do That'));
+    }
+    /**
+     * @test
+     */
+    public function testCleanValue02() {
+        $col = new Column('col', 'mediumtext');
+        $this->assertEquals('\'Hello World!\'',$col->cleanValue('Hello World!'));
+        $this->assertEquals('\'I wouln\\\'t do That\'',$col->cleanValue('I wouln\'t do That'));
+    }
+    /**
+     * @test
+     */
+    public function testCleanValue03() {
+        $col = new Column('col', 'int');
+        $this->assertEquals(0,$col->cleanValue('Hello World!'));
+        $this->assertEquals(0,$col->cleanValue('I wouln\';select * from x'));
+        $this->assertEquals(43,$col->cleanValue('43'));
+        $this->assertEquals(-99,$col->cleanValue('-99.65'));
+        $this->assertEquals(0,$col->cleanValue('hello-99.65'));
+        $this->assertEquals(5,$col->cleanValue(5));
+    }
+    /**
+     * @test
+     */
+    public function testCleanValue04() {
+        $col = new Column('col', 'decimal');
+        $this->assertEquals('\'0\'',$col->cleanValue('Hello World!'));
+        $this->assertEquals('\'0\'',$col->cleanValue('I wouln\';select * from x'));
+        $this->assertEquals('\'43\'',$col->cleanValue('43'));
+        $this->assertEquals('\'-99.65\'',$col->cleanValue('-99.65'));
+        $this->assertEquals('\'0\'',$col->cleanValue('hello-99.65'));
+        $this->assertEquals('\'5\'',$col->cleanValue(5));
+        $this->assertEquals('\'6532.887\'',$col->cleanValue(6532.887));
+    }
+    /**
+     * @test
+     */
+    public function testCleanValue06() {
+        $col = new Column('col', 'decimal');
+        $this->assertEquals('\'0\'',$col->cleanValue('Hello World!'));
+        $this->assertEquals('\'0\'',$col->cleanValue('I wouln\';select * from x'));
+        $this->assertEquals('\'43\'',$col->cleanValue('43'));
+        $this->assertEquals('\'-99.65\'',$col->cleanValue('-99.65'));
+        $this->assertEquals('\'0\'',$col->cleanValue('hello-99.65'));
+        $this->assertEquals('\'5\'',$col->cleanValue(5));
+        $this->assertEquals('\'6532.887\'',$col->cleanValue(6532.887));
+    }
+    /**
+     * @test
+     */
+    public function testCleanValue07() {
+        $col = new Column('col', 'timestamp');
+        $this->assertEquals('',$col->cleanValue('Hello World!'));
+        $this->assertEquals('',$col->cleanValue('I wouln\';select * from x'));
+        $this->assertEquals('',$col->cleanValue(5));
+        $this->assertEquals('\'2019-11-01 00:00:00\'',$col->cleanValue('2019-11-01'));
+        $this->assertEquals('\'2019-11-01 23:09:44\'',$col->cleanValue('2019-11-01 23:09:44'));
+    }
+    /**
+     * @test
+     */
     public function testConstructor00() {
         $col = new Column();
         $this->assertEquals('varchar',$col->getType());
@@ -152,9 +225,9 @@ class ColumnTest extends TestCase{
      */
     public function testSetDefault00() {
         $col = new Column('date', 'timestamp');
-        $col->setDefault();
-        $this->assertEquals('current_timestamp',$col->getDefault());
-        $this->assertEquals('date timestamp not null default current_timestamp',$col.'');
+        $col->setDefault('2019-11-09');
+        $this->assertEquals('\'2019-11-09 00:00:00\'',$col->getDefault());
+        $this->assertEquals('date timestamp not null default \'2019-11-09 00:00:00\'',$col.'');
     }
     /**
      * @test
