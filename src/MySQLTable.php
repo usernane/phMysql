@@ -446,13 +446,15 @@ class MySQLTable {
     }
     /**
      * Adds a foreign key to the table.
-     * @param MySQLTable|string $refTable The referenced table. It is the table that 
+     * @param MySQLTable|MySQLQuery|string $refTable The referenced table. It is the table that 
      * will contain original values. This value can be an object of type 
-     * 'MySQLTable' or the namespace of a class which is a sub-class of 
+     * 'MySQLTable', an object of type 'MySQLQuery' or the namespace of a class which is a sub-class of 
      * the class 'MySQLQuery'.
      * @param array $cols An associative array that contains key columns. 
      * The indices must be names of columns which exist in 'this' table and 
-     * the values must be columns from regerenced table. 
+     * the values must be columns from referenced table. It is possible to 
+     * provide an indexed array. If an indexed array is given, the method will 
+     * assume that the two tables have same column key. 
      * @param string $keyname The name of the key.
      * @param string $onupdate The 'on update' condition for the key. it can be one 
      * of the following: 
@@ -479,10 +481,15 @@ class MySQLTable {
      */
     public function addReference($refTable,$cols,$keyname,$onupdate='set null',$ondelete='set null') {
         if(!($refTable instanceof MySQLTable)){
-            if(class_exists($refTable)){
-                $q = new $refTable();
-                if($q instanceof MySQLQuery){
-                    $refTable = $q->getStructure();
+            if($refTable instanceof MySQLQuery){
+                $refTable = $refTable->getStructure();
+            }
+            else{
+                if(class_exists($refTable)){
+                    $q = new $refTable();
+                    if($q instanceof MySQLQuery){
+                        $refTable = $q->getStructure();
+                    }
                 }
             }
         }
@@ -492,7 +499,13 @@ class MySQLTable {
             $fk->setSource($refTable);
             if($fk->setKeyName($keyname) === true){
                 foreach ($cols as $target => $source){
-                    $fk->addReference($target, $source);
+                    if(gettype($target) == 'integer'){
+                        //indexed array
+                        $fk->addReference($source, $source);
+                    }
+                    else{
+                        $fk->addReference($target, $source);
+                    }
                 }
                 if(count($fk->getSourceCols()) != 0){
                     $fk->setOnUpdate($onupdate);
