@@ -620,7 +620,9 @@ class Column{
      * if non-null value is passed (the value which is returned by the 
      * function date('Y-m-d H:i:s). If the passed 
      * value is a date string in the format 'YYYY-MM-DD HH:MM:SS', then it 
-     * will be set to the given value. same applies to 'datetime' datatype. If 
+     * will be set to the given value. If the passed 
+     * value is a date string in the format 'YYYY-MM-DD', then the default 
+     * will be set to 'YYYY-MM-DD 00:00:00'. same applies to 'datetime' datatype. If 
      * null is passed, it implies that no default value will be used.
      * @param mixed $default The default value which will be set.
      * @since 1.0
@@ -629,8 +631,11 @@ class Column{
         $this->default = $this->cleanValue($default);
         $type = $this->getType();
         if($type == 'datetime' || $type == 'timestamp'){
-            if($this->default !== null || $this->default == 'now()' || $default == 'current_timestamp'){
+            if($this->default == 'now()' || $default == 'current_timestamp'){
                 $this->default = '\''.date('Y-m-d H:i:s').'\'';
+            }
+            else if(strlen($this->default) == 0 && $this->default !== null){
+                $this->default = null;
             }
         }
     }
@@ -641,6 +646,24 @@ class Column{
      * @since 1.0
      */
     public function getDefault(){
+        $defaultVal = $this->default;
+        if($defaultVal !== null){
+            $dt = $this->getType();
+            if($dt == 'varchar' || $dt == 'text' || $dt == 'mediumtext' || 
+                    $dt == 'timestamp' || $dt == 'datetime' || 
+                    $dt == 'tinyblob' || $dt == 'blob' || $dt == 'mediumblob' || 
+                    $dt == 'longblob' || $dt == 'decimal' || $dt == 'float' || $dt == 'double'
+                    ){
+                $retVal = substr($defaultVal, 1, strlen($defaultVal) - 2);
+                if($dt == 'decimal' || $dt == 'float' || $dt == 'double'){
+                    return floatval($retVal);
+                }
+                return $retVal;
+            }
+            else if($dt == 'int'){
+                return intval($defaultVal);
+            }
+        }
         return $this->default;
     }
     /**
@@ -776,7 +799,7 @@ class Column{
         if($this->isUnique()){
             $retVal .= 'unique ';
         }
-        $default = $this->getDefault();
+        $default = $this->default;
         if($default !== null){
             $retVal .= 'default '.$default.' ';
         }
