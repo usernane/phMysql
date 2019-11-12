@@ -281,7 +281,7 @@ class MySQLTable {
                 if(!($colObj->getName() == $inDbName)){
                     $colObj->setName('last_update');
                 }
-                $colObj->autoUpdate();
+                $colObj->setAutoUpdate(true);
                 $colObj->setIsNull(true);
                 if($this->addColumn($key, $colObj)){
                     $this->hasDefaults['last-updated'] = true;
