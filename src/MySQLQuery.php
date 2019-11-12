@@ -1220,22 +1220,38 @@ abstract class MySQLQuery{
     /**
      * Constructs a query that can be used to update a record.
      * @param array $colsAndNewVals An associative array. The key must be the 
-     * new value and the value of the index is an object of type 'Column'.
-     * @param array $colsAndVals An associative array that contains columns and 
-     * values for the 'where' clause. The indices should be the values and the 
-     * value at each index should be an object of type 'Column'. 
+     * new value and the value of the index is an object of type 'Column'. Also, the key 
+     * can be column name or its index in the table that it belongs to and 
+     * the value of the index is the condition value. 
+     * @param array $conditionColsAndVals An associative array that contains columns and 
+     * values for the 'where' clause. The indices can be the values and the 
+     * value at each index can be an object of type 'Column'. Also, the key 
+     * can be column name or its index in the table that it belongs to and 
+     * the value of the index is the condition value. 
      * The number of elements in this array must match number of elements 
      * in the array $colsAndNewVals.
      * @param array $valsConds An array that can have only two possible values, 
      * '=' and '!='. The number of elements in this array must match number of 
-     * elements in the array $colsAndNewVals.
+     * elements in the array $colsAndNewVals. If not provided, '=' is used by 
+     * default. Default is empty array.
      * @param array $jointOps An array which contains conditional operators 
      * to join conditions. The operators can be logical or bitwise. Possible 
      * values include: &&, ||, and, or, |, &, xor. It is optional in case there 
-     * is only one condition.
+     * is only one condition. If not provided, 'and' is used. Default is empty array.
      * @since 1.8.2
      */
-    public function updateRecord($colsAndNewVals,$colsAndVals,$valsConds,$jointOps=array()) {
+    public function updateRecord($colsAndNewVals,$conditionColsAndVals,$valsConds=[],$jointOps=array()) {
+        $colsCount = count($colsAndNewVals);
+        $condsCount = count($valsConds);
+        $joinOpsCount = count($jointOps);
+        while ($colsCount > $condsCount){
+            $valsConds[] = '=';
+            $condsCount = count($valsConds);
+        }
+        while (($colsCount - 1) > $joinOpsCount){
+            $jointOps[] = 'and';
+            $joinOpsCount = count($jointOps);
+        }
         $colsStr = '';
         $comma = '';
         $index = 0;
@@ -1255,7 +1271,7 @@ abstract class MySQLQuery{
                         $colsStr .= ' '.$colObjOrNewVal->getName().' = \''.self::escapeMySQLSpeciarChars($newValOrIndex).'\''.$comma ;
                     }
                     else if($type == 'decimal' || $type == 'float' || $type == 'double'){
-                        $colsStr .= '\''.$newValOrIndex.'\''.$comma;
+                        $colsStr .= ' '.$colObjOrNewVal->getName().' = \''.$newValOrIndex.'\''.$comma;
                     }
                     else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
                         $fixedPath = str_replace('\\', '/', $newValOrIndex);
@@ -1266,20 +1282,20 @@ abstract class MySQLQuery{
                                 $fileContent = fread($file, filesize($fixedPath));
                                 if($fileContent !== false){
                                     $data = '\''. addslashes($fileContent).'\'';
-                                    $colsStr .= $data.$comma;
+                                    $colsStr .= ' '.$colObjOrNewVal->getName().' = '.$data.$comma;
                                     $this->setIsBlobInsertOrUpdate(true);
                                 }
                                 else{
-                                    $colsStr .= 'null'.$comma;
+                                    $colsStr .= $colsStr .= ' '.$colObjOrNewVal->getName().' = null'.$comma;
                                 }
                                 fclose($file);
                             }
                             else{
-                                $colsStr .= 'null'.$comma;
+                                $colsStr .= $colsStr .= ' '.$colObjOrNewVal->getName().' = null'.$comma;
                             }
                         }
                         else{
-                            $colsStr .= 'null'.$comma;
+                            $colsStr .= $colsStr .= ' '.$colObjOrNewVal->getName().' = null'.$comma;
                         }
                     }
                     else{
@@ -1291,7 +1307,6 @@ abstract class MySQLQuery{
                 }
             }
             else{
-                $column = $this->getStructure()->getColByIndex($newValOrIndex);
                 if(gettype($newValOrIndex) == 'integer'){
                     $column = $this->getStructure()->getColByIndex($newValOrIndex);
                 }
@@ -1306,7 +1321,7 @@ abstract class MySQLQuery{
                             $colsStr .= ' '.$column->getName().' = \''.self::escapeMySQLSpeciarChars($colObjOrNewVal).'\''.$comma ;
                         }
                         else if($type == 'decimal' || $type == 'float' || $type == 'double'){
-                            $colsStr .= '\''.$newValOrIndex.'\''.$comma;
+                            $colsStr .= ' '.$column->getName().' = \''.$colObjOrNewVal.'\''.$comma;
                         }
                         else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
                             $fixedPath = str_replace('\\', '/', $colObjOrNewVal);
@@ -1317,20 +1332,20 @@ abstract class MySQLQuery{
                                     $fileContent = fread($file, filesize($fixedPath));
                                     if($fileContent !== false){
                                         $data = '\''. addslashes($fileContent).'\'';
-                                        $colsStr .= $data.$comma;
+                                        $colsStr .= ' '.$column->getName().' = '.$data.$comma;
                                         $this->setIsBlobInsertOrUpdate(true);
                                     }
                                     else{
-                                        $colsStr .= 'null'.$comma;
+                                        $colsStr .= ' '.$column->getName().' =null'.$comma;
                                     }
                                     fclose($file);
                                 }
                                 else{
-                                    $colsStr .= 'null'.$comma;
+                                    $colsStr .= ' '.$column->getName().' = null'.$comma;
                                 }
                             }
                             else{
-                                $colsStr .= 'null'.$comma;
+                                $colsStr .= ' '.$column->getName().' = null'.$comma;
                             }
                         }
                         else{
@@ -1346,7 +1361,7 @@ abstract class MySQLQuery{
         }
         $colsArr = array();
         $valsArr = array();
-        foreach ($colsAndVals as $valueOrIndex=>$colObjOrVal){
+        foreach ($conditionColsAndVals as $valueOrIndex=>$colObjOrVal){
             if($colObjOrVal instanceof Column){
                 $colsArr[] = $colObjOrVal;
                 $valsArr[] = $valueOrIndex;
