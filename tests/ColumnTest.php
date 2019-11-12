@@ -226,7 +226,7 @@ class ColumnTest extends TestCase{
     public function testSetDefault00() {
         $col = new Column('date', 'timestamp');
         $col->setDefault('2019-11-09');
-        $this->assertEquals('\'2019-11-09 00:00:00\'',$col->getDefault());
+        $this->assertEquals('2019-11-09 00:00:00',$col->getDefault());
         $this->assertEquals('date timestamp not null default \'2019-11-09 00:00:00\'',$col.'');
     }
     /**
@@ -244,8 +244,8 @@ class ColumnTest extends TestCase{
     public function testSetDefault02() {
         $col = new Column('date', 'datetime');
         $col->setDefault();
-        $this->assertEquals('now()',$col->getDefault());
-        $this->assertEquals('date datetime not null default now()',$col.'');
+        $this->assertNull($col->getDefault());
+        $this->assertEquals('date datetime not null',$col.'');
     }
     /**
      * @test
@@ -282,12 +282,15 @@ class ColumnTest extends TestCase{
     public function testSetDefault05() {
         $col = new Column('id', 'int');
         $this->assertEquals('id int(1) not null',$col.'');
-        $this->assertTrue($col->setDefault(-122));
+        $col->setDefault(-122);
         $this->assertEquals(-122,$col->getDefault());
         $this->assertEquals('id int(1) not null default -122',$col.'');
-        $this->assertFalse($col->setDefault(null));
-        $this->assertFalse($col->setDefault('a string'));
-        $this->assertFalse($col->setDefault(1.8));
+        $col->setDefault(null);
+        $this->assertNull($col->getDefault());
+        $col->setDefault('a string');
+        $this->assertEquals(0,$col->getDefault());
+        $col->setDefault(1.8);
+        $this->assertEquals(1,$col->getDefault());
     }
     /**
      * @test
@@ -295,12 +298,15 @@ class ColumnTest extends TestCase{
     public function testSetDefault06() {
         $col = new Column('id', 'varchar');
         $this->assertEquals('id varchar(1) not null collate utf8mb4_unicode_ci',$col.'');
-        $this->assertTrue($col->setDefault('A random string.'));
+        $col->setDefault('A random string.');
         $this->assertEquals('A random string.',$col->getDefault());
-        $this->assertEquals('id varchar(1) not null collate utf8mb4_unicode_ci default \'A random string.\'',$col.'');
-        $this->assertFalse($col->setDefault(null));
-        $this->assertFalse($col->setDefault(33));
-        $this->assertFalse($col->setDefault(1.8));
+        $this->assertEquals('id varchar(1) not null default \'A random string.\' collate utf8mb4_unicode_ci',$col.'');
+        $col->setDefault(null);
+        $this->assertNull($col->getDefault());
+        $col->setDefault(33);
+        $this->assertEquals(33,$col->getDefault());
+        $col->setDefault(1.8);
+        $this->assertEquals(1.8,$col->getDefault());
     }
     /**
      * @test
@@ -308,14 +314,17 @@ class ColumnTest extends TestCase{
     public function testSetDefault07() {
         $col = new Column('id', 'decimal');
         $this->assertEquals('id decimal not null',$col.'');
-        $this->assertTrue($col->setDefault(1));
+        $col->setDefault(1);
         $this->assertEquals(1,$col->getDefault());
         $this->assertEquals('id decimal not null default \'1\'',$col.'');
-        $this->assertTrue($col->setDefault(1.66));
+        $col->setDefault(1.66);
         $this->assertEquals(1.66,$col->getDefault());
         $this->assertEquals('id decimal not null default \'1.66\'',$col.'');
-        $this->assertFalse($col->setDefault(null));
-        $this->assertFalse($col->setDefault('33'));
-        $this->assertFalse($col->setDefault(''));
+        $col->setDefault(null);
+        $this->assertNull($col->getDefault());
+        $col->setDefault('33');
+        $this->assertEquals(33,$col->getDefault());
+        $col->setDefault('');
+        $this->assertEquals(0,$col->getDefault());
     }
 }
