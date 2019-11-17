@@ -36,6 +36,20 @@ class MySQLTableTest extends TestCase{
     /**
      * @test
      */
+    public function testSetDBName00() {
+        $table = new MySQLTable('table');
+        $this->assertFalse($table->setDatabaseName(''));
+        $this->assertFalse($table->setDatabaseName('0-db'));
+        $this->assertTrue($table->setDatabaseName('_db'));
+        $this->assertEquals('_db',$table->getDatabaseName());
+        $this->assertFalse($table->setDatabaseName('_db x'));
+        $this->assertEquals('_db',$table->getDatabaseName());
+        $this->assertEquals('_db.table',$table->getName());
+        $this->assertEquals('table',$table->getName(false));
+    }
+    /**
+     * @test
+     */
     public function testAddColumn00() {
         $table = new MySQLTable();
         $this->assertTrue($table->addColumn('new-col', new Column()));
@@ -43,6 +57,18 @@ class MySQLTableTest extends TestCase{
         $this->assertTrue($table->addColumn('new-col-2', new Column('col_2', 'varchar')));
         $this->assertFalse($table->addColumn('new-col-2', new Column('col_3', 'varchar')));
         return $table;
+    }
+    public function testGetColsNames() {
+        $t = new MySQLTable();
+        $t->addDefaultCols([
+            'id'=>[],
+            'created-on'=>[],
+            'last-updated'=>[]
+        ]);
+        $colsNamesInDb = $t->getColsNames();
+        $this->assertEquals('id',$colsNamesInDb[0]);
+        $this->assertEquals('created_on',$colsNamesInDb[1]);
+        $this->assertEquals('last_updated',$colsNamesInDb[2]);
     }
     /**
      * 
