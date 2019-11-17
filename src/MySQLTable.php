@@ -28,7 +28,7 @@ use phMysql\MySQLQuery;
  * A class that represents MySQL table.
  *
  * @author Ibrahim
- * @version 1.6.2
+ * @version 1.6.3
  */
 class MySQLTable {
     /**
@@ -107,7 +107,7 @@ class MySQLTable {
      * An array of booleans which indicates which default columns has been added
      * @var array 
      */
-    private $hasDefaults;
+    private $defaultColsKeys;
     /**
      * Creates a new instance of the class.
      * This method will initialize the basic settings of the table. It will 
@@ -126,10 +126,10 @@ class MySQLTable {
         $this->engin = 'InnoDB';
         $this->charSet = 'utf8mb4';
         $this->order = 0;
-        $this->hasDefaults = [
-            'id'=>false,
-            'created-on'=>false,
-            'last-updated'=>false
+        $this->defaultColsKeys = [
+            'id'=>null,
+            'created-on'=>null,
+            'last-updated'=>null
         ];
         $this->schema = null;
     }
@@ -237,7 +237,7 @@ class MySQLTable {
         'last-updated'=>[]
     ]) {
         if(gettype($options) == 'array'){
-            if(isset($options['id']) && !$this->hasDefaults['id']){
+            if(isset($options['id']) && $this->defaultColsKeys['id'] === null){
                 $id = $options['id'];
                 $key = isset($id['key-name']) ? trim($id['key-name']) : 'id';
                 if(!$this->_isKeyNameValid($key)){
@@ -251,10 +251,10 @@ class MySQLTable {
                     $colObj->setName('id');
                 }
                 if($this->addColumn($key, $colObj)){
-                    $this->hasDefaults['id'] = true;
+                    $this->defaultColsKeys['id'] = $key;
                 }
             }
-            if(isset($options['created-on']) && !$this->hasDefaults['created-on']){
+            if(isset($options['created-on']) && $this->defaultColsKeys['created-on'] === null){
                 $createdOn = $options['created-on'];
                 $key = isset($createdOn['key-name']) ? trim($createdOn['key-name']) : 'created-on';
                 if(!$this->_isKeyNameValid($key)){
@@ -265,12 +265,12 @@ class MySQLTable {
                 if(!($colObj->getName() == $inDbName)){
                     $colObj->setName('created_on');
                 }
-                $colObj->setDefault();
+                $colObj->setDefault('current_timestamp');
                 if($this->addColumn($key, $colObj)){
-                    $this->hasDefaults['created-on'] = true;
+                    $this->defaultColsKeys['created-on'] = $key;
                 }
             }
-            if(isset($options['last-updated']) && !$this->hasDefaults['last-updated']){
+            if(isset($options['last-updated']) && $this->defaultColsKeys['last-updated'] === null){
                 $lastUpdated = $options['last-updated'];
                 $key = isset($lastUpdated['key-name']) ? trim($lastUpdated['key-name']) : 'last-updated';
                 if(!$this->_isKeyNameValid($key)){
@@ -284,10 +284,25 @@ class MySQLTable {
                 $colObj->setAutoUpdate(true);
                 $colObj->setIsNull(true);
                 if($this->addColumn($key, $colObj)){
-                    $this->hasDefaults['last-updated'] = true;
+                    $this->defaultColsKeys['last-updated'] = $key;
                 }
             }
         }
+    }
+    /**
+     * Returns an associative array that contains default columns keys.
+     * @return array An associative array which has the following indices: 
+     * <ul>
+     * <li>id</li>
+     * <li>created-on</li>
+     * <li>last-updated</li>
+     * </ul>
+     * If the table does not have the specified column, the value of the index 
+     * will beset to null.
+     * @since 1.6.3
+     */
+    public function getDefaultColsKeys() {
+        return $this->defaultColsKeys;
     }
     /**
      * Returns version number of MySQL server.
