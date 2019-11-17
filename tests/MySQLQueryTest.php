@@ -14,12 +14,32 @@ class MySQLQueryTest extends TestCase{
     /**
      * @test
      */
+    public function testUpdateRecord00() {
+        $aq = new ArticleQuery();
+        $aq->updateRecord([
+            'content'=>'Hello'
+        ], [
+            'article-id'=>77
+        ]);
+        $prev = date('Y-m-d H:i:s', time() - 1);
+        $now = date('Y-m-d H:i:s');
+        $query = $aq->getQuery();
+        $next = date('Y-m-d H:i:s', time() + 1);
+        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \''.$prev.'\'  where article_id = 77;'
+                || $query == 'update articles set content = \'Hello\',last_updated = \''.$now.'\'  where article_id = 77;'
+                || $query == 'update articles set content = \'Hello\',last_updated = \''.$next.'\'  where article_id = 77;';
+        $this->assertTrue($isEqual);
+    }
+    /**
+     * @test
+     */
     public function testInsert000() {
         $aq = new ArticleQuery();
         $aq->insertRecord([
-            'author-id'=>66
+            'author-id'=>66,
+            'created-on'=>'2019-11-17 12:08:22'
         ]);
-        $this->assertEquals('insert into articles (author_id) values (66);',$aq->getQuery());
+        $this->assertEquals('insert into articles (author_id,created_on) values (66,\'2019-11-17 12:08:22\');',$aq->getQuery());
     }
     /**
      * @test
@@ -29,10 +49,10 @@ class MySQLQueryTest extends TestCase{
         $aq->insertRecord([
             'author-id'=>66,
             'author-name'=>'Ibrahim',
-            'content'=>null
+            'content'=>null,
+            'created-on'=>'2019-11-17 12:05:02'
         ]);
-        $this->assertEquals('insert into articles (author_id,author_name,content) '
-                . 'values (66,\'Ibrahim\',null);',$aq->getQuery());
+        $this->assertEquals('insert into articles (author_id,author_name,content,created_on) values (66,\'Ibrahim\',null,\'2019-11-17 12:05:02\');',$aq->getQuery());
     }
     /**
      * @test
@@ -42,10 +62,10 @@ class MySQLQueryTest extends TestCase{
         $aq->insertRecord([
             'author-id'=>66,
             'author-name'=>'Ibrahim',
-            'content'=>'null'
+            'content'=>'null',
+            'created-on'=>'2019-09-09 00:00:00'
         ]);
-        $this->assertEquals('insert into articles (author_id,author_name,content) '
-                . 'values (66,\'Ibrahim\',null);',$aq->getQuery());
+        $this->assertEquals('insert into articles (author_id,author_name,content,created_on) values (66,\'Ibrahim\',null,\'2019-09-09 00:00:00\');',$aq->getQuery());
     }
     /**
      * @test

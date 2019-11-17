@@ -213,7 +213,16 @@ class Column{
      * 
      * @param string|int|double|null $val
      * @param boolean $dateEndOfDay Description
-     * @return int|string|null
+     * @return int|string|null The return type of the method will depend on 
+     * the type of the column as follows:
+     * <ul>
+     * <li>If no default is set or type does not support default values, null is returned.</li>
+     * <li><b>int</b>: The method will return an integer.</li>
+     * <li><b>decimal, float and double</b>: A quoted string (such as '1.06')</li>
+     * <li><b>varchar, text and mediumtext</b>: A quoted string (such as 'It is fun'). 
+     * Note that any single quot inside the string will be escaped.</li>
+     * <li><b>datetime and timestamp</b>: A quoted string (such as '2019-11-09 00:00:00')</li>
+     * </ul>
      * @since 1.6.4
      */
     public function cleanValue($val,$dateEndOfDay=false) {

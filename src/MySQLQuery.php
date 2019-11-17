@@ -991,7 +991,7 @@ abstract class MySQLQuery{
      * @param array $colsAndVals An associative array. The indices must be 
      * columns names taken from the linked table. For example, if we have 
      * a table which has two columns with names 'student-id' and 'registered-course', 
-     * then the array whould look like the following:
+     * then the array would look like the following:
      * <p>
      * <code>[<br/>
      * &nbsp;&nbsp;'student-id'=>55<br/>
@@ -999,6 +999,8 @@ abstract class MySQLQuery{
      * </p>
      * Note that it is possible for the index to be a numeric value such as 0 
      * or 1. The numeric value will represents column position in the table.
+     * Another thing to note is that if a column does not have a value, either  
+     * the default value of the column will be used or 'null' will be used.
      * @since 1.8.2
      */
     public function insertRecord($colsAndVals) {
@@ -1008,6 +1010,14 @@ abstract class MySQLQuery{
         $index = 0;
         $comma = '';
         $columnsWithVals = [];
+        $defaultCols = $this->getStructure()->getDefaultColsKeys();
+        $createdOnKey = $defaultCols['created-on'];
+        if($createdOnKey !== null){
+            $createdOnColObj = $this->getCol($createdOnKey);
+        }
+        else{
+            $createdOnColObj = null;
+        }
         foreach($colsAndVals as $colIndex=>$val){
             if($index + 1 == $count){
                 $comma = '';
@@ -1028,7 +1038,13 @@ abstract class MySQLQuery{
                 if($val !== 'null'){
                     $cleanedVal = $column->cleanValue($val);
                     if($cleanedVal === null){
-                        $vals .= 'null'.$comma;
+                        if($createdOnColObj !== null && $createdOnColObj->getIndex() == $column->getIndex()){
+                            $vals .= $column->cleanValue($column->getDefault()).$comma;
+                            $createdOnColObj = null;
+                        }
+                        else{
+                            $vals .= 'null'.$comma;
+                        }
                     }
                     else{
                         if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
@@ -1057,7 +1073,13 @@ abstract class MySQLQuery{
                             }
                         }
                         else{
-                            $vals .= $cleanedVal.$comma;
+                            if($createdOnColObj !== null && $createdOnColObj->getIndex() == $column->getIndex()){
+                                $vals .= $cleanedVal.$comma;
+                                $createdOnColObj = null;
+                            }
+                            else{
+                                $vals .= $cleanedVal.$comma;
+                            }
                         }
                     }
                 }
@@ -1067,16 +1089,11 @@ abstract class MySQLQuery{
             }
             $index++;
         }
-        $table = $this->getStructure();
-        $columnsKeys = array_keys($table->getColumns());
-        if(count($columnsWithVals) != count($columnsKeys)){
-            foreach ($columnsKeys as $colKey){
-                $colObj = $table->getCol($colKey);
-                if($colObj->getDefault()){
-                    
-                }
-            }
+        if($createdOnColObj !== null){
+            $cols .= ','.$createdOnColObj->getName();
+            $vals .= ','.$createdOnColObj->cleanValue($createdOnColObj->getDefault());
         }
+        
         $cols = ' ('.$cols.')';
         $vals = ' ('.$vals.')';
         $this->setQuery(self::INSERT.$this->getStructureName().$cols.' values'.$vals.';', 'insert');
@@ -1240,7 +1257,7 @@ abstract class MySQLQuery{
      * is only one condition. If not provided, 'and' is used. Default is empty array.
      * @since 1.8.2
      */
-    public function updateRecord($colsAndNewVals,$conditionColsAndVals,$valsConds=[],$jointOps=array()) {
+    public function updateRecord($colsAndNewVals,$conditionColsAndVals,$valsConds=[],$jointOps=[]) {
         $colsCount = count($colsAndNewVals);
         $condsCount = count($valsConds);
         $joinOpsCount = count($jointOps);
@@ -1252,79 +1269,48 @@ abstract class MySQLQuery{
             $jointOps[] = 'and';
             $joinOpsCount = count($jointOps);
         }
+        $defaultCols = $this->getStructure()->getDefaultColsKeys();
+        $lastUpdatedKey = $defaultCols['last-updated'];
+        if($lastUpdatedKey !== null){
+            $lastUpdatedColObj = $this->getCol($lastUpdatedKey);
+        }
+        else{
+            $lastUpdatedColObj = null;
+        }
         $colsStr = '';
         $comma = '';
         $index = 0;
         $count = count($colsAndNewVals);
-        foreach($colsAndNewVals as $newValOrIndex => $colObjOrNewVal){
+        foreach($colsAndNewVals as $colIndex=>$val){
             if($index + 1 == $count){
                 $comma = '';
             }
             else{
                 $comma = ',';
             }
-            if($colObjOrNewVal instanceof Column){
-                $newValLower = strtolower($newValOrIndex);
-                if(trim($newValLower) !== 'null'){
-                    $type = $colObjOrNewVal->getType();
-                    if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
-                        $colsStr .= ' '.$colObjOrNewVal->getName().' = \''.self::escapeMySQLSpeciarChars($newValOrIndex).'\''.$comma ;
-                    }
-                    else if($type == 'decimal' || $type == 'float' || $type == 'double'){
-                        $colsStr .= ' '.$colObjOrNewVal->getName().' = \''.$newValOrIndex.'\''.$comma;
-                    }
-                    else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
-                        $fixedPath = str_replace('\\', '/', $newValOrIndex);
-                        if(file_exists($fixedPath)){
-                            $file = fopen($fixedPath, 'r');
-                            $data = '';
-                            if($file !== false){
-                                $fileContent = fread($file, filesize($fixedPath));
-                                if($fileContent !== false){
-                                    $data = '\''. addslashes($fileContent).'\'';
-                                    $colsStr .= ' '.$colObjOrNewVal->getName().' = '.$data.$comma;
-                                    $this->setIsBlobInsertOrUpdate(true);
-                                }
-                                else{
-                                    $colsStr .= $colsStr .= ' '.$colObjOrNewVal->getName().' = null'.$comma;
-                                }
-                                fclose($file);
-                            }
-                            else{
-                                $colsStr .= $colsStr .= ' '.$colObjOrNewVal->getName().' = null'.$comma;
-                            }
+            if(gettype($colIndex) == 'integer'){
+                $column = $this->getStructure()->getColByIndex($colIndex);
+            }
+            else{
+                $column = $this->getStructure()->getCol($colIndex);
+            }
+            if($column instanceof Column){
+                $colsStr .= $column->getName().' = ';
+                $type = $column->getType();
+                if($val !== 'null'){
+                    $cleanedVal = $column->cleanValue($val);
+                    if($cleanedVal === null){
+                        if($lastUpdatedColObj !== null && $lastUpdatedColObj->getIndex() == $column->getIndex()){
+                            $colsStr .= $column->cleanValue($column->getDefault()).$comma;
+                            $lastUpdatedColObj = null;
                         }
                         else{
-                            $colsStr .= $colsStr .= ' '.$colObjOrNewVal->getName().' = null'.$comma;
+                            $colsStr .= 'null'.$comma;
                         }
                     }
                     else{
-                        $colsStr .= ' '.$colObjOrNewVal->getName().' = '.$newValOrIndex.$comma;
-                    }
-                }
-                else{
-                    $colsStr .= ' '.$colObjOrNewVal->getName().' = null'.$comma;
-                }
-            }
-            else{
-                if(gettype($newValOrIndex) == 'integer'){
-                    $column = $this->getStructure()->getColByIndex($newValOrIndex);
-                }
-                else{
-                    $column = $this->getStructure()->getCol($newValOrIndex);
-                }
-                if($column instanceof Column){
-                    $newValLower = strtolower($colObjOrNewVal);
-                    if(trim($newValLower) !== 'null'){
-                        $type = $column->getType();
-                        if($type == 'varchar' || $type == 'datetime' || $type == 'timestamp' || $type == 'text' || $type == 'mediumtext'){
-                            $colsStr .= ' '.$column->getName().' = \''.self::escapeMySQLSpeciarChars($colObjOrNewVal).'\''.$comma ;
-                        }
-                        else if($type == 'decimal' || $type == 'float' || $type == 'double'){
-                            $colsStr .= ' '.$column->getName().' = \''.$colObjOrNewVal.'\''.$comma;
-                        }
-                        else if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
-                            $fixedPath = str_replace('\\', '/', $colObjOrNewVal);
+                        if($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob'){
+                            $fixedPath = str_replace('\\', '/', $colIndex);
                             if(file_exists($fixedPath)){
                                 $file = fopen($fixedPath, 'r');
                                 $data = '';
@@ -1332,35 +1318,45 @@ abstract class MySQLQuery{
                                     $fileContent = fread($file, filesize($fixedPath));
                                     if($fileContent !== false){
                                         $data = '\''. addslashes($fileContent).'\'';
-                                        $colsStr .= ' '.$column->getName().' = '.$data.$comma;
+                                        $colsStr .= $data.$comma;
                                         $this->setIsBlobInsertOrUpdate(true);
                                     }
                                     else{
-                                        $colsStr .= ' '.$column->getName().' =null'.$comma;
+                                        $colsStr .= 'null'.$comma;
                                     }
                                     fclose($file);
                                 }
                                 else{
-                                    $colsStr .= ' '.$column->getName().' = null'.$comma;
+                                    $colsStr .= 'null'.$comma;
                                 }
                             }
                             else{
-                                $colsStr .= ' '.$column->getName().' = null'.$comma;
+                                $colsStr .= 'null'.$comma;
                             }
                         }
                         else{
-                            $colsStr .= ' '.$column->getName().' = '.$colObjOrNewVal.$comma;
+                            if($lastUpdatedColObj !== null && $lastUpdatedColObj->getIndex() == $column->getIndex()){
+                                $colsStr .= $cleanedVal.$comma;
+                                $lastUpdatedColObj = null;
+                            }
+                            else{
+                                $colsStr .= $cleanedVal.$comma;
+                            }
                         }
                     }
-                    else{
-                        $colsStr .= ' '.$column->getName().' = null'.$comma;
-                    }
+                }
+                else{
+                    $colsStr .= 'null'.$comma;
                 }
             }
             $index++;
         }
-        $colsArr = array();
-        $valsArr = array();
+        if($lastUpdatedColObj !== null){
+            $colsStr .= ','.$lastUpdatedColObj->getName().' = '
+                    .$lastUpdatedColObj->cleanValue($lastUpdatedColObj->getDefault());
+        }
+        $colsArr = [];
+        $valsArr = [];
         foreach ($conditionColsAndVals as $valueOrIndex=>$colObjOrVal){
             if($colObjOrVal instanceof Column){
                 $colsArr[] = $colObjOrVal;
