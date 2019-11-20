@@ -148,9 +148,6 @@ abstract class MySQLQuery{
                 $updatedSize = $new < $max && $new > 0 ? $new : $max;
                 break;
             }
-            default:{
-                $updatedSize = $max;
-            }
         }
         $this->query = 'set global max_allowed_packet = '.$updatedSize.';';
     }
@@ -389,6 +386,7 @@ abstract class MySQLQuery{
      * Escape any MySQL special characters from a string.
      * @param string $query The string that the characters will be escaped from.
      * @return string A string with escaped MySQL characters.
+     * @deprecated since version 1.8.9
      * @since 1.4
      */
     public static function escapeMySQLSpeciarChars($query){
@@ -923,70 +921,6 @@ abstract class MySQLQuery{
         
     }
     /**
-     * Selects a values from a table given specific columns values.
-     * @param array $cols An array that contains an objects of type 'Column'.
-     * @param array $vals An array that contains values. 
-     * @param array $valsConds An array that can contains two possible values: 
-     * '=' or '!='. If anything else is given at specific index, '=' will be used. 
-     * Note that if the value at '$vals[$index]' is equal to 'IS NULL' or 'IS NOT NULL', 
-     * The value at '$valsConds[$index]' is ignored. 
-     * @param array $jointOps An array of conditions (Such as 'or', 'and', 'xor').
-     * @since 1.6
-     */
-    public function selectByColsVals($cols,$vals,$valsConds,$jointOps,$limit=-1,$offset=-1){
-        $where = '';
-        $count = count($cols);
-        $index = 0;
-        foreach($cols as $col){
-            $equalityCond = trim($valsConds[$index]);
-            if($equalityCond != '!=' && $equalityCond != '='){
-                $equalityCond = '=';
-            }
-            if($col instanceof Column){
-                $valUpper = strtoupper(trim($vals[$index]));
-                if($valUpper == 'IS NULL' || $valUpper == 'IS NOT NULL'){
-                    if($index + 1 == $count){
-                        $where .= $col->getName().' '.$vals[$index].'';
-                    }
-                    else{
-                        $where .= $col->getName().' '.$vals[$index].' '.$jointOps[$index].' ';
-                    }
-                }
-                else{
-                    if($index + 1 == $count){
-                        $where .= $col->getName().' '.$equalityCond.' ';
-                        if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                            $where .= '\''.$vals[$index].'\'' ;
-                        }
-                        else{
-                            $where .= $vals[$index];
-                        }
-                    }
-                    else{
-                        $where .= $col->getName().' '.$equalityCond.' ';
-                        if($col->getType() == 'varchar' || $col->getType() == 'datetime' || $col->getType() == 'timestamp' || $col->getType() == 'text' || $col->getType() == 'mediumtext'){
-                            $where .= '\''.$vals[$index].'\' '.$jointOps[$index].' ' ;
-                        }
-                        else{
-                            $where .= $vals[$index].' '.$jointOps[$index].' ';
-                        }
-                    }
-                }
-            }
-            $index++;
-        }
-        if($limit > 0 && $offset > 0){
-            $lmit = 'limit '.$limit.' offset '.$offset;
-        }
-        else if($limit > 0 && $offset <= 0){
-            $lmit = 'limit '.$limit;
-        }
-        else{
-            $lmit = '';
-        }
-        $this->setQuery(self::SELECT.$this->getStructureName().' where '.$where.' '.$lmit.';', 'select');
-    }
-    /**
      * Constructs a query that can be used to insert a new record.
      * @param array $colsAndVals An associative array. The indices must be 
      * columns names taken from the linked table. For example, if we have 
@@ -1247,9 +1181,9 @@ abstract class MySQLQuery{
      * the value of the index is the condition value. 
      * The number of elements in this array must match number of elements 
      * in the array $colsAndNewVals.
-     * @param array $valsConds An array that can have only two possible values, 
-     * '=' and '!='. The number of elements in this array must match number of 
-     * elements in the array $colsAndNewVals. If not provided, '=' is used by 
+     * @param array $valsConds An array that can have only the following 
+     * values: '=','!=','&gt;','&gt;=','&lt;' and '&lt;='. The number of elements in this array must match number of 
+     * elements in the array $conditionColsAndVals. If not provided, '=' is used by 
      * default. Default is empty array.
      * @param array $jointOps An array which contains conditional operators 
      * to join conditions. The operators can be logical or bitwise. Possible 
