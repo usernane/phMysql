@@ -1037,16 +1037,28 @@ abstract class MySQLQuery{
      * @param array $columnsAndVals An associative array. The indices of the array 
      * should be the values of the columns and the value at each index is 
      * an object of type 'Column'.
-     * @param array $valsConds An array that can have only two possible values, 
-     * '=' and '!='. The number of elements in this array must match number of 
-     * elements in the array $cols.
+     * @param array $valsConds An array that can have one of the following 
+     * values: '=','!=','&lt;','&lt;=','&gt;' and '&gt;='. The number of elements 
+     * in this array must match number of 
+     * elements in the array $cols. If not provided, '=' is used. Default is empty array.
      * @param array $jointOps An array which contains conditional operators 
      * to join conditions. The operators can be logical or bitwise. Possible 
-     * values include: &&, ||, and, or, |, &, xor. It is optional in case there 
-     * is only one condition.
+     * values include: &amp;&amp;, ||, and, or, |, &amp;, xor. If not provided, 
+     * 'and' is used for all values.
      * @since 1.8.2
      */
-    public function deleteRecord($columnsAndVals,$valsConds,$jointOps=[]) {
+    public function deleteRecord($columnsAndVals,$valsConds=[],$jointOps=[]) {
+        $colsCount = count($columnsAndVals);
+        $condsCount = count($valsConds);
+        $joinOpsCount = count($jointOps);
+        while ($colsCount > $condsCount){
+            $valsConds[] = '=';
+            $condsCount = count($valsConds);
+        }
+        while (($colsCount - 1) > $joinOpsCount){
+            $jointOps[] = 'and';
+            $joinOpsCount = count($jointOps);
+        }
         $cols = [];
         $vals = [];
         foreach ($columnsAndVals as $valOrIndex => $colObjOrVal){
