@@ -25,9 +25,24 @@ class MySQLQueryTest extends TestCase{
         $now = date('Y-m-d H:i:s');
         $query = $aq->getQuery();
         $next = date('Y-m-d H:i:s', time() + 1);
-        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \''.$prev.'\'  where article_id = 77;'
-                || $query == 'update articles set content = \'Hello\',last_updated = \''.$now.'\'  where article_id = 77;'
-                || $query == 'update articles set content = \'Hello\',last_updated = \''.$next.'\'  where article_id = 77;';
+        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \''.$prev.'\' where article_id = 77;'
+                || $query == 'update articles set content = \'Hello\',last_updated = \''.$now.'\' where article_id = 77;'
+                || $query == 'update articles set content = \'Hello\',last_updated = \''.$next.'\' where article_id = 77;';
+        $this->assertTrue($isEqual);
+    }
+    /**
+     * @test
+     */
+    public function testUpdateRecord01() {
+        $aq = new ArticleQuery();
+        $aq->updateRecord([
+            'content'=>'Hello',
+            'last-updated'=>'2019-11-09 10:00:56'
+        ], [
+            'article-id'=>77
+        ]);
+        $query = $aq->getQuery();
+        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \'2019-11-09 10:00:56\' where article_id = 77;';
         $this->assertTrue($isEqual);
     }
     /**
