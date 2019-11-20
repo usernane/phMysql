@@ -96,6 +96,56 @@ class MySQLQueryTest extends TestCase{
     /**
      * @test
      */
+    public function testSelectMax00() {
+        $aq = new ArticleQuery();
+        $aq->selectMax('');
+        $this->assertEquals('select * from  a_table',$aq->getQuery());
+        $this->assertEquals('select',$aq->getType());
+    }
+    /**
+     * @test
+     */
+    public function testSelectMax01() {
+        $aq = new ArticleQuery();
+        $aq->selectMax('article-id');
+        $this->assertEquals('select max(article_id) as max from articles;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectMax02() {
+        $aq = new ArticleQuery();
+        $aq->selectMax('article-id','maximum_id');
+        $this->assertEquals('select max(article_id) as maximum_id from articles;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectMin00() {
+        $aq = new ArticleQuery();
+        $aq->selectMin('');
+        $this->assertEquals('select * from  a_table',$aq->getQuery());
+        $this->assertEquals('select',$aq->getType());
+    }
+    /**
+     * @test
+     */
+    public function testSelectMin01() {
+        $aq = new ArticleQuery();
+        $aq->selectMin('article-id');
+        $this->assertEquals('select min(article_id) as min from articles;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectMin02() {
+        $aq = new ArticleQuery();
+        $aq->selectMin('article-id','minimum_id');
+        $this->assertEquals('select min(article_id) as minimum_id from articles;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
     public function testInsert000() {
         $aq = new ArticleQuery();
         $aq->insertRecord([
