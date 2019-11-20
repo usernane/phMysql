@@ -1157,11 +1157,11 @@ abstract class MySQLQuery{
         if($colsCount == 0 || $valsCount == 0){
             return '';
         }
-        while ($colsCount != $condsCount){
+        while ($colsCount > $condsCount){
             $valsConds[] = '=';
             $condsCount = count($valsConds);
         }
-        while (($colsCount - 1) != $joinOpsCount){
+        while (($colsCount - 1) > $joinOpsCount){
             $jointOps[] = 'and';
             $joinOpsCount = count($jointOps);
         }
@@ -1258,14 +1258,14 @@ abstract class MySQLQuery{
      * @since 1.8.2
      */
     public function updateRecord($colsAndNewVals,$conditionColsAndVals,$valsConds=[],$jointOps=[]) {
-        $colsCount = count($colsAndNewVals);
+        $condColsCount = count($conditionColsAndVals);
         $condsCount = count($valsConds);
         $joinOpsCount = count($jointOps);
-        while ($colsCount > $condsCount){
+        while ($condColsCount > $condsCount){
             $valsConds[] = '=';
             $condsCount = count($valsConds);
         }
-        while (($colsCount - 1) > $joinOpsCount){
+        while (($condColsCount - 1) > $joinOpsCount){
             $jointOps[] = 'and';
             $joinOpsCount = count($jointOps);
         }
@@ -1353,7 +1353,7 @@ abstract class MySQLQuery{
         }
         if($lastUpdatedColObj !== null){
             $colsStr .= ','.$lastUpdatedColObj->getName().' = '
-                    .$lastUpdatedColObj->cleanValue($lastUpdatedColObj->getDefault());
+                    .$lastUpdatedColObj->cleanValue(date('Y-m-d H:i:s'));
         }
         $colsArr = [];
         $valsArr = [];
