@@ -723,7 +723,7 @@ class MySQLTable {
      * column was found. null in case of no column was found.
      * @since 1.0
      */
-    public function &getCol($key){
+    public function getCol($key){
         $trimmed = trim($key);
         if(isset($this->colSet[$trimmed])){
             return $this->colSet[$trimmed];
