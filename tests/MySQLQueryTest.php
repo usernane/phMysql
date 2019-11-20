@@ -48,6 +48,54 @@ class MySQLQueryTest extends TestCase{
     /**
      * @test
      */
+    public function testUpdateRecord02() {
+        $aq = new ArticleQuery();
+        $aq->updateRecord([
+            'content'=>'Hello',
+            'last-updated'=>'2019-11-09 10:00:56'
+        ], [
+            'article-id'=>77,
+            'author-id'=>1
+        ]);
+        $query = $aq->getQuery();
+        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \'2019-11-09 10:00:56\' where article_id = 77 and author_id = 1;';
+        $this->assertTrue($isEqual);
+    }
+    /**
+     * @test
+     */
+    public function testUpdateRecord03() {
+        $aq = new ArticleQuery();
+        $aq->updateRecord([
+            'content'=>'Hello',
+            'last-updated'=>'2019-11-09 10:00:56'
+        ], [
+            'article-id'=>77,
+            'author-id'=>1
+        ],['!=']);
+        $query = $aq->getQuery();
+        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \'2019-11-09 10:00:56\' where article_id != 77 and author_id = 1;';
+        $this->assertTrue($isEqual);
+    }
+    /**
+     * @test
+     */
+    public function testSetMaxPackete() {
+        $aq = new ArticleQuery();
+        $aq->setMaxPackete(1);
+        $this->assertEquals('set global max_allowed_packet = 1048576;',$aq->getQuery());
+        $aq->setMaxPackete(1,'kb');
+        $this->assertEquals('set global max_allowed_packet = 1024;',$aq->getQuery());
+        $aq->setMaxPackete(1,'b');
+        $this->assertEquals('set global max_allowed_packet = 1;',$aq->getQuery());
+        $aq->setMaxPackete(1,'gb');
+        $this->assertEquals('set global max_allowed_packet = 1073741824;',$aq->getQuery());
+        $aq->setMaxPackete(1,'ggv');
+        $this->assertEquals('set global max_allowed_packet = 1048576;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
     public function testInsert000() {
         $aq = new ArticleQuery();
         $aq->insertRecord([
@@ -81,6 +129,24 @@ class MySQLQueryTest extends TestCase{
             'created-on'=>'2019-09-09 00:00:00'
         ]);
         $this->assertEquals('insert into articles (author_id,author_name,content,created_on) values (66,\'Ibrahim\',null,\'2019-09-09 00:00:00\');',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testInsert003() {
+        $aq = new ArticleQuery();
+        $aq->insertRecord([
+            'author-id'=>66,
+            'author-name'=>'Ibrahim'
+        ]);
+        $prev = date('Y-m-d H:i:s', time() - 1);
+        $now = date('Y-m-d H:i:s');
+        $query = $aq->getQuery();
+        $next = date('Y-m-d H:i:s', time() + 1);
+        $isEqual = $query == 'insert into articles (author_id,author_name,created_on) values (66,\'Ibrahim\',\''.$prev.'\');'
+                || $query == 'insert into articles (author_id,author_name,created_on) values (66,\'Ibrahim\',\''.$next.'\');'
+                || $query == 'insert into articles (author_id,author_name,created_on) values (66,\'Ibrahim\',\''.$now.'\');';
+        $this->assertTrue($isEqual);
     }
     /**
      * @test
@@ -490,5 +556,61 @@ class MySQLQueryTest extends TestCase{
             'conditions'=>['!=']
         ]);
         $this->assertEquals('select * from articles where author_id is not null;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectAll00() {
+        $aq = new ArticleQuery();
+        $aq->selectAll();
+        $this->assertEquals('select * from articles;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectAll01() {
+        $aq = new ArticleQuery();
+        $aq->selectAll(0,0);
+        $this->assertEquals('select * from articles;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectAll02() {
+        $aq = new ArticleQuery();
+        $aq->selectAll(1);
+        $this->assertEquals('select * from articles limit 1;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectAll03() {
+        $aq = new ArticleQuery();
+        $aq->selectAll(1,0);
+        $this->assertEquals('select * from articles limit 1;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectAll04() {
+        $aq = new ArticleQuery();
+        $aq->selectAll(10,10);
+        $this->assertEquals('select * from articles limit 10 offset 10;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectAll05() {
+        $aq = new ArticleQuery();
+        $aq->selectAll(10,-30);
+        $this->assertEquals('select * from articles limit 10;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelectAll06() {
+        $aq = new ArticleQuery();
+        $aq->selectAll(-10,50);
+        $this->assertEquals('select * from articles;',$aq->getQuery());
     }
 }
