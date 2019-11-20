@@ -146,6 +146,27 @@ class MySQLQueryTest extends TestCase{
     /**
      * @test
      */
+    public function testDeleteRecord00() {
+        $aq = new ArticleQuery();
+        $aq->deleteRecord([
+            'article-id'=>77
+        ]);
+        $this->assertEquals('delete from articles where article_id = 77;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testDeleteRecord01() {
+        $aq = new ArticleQuery();
+        $aq->deleteRecord([
+            'article-id'=>77,
+            'author-id'=>98
+        ]);
+        $this->assertEquals('delete from articles where article_id = 77 and author_id = 98;',$aq->getQuery());
+    }
+    /**
+     * @test
+     */
     public function testInsert000() {
         $aq = new ArticleQuery();
         $aq->insertRecord([
