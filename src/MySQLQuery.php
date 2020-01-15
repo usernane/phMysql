@@ -29,7 +29,7 @@ use phMysql\MySQLTable;
  * A base class that is used to construct MySQL queries. It can be used as a base 
  * class for constructing other MySQL queries.
  * @author Ibrahim
- * @version 1.8.9
+ * @version 1.9.0
  */
 class MySQLQuery{
     /**
@@ -73,7 +73,7 @@ class MySQLQuery{
         'select','update','delete','insert','show','create','alter','drop'
     );
     /**
-     * A constant for the query 'select * from'.
+     * A constant for the query 'select * from '.
      * @since 1.0
      */
     const SELECT = 'select * from ';
@@ -185,14 +185,41 @@ class MySQLQuery{
     }
     /**
      * Sets the name of database that the query will be executed on.
-     * @param string $name Database schema name. It must be non-empty string.
+     * @param string $name Database schema name. A valid name 
+     * must have the following conditions:
+     * <ul>
+     * <li>Must not be an empty string.</li>
+     * <li>Cannot start with a number.</li>
+     * <li>Can have numbers in the middle.</li>
+     * <li>Consist of the following characters: [A-Z][a-z] and underscore only.</li>
+     * </ul>
+     * @return boolean If the name of the schema is set, the method will return 
+     * true. Other than that, the method will return false.
      * @since 1.8.7
      */
     public function setSchemaName($name) {
         $nameT = trim($name);
         if(strlen($nameT) != 0){
-            $this->schemaName = $nameT;
+            $len = strlen($nameT);
+            if($len > 0){
+                for ($x = 0 ; $x < $len ; $x++){
+                    $ch = $nameT[$x];
+                    if($x == 0 && ($ch >= '0' && $ch <= '9')){
+                        return false;
+                    }
+                    if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
+
+                    }
+                    else{
+                        return false;
+                    }
+                }
+                $this->schemaName = $nameT;
+                $this->getTable()->setDatabaseName($nameT);
+                return true;
+            }
         }
+        return false;
     }
     /**
      * Returns database schema name that the query will be executed on.
@@ -217,10 +244,27 @@ class MySQLQuery{
         $this->query = 'select TABLE_NAME from information_schema.tables where TABLE_TYPE = \'VIEW\' and TABLE_SCHEMA = \''.$schemaName.'\'';
         $this->queryType = 'select';
     }
-    public function __construct() {
-        $this->query = self::SELECT.' a_table';
+    /**
+     * Creates new instance of the class.
+     * @param string $tableName The name of the table that will be associated 
+     * with the queries that will be created.
+     */
+    public function __construct($tableName=null) {
+        $this->table = new MySQLTable($tableName);
+        $this->query = self::SELECT.$this->getTableName();
         $this->queryType = 'select';
         $this->setIsBlobInsertOrUpdate(false);
+    }
+    /**
+     * Links a table to the query.
+     * @param MySQLTable $tableObj The table that will be linked.
+     * @since 1.9.0
+     */
+    public function setTable($tableObj) {
+        if($tableObj instanceof MySQLTable){
+            $this->table = $tableObj;
+            $this->table->setOwnerQuery($this);
+        }
     }
     /**
      * Constructs a query that can be used to alter the properties of a table
@@ -534,7 +578,7 @@ class MySQLQuery{
                 $cols = [];
                 $vals = [];
                 foreach($options['where'] as $valOrColIndex => $colOrVal){
-                    if($colOrVal instanceof Column){
+                    if($colOrVal instanceof MySQLColumn){
                         $cols[] = $colOrVal;
                         $vals[] = $valOrColIndex;
                     }
@@ -559,6 +603,27 @@ class MySQLQuery{
             }
         }
         $this->setQuery('select count(*)'.$asPart.' from '.$this->getStructureName().$where.';', 'select');
+    }
+    /**
+     * Creates an object of the class which represents a join between two tables.
+     * For every join, there is a left table and a right table. The table which 
+     * will be on the left side of the join will be the table which is 
+     * linked with current instance.
+     * @param MySQLQuery|MySQLTable $right The table or the query that represents 
+     * the table which exist on the right side of the join.
+     * @param string $alias An optional name for the table that will be created 
+     * by the join. Default is 'T0'
+     * @return MySQLQuery|null If the join is a success, the method will return 
+     * an object of type 'MySQLQuery' that can be used to get info from joined 
+     * tables. If no join is formed, the method will return null.
+     */
+    public function join($right,$alias='T0') {
+        if($right instanceof MySQLQuery || $right instanceof MySQLTable){
+            $joinQuery = new MySQLQuery();
+            $joinTable = new JoinTable($this, $right, $alias);
+            $joinQuery->setTable($joinTable);
+            return $joinQuery;
+        }
     }
     /**
      * Constructs a 'select' query.
@@ -620,7 +685,7 @@ class MySQLQuery{
         'order-by'=>null,
         'group-by'=>null
         )) {
-        $table = $this->getStructure();
+        $table = $this->getTable();
         if($table instanceof MySQLTable){
             $vNum = $table->getMySQLVersion();
             $vSplit = explode('.', $vNum);
@@ -706,7 +771,13 @@ class MySQLQuery{
                 }
             }
             else{
-                $selectQuery .= '* from '.$this->getStructureName();
+                if($table instanceof JoinTable){
+                    $selectQuery .= '* from '.$table->getLeftTable()->getName().' '.$table->getJoinType().' join '
+                            .$table->getRightTable()->getName();
+                }
+                else{
+                    $selectQuery .= '* from '.$this->getTableName();
+                }
             }
             if(!isset($selectOptions['condition-cols-and-vals'])){
                 $selectOptions['condition-cols-and-vals'] = isset($selectOptions['where']) ? $selectOptions['where'] : [];
@@ -719,7 +790,7 @@ class MySQLQuery{
                 $cols = array();
                 $vals = array();
                 foreach($selectOptions['condition-cols-and-vals'] as $valOrColIndex => $colOrVal){
-                    if($colOrVal instanceof Column){
+                    if($colOrVal instanceof MySQLColumn){
                         $cols[] = $colOrVal;
                         $vals[] = $valOrColIndex;
                     }
@@ -742,7 +813,12 @@ class MySQLQuery{
             if(trim($where) == 'where'){
                 $where = '';
             }
-            $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
+            if($table instanceof JoinTable){
+                $this->setQuery('select * from ('.$selectQuery.$where.') as '.$table->getName().$groupByPart.$orderByPart.$limitPart.';', 'select');
+            }
+            else{
+                $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
+            }
             return true;
         }
         return false;
@@ -766,7 +842,7 @@ class MySQLQuery{
         for($x = 0 ; $x < $colsCount ; $x++){
             $colName = isset($orderByArr[$x]['col']) ? $orderByArr[$x]['col'] : null;
             $colObj = $this->getCol($colName);
-            if($colObj instanceof Column){
+            if($colObj instanceof MySQLColumn){
                 $orderType = isset($orderByArr[$x]['order-type']) ? strtoupper($orderByArr[$x]['order-type']) : null;
                 $actualColsArr[] = [
                     'object'=>$colObj,
@@ -970,7 +1046,7 @@ class MySQLQuery{
             else{
                 $column = $this->getStructure()->getCol($colIndex);
             }
-            if($column instanceof Column){
+            if($column instanceof MySQLColumn){
                 $columnsWithVals[] = $colIndex;
                 $cols .= $column->getName().$comma;
                 $type = $column->getType();
@@ -1067,7 +1143,7 @@ class MySQLQuery{
         $cols = [];
         $vals = [];
         foreach ($columnsAndVals as $valOrIndex => $colObjOrVal){
-            if($colObjOrVal instanceof Column){
+            if($colObjOrVal instanceof MySQLColumn){
                 $cols[] = $colObjOrVal;
                 $vals[] = $valOrIndex;
             }
@@ -1129,7 +1205,7 @@ class MySQLQuery{
                 $equalityCond = '=';
             }
             //then check if column object is given
-            if($col instanceof Column){
+            if($col instanceof MySQLColumn){
                 //then check value
                 $cleanVal = $col->cleanValue($vals[$index]);
                 $valLower = gettype($vals[$index]) != 'array' ? strtolower(trim($vals[$index])) : '';
@@ -1245,7 +1321,7 @@ class MySQLQuery{
             else{
                 $column = $this->getStructure()->getCol($colIndex);
             }
-            if($column instanceof Column){
+            if($column instanceof MySQLColumn){
                 $colsStr .= $column->getName().' = ';
                 $type = $column->getType();
                 if($val !== 'null'){
@@ -1309,7 +1385,7 @@ class MySQLQuery{
         $colsArr = [];
         $valsArr = [];
         foreach ($conditionColsAndVals as $valueOrIndex=>$colObjOrVal){
-            if($colObjOrVal instanceof Column){
+            if($colObjOrVal instanceof MySQLColumn){
                 $colsArr[] = $colObjOrVal;
                 $valsArr[] = $valueOrIndex;
             }
@@ -1444,7 +1520,7 @@ class MySQLQuery{
      */
     public function getColName($colKey){
         $col = $this->getCol($colKey);
-        if($col instanceof Column){
+        if($col instanceof MySQLColumn){
             return $col->getName();
         }
         return $col;
@@ -1452,7 +1528,7 @@ class MySQLQuery{
     /**
      * Returns a column from the table given its key.
      * @param string $colKey The name of the column key.
-     * @return string|Column The the column in the table. If no column was 
+     * @return string|MySQLColumn The the column in the table. If no column was 
      * found, the method will return the string 'MySQLTable::NO_SUCH_COL'. If there is 
      * no table linked with the query object, the method will return the 
      * string MySQLQuery::NO_STRUCTURE.
@@ -1463,7 +1539,7 @@ class MySQLQuery{
         $retVal = self::NO_STRUCTURE;
         if($structure instanceof MySQLTable){
             $col = $structure->getCol($colKey);
-            if($col instanceof Column){
+            if($col instanceof MySQLColumn){
                 return $col;
             }
             $retVal = MySQLTable::NO_SUCH_COL;
@@ -1479,13 +1555,14 @@ class MySQLQuery{
      */
     public function getColIndex($colKey){
         $col = $this->getCol($colKey);
-        $index = $col instanceof Column ? $col->getIndex() : -1;
+        $index = $col instanceof MySQLColumn ? $col->getIndex() : -1;
         return $index;
     }
     /**
      * Returns the table that is used for constructing queries.
      * @return MySQLTable The table that is used for constructing queries.
      * @since 1.5
+     * @deprecated since version 1.9.0 Use MySQLQuery::getTable() instead.
      */
     public function getStructure(){
         return $this->table;
@@ -1495,6 +1572,7 @@ class MySQLQuery{
      * @return string The name of the table that is used to construct queries. 
      * if no table is linked, the method will return the string MySQLQuery::NO_STRUCTURE.
      * @since 1.5
+     * @deprecated since version 1.9.0 Use MySQLQuery::getTableName() instead.
      */
     public function getStructureName(){
         $s = $this->getStructure();
@@ -1503,7 +1581,24 @@ class MySQLQuery{
         }
         return self::NO_STRUCTURE;
     }
-    
+    /**
+     * Returns the name of the table which is used to constructs the queries.
+     * @param boolean $dbPrefix If database prefix is set and this parameter is 
+     * set to true, the name of the table will include database prefix.
+     * @return string The name of the table which is used to constructs the queries.
+     * @since 1.9.0
+     */
+    public function getTableName($dbPrefix=true) {
+        return $this->getTable()->getName($dbPrefix);
+    }
+    /**
+     * Returns the table which is associated with the query.
+     * @return MySQLTable The table which is used to constructs queries for.
+     * @since 1.9.0
+     */
+    public function getTable() {
+        return $this->table;
+    }
     public function __toString() {
         return 'Query: '.$this->getQuery().'<br/>'.'Query Type: '.$this->getType().'<br/>';
     }
