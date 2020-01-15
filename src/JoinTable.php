@@ -39,11 +39,17 @@ class JoinTable extends MySQLTable{
         if($leftTable instanceof MySQLTable){
             $this->leftTable = $leftTable;
         }
+        else if($leftTable instanceof MySQLQuery){
+            $this->leftTable = $leftTable->getTable();
+        }
         else{
             $this->leftTable = new MySQLTable('left_table');
         }
         if($rightTable instanceof MySQLTable){
             $this->rightTable = $rightTable;
+        }
+        else if($leftTable instanceof MySQLQuery){
+            $this->rightTable = $rightTable->getTable();
         }
         else{
             $this->rightTable = new MySQLTable('right_table');
@@ -109,7 +115,7 @@ class JoinTable extends MySQLTable{
         $index = 0;
         $leftCount = count($leftCols);
         foreach ($colsArr as $colkey => $colObj){
-            if($colObj instanceof Column){
+            if($colObj instanceof MySQLColumn){
                 if(in_array($colObj->getName(), $commonCols)){
                     if($index < $leftCount){
                         $colObj->setName('left_'.$colObj->getName());
