@@ -31,7 +31,12 @@ use phMysql\MySQLTable;
  * @author Ibrahim
  * @version 1.8.9
  */
-abstract class MySQLQuery{
+class MySQLQuery{
+    /**
+     * The linked database table.
+     * @var MySQLTable 
+     */
+    private $table;
     /**
      * The name of database schema that the query will be executed on.
      * @var string 
@@ -39,7 +44,7 @@ abstract class MySQLQuery{
      */
     private $schemaName;
     /**
-     * An attribute that is set to true if the query is un update or insert of 
+     * An attribute that is set to true if the query is an update or insert of 
      * blob datatype.
      * @var boolean 
      */
@@ -201,7 +206,7 @@ abstract class MySQLQuery{
     /**
      * Constructs a query that can be used to get the names of all views in a 
      * schema given its name.
-     * The result of executing the query is a table with one colum. The name 
+     * The result of executing the query is a table with one column. The name 
      * of the column is 'TABLE_NAME'. The column will simply contain all the 
      * names of the views in the schema. If the given schema does not exist 
      * or has no views, The result will be an empty table.
@@ -1482,7 +1487,9 @@ abstract class MySQLQuery{
      * @return MySQLTable The table that is used for constructing queries.
      * @since 1.5
      */
-    public abstract function getStructure();
+    public function getStructure(){
+        return $this->table;
+    }
     /**
      * Returns the name of the table that is used to construct queries.
      * @return string The name of the table that is used to construct queries. 
