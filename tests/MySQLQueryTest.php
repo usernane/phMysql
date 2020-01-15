@@ -99,7 +99,7 @@ class MySQLQueryTest extends TestCase{
     public function testSelectMax00() {
         $aq = new ArticleQuery();
         $aq->selectMax('');
-        $this->assertEquals('select * from  a_table',$aq->getQuery());
+        $this->assertEquals('select * from articles',$aq->getQuery());
         $this->assertEquals('select',$aq->getType());
     }
     /**
@@ -124,7 +124,7 @@ class MySQLQueryTest extends TestCase{
     public function testSelectMin00() {
         $aq = new ArticleQuery();
         $aq->selectMin('');
-        $this->assertEquals('select * from  a_table',$aq->getQuery());
+        $this->assertEquals('select * from articles',$aq->getQuery());
         $this->assertEquals('select',$aq->getType());
     }
     /**
