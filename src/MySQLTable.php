@@ -31,6 +31,8 @@ use phMysql\MySQLQuery;
  * @version 1.6.3
  */
 class MySQLTable {
+    private $droppedCols;
+    private $droppedKeys;
     /**
      * The name of database schema that the table belongs to.
      * @var string 
