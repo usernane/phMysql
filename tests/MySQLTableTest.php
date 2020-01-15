@@ -24,7 +24,7 @@
  */
 namespace phMysql\tests;
 use phMysql\MySQLTable;
-use phMysql\Column;
+use phMysql\MySQLColumn;
 use PHPUnit\Framework\TestCase;
 use phMysql\tests\ArticleQuery;
 /**
@@ -52,10 +52,10 @@ class MySQLTableTest extends TestCase{
      */
     public function testAddColumn00() {
         $table = new MySQLTable();
-        $this->assertTrue($table->addColumn('new-col', new Column()));
-        $this->assertFalse($table->addColumn('new-col-2', new Column()));
-        $this->assertTrue($table->addColumn('new-col-2', new Column('col_2', 'varchar')));
-        $this->assertFalse($table->addColumn('new-col-2', new Column('col_3', 'varchar')));
+        $this->assertTrue($table->addColumn('new-col', new MySQLColumn()));
+        $this->assertFalse($table->addColumn('new-col-2', new MySQLColumn()));
+        $this->assertTrue($table->addColumn('new-col-2', new MySQLColumn('col_2', 'varchar')));
+        $this->assertFalse($table->addColumn('new-col-2', new MySQLColumn('col_3', 'varchar')));
         return $table;
     }
     public function testGetColsNames() {
@@ -85,8 +85,8 @@ class MySQLTableTest extends TestCase{
      */
     public function testAddColumn01() {
         $table = new MySQLTable();
-        $this->assertTrue($table->addColumn(' new-col ', new Column()));
-        $this->assertFalse($table->addColumn('invalid key', new Column('col_2')));
+        $this->assertTrue($table->addColumn(' new-col ', new MySQLColumn()));
+        $this->assertFalse($table->addColumn('invalid key', new MySQLColumn('col_2')));
         return $table;
     }
     /**
@@ -111,12 +111,12 @@ class MySQLTableTest extends TestCase{
     public function testAddColumn02() {
         $table = new MySQLTable();
         $table->addDefaultCols();
-        $this->assertFalse($table->addColumn('id', new Column('user_id')));
-        $this->assertFalse($table->addColumn('user-id', new Column('id')));
-        $this->assertFalse($table->addColumn('c-on', new Column('created_on')));
-        $this->assertFalse($table->addColumn('created-on', new Column('cr_date')));
-        $this->assertFalse($table->addColumn('last-u', new Column('last_updated')));
-        $this->assertFalse($table->addColumn('last-updated', new Column('l_updated')));
+        $this->assertFalse($table->addColumn('id', new MySQLColumn('user_id')));
+        $this->assertFalse($table->addColumn('user-id', new MySQLColumn('id')));
+        $this->assertFalse($table->addColumn('c-on', new MySQLColumn('created_on')));
+        $this->assertFalse($table->addColumn('created-on', new MySQLColumn('cr_date')));
+        $this->assertFalse($table->addColumn('last-u', new MySQLColumn('last_updated')));
+        $this->assertFalse($table->addColumn('last-updated', new MySQLColumn('l_updated')));
         return $table;
     }
     /**
