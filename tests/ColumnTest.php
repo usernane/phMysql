@@ -1,7 +1,7 @@
 <?php
 namespace phMysql\tests;
 use PHPUnit\Framework\TestCase;
-use phMysql\Column;
+use phMysql\MySQLColumn;
 /**
  * Unit tests for testing the class 'Column'.
  *
@@ -12,7 +12,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testCleanValue00() {
-        $col = new Column('col', 'varchar');
+        $col = new MySQLColumn('col', 'varchar');
         $this->assertEquals('\'Hello World!\'',$col->cleanValue('Hello World!'));
         $this->assertEquals('\'I wouln\\\'t do That\'',$col->cleanValue('I wouln\'t do That'));
     }
@@ -20,7 +20,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testCleanValue01() {
-        $col = new Column('col', 'text');
+        $col = new MySQLColumn('col', 'text');
         $this->assertEquals('\'Hello World!\'',$col->cleanValue('Hello World!'));
         $this->assertEquals('\'I wouln\\\'t do That\'',$col->cleanValue('I wouln\'t do That'));
     }
@@ -28,7 +28,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testCleanValue02() {
-        $col = new Column('col', 'mediumtext');
+        $col = new MySQLColumn('col', 'mediumtext');
         $this->assertEquals('\'Hello World!\'',$col->cleanValue('Hello World!'));
         $this->assertEquals('\'I wouln\\\'t do That\'',$col->cleanValue('I wouln\'t do That'));
     }
@@ -36,7 +36,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testCleanValue03() {
-        $col = new Column('col', 'int');
+        $col = new MySQLColumn('col', 'int');
         $this->assertEquals(0,$col->cleanValue('Hello World!'));
         $this->assertEquals(0,$col->cleanValue('I wouln\';select * from x'));
         $this->assertEquals(43,$col->cleanValue('43'));
@@ -48,7 +48,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testCleanValue04() {
-        $col = new Column('col', 'decimal');
+        $col = new MySQLColumn('col', 'decimal');
         $this->assertEquals('\'0\'',$col->cleanValue('Hello World!'));
         $this->assertEquals('\'0\'',$col->cleanValue('I wouln\';select * from x'));
         $this->assertEquals('\'43\'',$col->cleanValue('43'));
@@ -61,7 +61,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testCleanValue06() {
-        $col = new Column('col', 'decimal');
+        $col = new MySQLColumn('col', 'decimal');
         $this->assertEquals('\'0\'',$col->cleanValue('Hello World!'));
         $this->assertEquals('\'0\'',$col->cleanValue('I wouln\';select * from x'));
         $this->assertEquals('\'43\'',$col->cleanValue('43'));
@@ -74,7 +74,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testCleanValue07() {
-        $col = new Column('col', 'timestamp');
+        $col = new MySQLColumn('col', 'timestamp');
         $this->assertEquals('',$col->cleanValue('Hello World!'));
         $this->assertEquals('',$col->cleanValue('I wouln\';select * from x'));
         $this->assertEquals('',$col->cleanValue(5));
@@ -85,7 +85,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor00() {
-        $col = new Column();
+        $col = new MySQLColumn();
         $this->assertEquals('varchar',$col->getType());
         $this->assertEquals(1,$col->getSize());
         $this->assertEquals('col',$col->getName());
@@ -94,7 +94,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor01() {
-        $col = new Column('user_id ', 'varchar', 15);
+        $col = new MySQLColumn('user_id ', 'varchar', 15);
         $this->assertEquals('varchar',$col->getType());
         $this->assertEquals(15,$col->getSize());
         $this->assertEquals('user_id',$col->getName());
@@ -103,7 +103,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor02() {
-        $col = new Column('invalid name', 'varchar', 15);
+        $col = new MySQLColumn('invalid name', 'varchar', 15);
         $this->assertEquals('varchar',$col->getType());
         $this->assertEquals(15,$col->getSize());
         $this->assertEquals('col',$col->getName());
@@ -112,7 +112,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor03() {
-        $col = new Column('0invalid_name', 'varchar', 15);
+        $col = new MySQLColumn('0invalid_name', 'varchar', 15);
         $this->assertEquals('varchar',$col->getType());
         $this->assertEquals(15,$col->getSize());
         $this->assertEquals('col',$col->getName());
@@ -121,7 +121,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor04() {
-        $col = new Column('valid_name', 'invalid type', 15);
+        $col = new MySQLColumn('valid_name', 'invalid type', 15);
         $this->assertEquals('varchar',$col->getType());
         $this->assertEquals(15,$col->getSize());
         $this->assertEquals('valid_name',$col->getName());
@@ -130,7 +130,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor05() {
-        $col = new Column('valid_name', 'InT', 15);
+        $col = new MySQLColumn('valid_name', 'InT', 15);
         $this->assertEquals('int',$col->getType());
         $this->assertEquals(11,$col->getSize());
         $this->assertEquals('valid_name',$col->getName());
@@ -139,7 +139,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor06() {
-        $col = new Column('valid_name', 'Varchar ', 15);
+        $col = new MySQLColumn('valid_name', 'Varchar ', 15);
         $this->assertEquals('varchar',$col->getType());
         $this->assertEquals(15,$col->getSize());
         $this->assertEquals('valid_name',$col->getName());
@@ -148,7 +148,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor07() {
-        $col = new Column('valid_name', 'Varchar ', 21846);
+        $col = new MySQLColumn('valid_name', 'Varchar ', 21846);
         $this->assertEquals('mediumtext',$col->getType());
         $this->assertEquals(21846,$col->getSize());
         $this->assertEquals('valid_name',$col->getName());
@@ -157,7 +157,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor08() {
-        $col = new Column('valid_name', 'Varchar ', 0);
+        $col = new MySQLColumn('valid_name', 'Varchar ', 0);
         $this->assertEquals('varchar',$col->getType());
         $this->assertEquals(1,$col->getSize());
         $this->assertEquals('valid_name',$col->getName());
@@ -166,14 +166,14 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testConstructor09() {
-        $col = new Column('amount', 'decimal ');
+        $col = new MySQLColumn('amount', 'decimal ');
         $this->assertEquals('decimal',$col->getType());
         $this->assertEquals(0,$col->getSize());
         return $col;
     }
     /**
      * 
-     * @param Column $col
+     * @param MySQLColumn $col
      * @depends testConstructor09
      */
     public function testSetScale00($col) {
@@ -191,7 +191,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testSetColName00() {
-        $col = new Column();
+        $col = new MySQLColumn();
         $this->assertTrue($col->setName('my_file'));
         $this->assertEquals('my_file',$col->getName());
         $this->assertTrue($col->setName('   user_id   '));
@@ -204,7 +204,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function setCommentTest00() {
-        $col = new Column('user_id ', 'varchar', 15);
+        $col = new MySQLColumn('user_id ', 'varchar', 15);
         $col->setComment('A unique ID for the user.');
         $this->assertEquals('A unique ID for the user.',$col->getComment());
         $this->assertEquals('user_id varchar(15) not null collate utf8mb4_unicode_ci comment \'A unique ID for the user.\'',$col.'');
@@ -213,7 +213,7 @@ class ColumnTest extends TestCase{
     /**
      * @test
      * @depends setCommentTest00
-     * @param Column $col Description
+     * @param MySQLColumn $col Description
      */
     public function setCommentTest01($col) {
         $col->setComment(null);
@@ -224,7 +224,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testSetDefault00() {
-        $col = new Column('date', 'timestamp');
+        $col = new MySQLColumn('date', 'timestamp');
         $col->setDefault('2019-11-09');
         $this->assertEquals('2019-11-09 00:00:00',$col->getDefault());
         $this->assertEquals('date timestamp not null default \'2019-11-09 00:00:00\'',$col.'');
@@ -233,7 +233,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testSetDefault01() {
-        $col = new Column('date', 'timestamp');
+        $col = new MySQLColumn('date', 'timestamp');
         $col->setDefault('2019-07-07 09:09:09');
         $this->assertEquals('2019-07-07 09:09:09',$col->getDefault());
         $this->assertEquals('date timestamp not null default \'2019-07-07 09:09:09\'',$col.'');
@@ -242,7 +242,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testSetDefault02() {
-        $col = new Column('date', 'datetime');
+        $col = new MySQLColumn('date', 'datetime');
         $col->setDefault();
         $this->assertNull($col->getDefault());
         $this->assertEquals('date datetime not null',$col.'');
@@ -251,7 +251,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testSetDefault03() {
-        $col = new Column('date', 'datetime');
+        $col = new MySQLColumn('date', 'datetime');
         $col->setDefault('2019-07-07 09:09:09');
         $this->assertEquals('2019-07-07 09:09:09',$col->getDefault());
         $this->assertEquals('date datetime not null default \'2019-07-07 09:09:09\'',$col.'');
@@ -260,7 +260,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testSetDefault04() {
-        $col = new Column('date', 'datetime');
+        $col = new MySQLColumn('date', 'datetime');
         $col->setDefault('2019-15-07 09:09:09');
         $this->assertNull($col->getDefault());
         $this->assertEquals('date datetime not null',$col.'');
@@ -280,7 +280,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testSetDefault05() {
-        $col = new Column('id', 'int');
+        $col = new MySQLColumn('id', 'int');
         $this->assertEquals('id int(1) not null',$col.'');
         $col->setDefault(-122);
         $this->assertEquals(-122,$col->getDefault());
@@ -296,7 +296,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testSetDefault06() {
-        $col = new Column('id', 'varchar');
+        $col = new MySQLColumn('id', 'varchar');
         $this->assertEquals('id varchar(1) not null collate utf8mb4_unicode_ci',$col.'');
         $col->setDefault('A random string.');
         $this->assertEquals('A random string.',$col->getDefault());
@@ -312,7 +312,7 @@ class ColumnTest extends TestCase{
      * @test
      */
     public function testSetDefault07() {
-        $col = new Column('id', 'decimal');
+        $col = new MySQLColumn('id', 'decimal');
         $this->assertEquals('id decimal not null',$col.'');
         $col->setDefault(1);
         $this->assertEquals(1,$col->getDefault());
