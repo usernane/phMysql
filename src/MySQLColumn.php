@@ -28,7 +28,7 @@ namespace phMysql;
  * @author Ibrahim
  * @version 1.6.5
  */
-class Column{
+class MySQLColumn{
     /**
      * A boolean which can be set to true in order to update column timestamp.
      * @var boolean 
