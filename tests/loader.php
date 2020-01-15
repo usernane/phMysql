@@ -40,7 +40,7 @@ else{
 }
 define('ROOT', $rootDir);
 echo 'Root Directory: \''.$rootDir.'\'.'."\n";
-require_once $rootDir.'src'.$DS.'Column.php';
+require_once $rootDir.'src'.$DS.'MySQLColumn.php';
 require_once $rootDir.'src'.$DS.'ForeignKey.php';
 require_once $rootDir.'src'.$DS.'MySQLLink.php';
 require_once $rootDir.'src'.$DS.'MySQLQuery.php';
