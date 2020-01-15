@@ -2,11 +2,11 @@
 ini_set('display_startup_errors', 1);
 ini_set('display_errors', 1);
 error_reporting(-1);
-require 'Column.php';
+require 'MySQLColumn.php';
 require 'MySQLTable.php';
 require 'MySQLQuery.php';
 require 'MySQLLink.php';
-use phMysql\Column;
+use phMysql\MySQLColumn;
 use phMysql\Table;
 use phMysql\MySQLQuery;
 use phMysql\MySQLLink;
@@ -19,9 +19,9 @@ class Q extends MySQLQuery{
     public function __construct() {
         parent::__construct();
         $this->table = new Table('test_table');
-        $this->table->addColumn('col-1', new Column('x_col', 'varchar', 25));
-        $this->table->addColumn('col-2', new Column('yc_col', 'varchar', 225));
-        $this->table->addColumn('col-3', new Column('x_ncol', 'int', 3));
+        $this->table->addColumn('col-1', new MySQLColumn('x_col', 'varchar', 25));
+        $this->table->addColumn('col-2', new MySQLColumn('yc_col', 'varchar', 225));
+        $this->table->addColumn('col-3', new MySQLColumn('x_ncol', 'int', 3));
     }
     public function getStructure() {
         return $this->table;
