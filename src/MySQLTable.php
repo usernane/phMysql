@@ -24,15 +24,20 @@
  */
 namespace phMysql;
 use phMysql\MySQLQuery;
+use phMysql\MySQLColumn;
 /**
  * A class that represents MySQL table.
  *
  * @author Ibrahim
- * @version 1.6.3
+ * @version 1.6.4
  */
 class MySQLTable {
-    private $droppedCols;
-    private $droppedKeys;
+    /**
+     * The instance of type MySQLQuery at which this table is linked to.
+     * @var MySQLQuery 
+     * @since 1.6.4
+     */
+    private $ownerQuery;
     /**
      * The name of database schema that the table belongs to.
      * @var string 
@@ -134,6 +139,37 @@ class MySQLTable {
             'last-updated'=>null
         ];
         $this->schema = null;
+        $this->ownerQuery = null;
+    }
+    /**
+     * Sets the query object at which the table is belonging to.
+     * The developer does not have to call this method. It is used automatically 
+     * my the class 'MySQLQuery' to set the owner query.
+     * @param MySQLQuery $qObj An instance of the class 'MySQLQuery'.
+     * @since 1.6.4
+     */
+    public function setOwnerQuery($qObj) {
+        if($qObj instanceof MySQLQuery){
+            $this->ownerQuery = $qObj;
+            $this->setDatabaseName($qObj->getSchemaName());
+        }
+        else if($qObj === null){
+            $this->ownerQuery = null;
+        }
+    }
+    /**
+     * Adds multiple columns at once.
+     * @param array $colsArr An associative array. The keys will act as column 
+     * key in the table. The value of the key should be an associative array of 
+     * column options.
+     * @since 1.6.4
+     */
+    public function addColumns($colsArr) {
+        if(gettype($colsArr) === 'array'){
+            foreach ($colsArr as $key => $options){
+                $this->addColumn($key, $options);
+            }
+        }
     }
     /**
      * Returns the name of the database that the table belongs to.
@@ -146,29 +182,45 @@ class MySQLTable {
     }
     /**
      * Sets the name of the database that the table belongs to.
-     * @param string $name Schema name (or database name).
+     * Note that if the owner query object is set, the method will always return 
+     * true and the name of the schema will be taken from the query object regardless 
+     * of the passed value.
+     * @param string $name Schema name (or database name). A valid name 
+     * must have the following conditions:
+     * <ul>
+     * <li>Must not be an empty string.</li>
+     * <li>Cannot start with a number.</li>
+     * <li>Can have numbers in the middle.</li>
+     * <li>Consist of the following characters: [A-Z][a-z] and underscore only.</li>
+     * </ul>
      * @return boolean If it was set, the method will return true. If not, 
      * it will return false.
      * @since 1.6.1
      */
     public function setDatabaseName($name) {
-        $trimmed = trim($name);
-        $len = strlen($trimmed);
-        if($len > 0){
-            for ($x = 0 ; $x < $len ; $x++){
-                $ch = $trimmed[$x];
-                if($x == 0 && ($ch >= '0' && $ch <= '9')){
-                    return false;
-                }
-                if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
-
-                }
-                else{
-                    return false;
-                }
-            }
-            $this->schema = $trimmed;
+        if($this->ownerQuery !== null){
+            $this->schema = $this->ownerQuery->getSchemaName();
             return true;
+        }
+        else{
+            $trimmed = trim($name);
+            $len = strlen($trimmed);
+            if($len > 0){
+                for ($x = 0 ; $x < $len ; $x++){
+                    $ch = $trimmed[$x];
+                    if($x == 0 && ($ch >= '0' && $ch <= '9')){
+                        return false;
+                    }
+                    if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
+
+                    }
+                    else{
+                        return false;
+                    }
+                }
+                $this->schema = $trimmed;
+                return true;
+            }
         }
         return false;
     }
@@ -246,7 +298,7 @@ class MySQLTable {
                     $key = 'id';
                 }
                 $inDbName = isset($id['db-name']) ? $id['db-name'] : 'id';
-                $colObj = new Column($inDbName, 'int', 11);
+                $colObj = new MySQLColumn($inDbName, 'int', 11);
                 $colObj->setIsPrimary(true);
                 $colObj->setIsAutoInc(true);
                 if(!($colObj->getName() == $inDbName)){
@@ -263,7 +315,7 @@ class MySQLTable {
                     $key = 'created-on';
                 }
                 $inDbName = isset($createdOn['db-name']) ? $createdOn['db-name'] : 'created_on';
-                $colObj = new Column($inDbName, 'timestamp');
+                $colObj = new MySQLColumn($inDbName, 'timestamp');
                 if(!($colObj->getName() == $inDbName)){
                     $colObj->setName('created_on');
                 }
@@ -279,7 +331,7 @@ class MySQLTable {
                     $key = 'last-updated';
                 }
                 $inDbName = isset($lastUpdated['db-name']) ? $lastUpdated['db-name'] : 'last_updated';
-                $colObj = new Column($inDbName, 'datetime');
+                $colObj = new MySQLColumn($inDbName, 'datetime');
                 if(!($colObj->getName() == $inDbName)){
                     $colObj->setName('last_update');
                 }
@@ -640,7 +692,7 @@ class MySQLTable {
      */
     public function removeColumn($colKeyOrIndex) {
         $col = $this->getCol($colKeyOrIndex);
-        if(!($col instanceof Column)){
+        if(!($col instanceof MySQLColumn)){
             foreach ($this->colSet as $key => $col){
                 if($col->getIndex() == $colKeyOrIndex){
                     unset($this->colSet[$key]);
@@ -655,12 +707,104 @@ class MySQLTable {
         }
     }
     /**
+     * Creates an instance of the class 'Column' given an array of options.
+     * @param array $options An associative array of options. The available options 
+     * are: 
+     * <ul>
+     * <li><b>name</b>: Required. The name of the column in the database.</li>
+     * <li><b>datatype</b>: The datatype of the column. If not provided, 'varchar' 
+     * will be used.</li>
+     * <li><b>size</b>: Size of the column (if datatype does support size). 
+     * If not provided, 1 will be used.</li>
+     * <li><b>default</b>: A default value for the column if its value 
+     * is not present in case of insert.</li>
+     * <li><b>is-null</b>: A boolean. If the column allows null values, this should 
+     * be set to true. Default is false.</li>
+     * <li><b>is-primary</b>: A boolean. It must be set to true if the column 
+     * represents a primary key. Note that the column will be set as unique 
+     * once its set as a primary.</li>
+     * <li><b>auto-inc</b>: A boolean. Only applicable if the column is a 
+     * primary key. Set to true to auto-increment column value by 1 for every 
+     * insert.</li>
+     * <li><b>is-unique</b>: A boolean. If set to true, a unique index will 
+     * be created for the column.</li>
+     * <li><b>auto-update</b>: A boolean. If the column datatype is 'timestamp' or 
+     * 'datetime' and this parameter is set to true, the time of update will 
+     * change automatically without having to change it manually.</li>
+     * <li><b>scale</b>: Number of numbers to the left of the decimal 
+     * point. Only supported for decimal datatype.</li>
+     * <li><b>comment</b> A comment which can be used to describe the column.</li>
+     * </ul>
+     * 
+     * @return MySQLColumn
+     * @since 1.6.4
+     */
+    private function _createColObj($options) {
+        if(isset($options['name'])){
+            $datatype = isset($options['datatype']) ? $options['datatype'] : 'varchar';
+            $col = new MySQLColumn($options['name'], $datatype);
+            $size = isset($options['size']) ? intval($options['size']) : 1;
+            $col->setSize($size);
+            $scale = isset($options['scale']) ? intval($options['scale']) : 2;
+            $col->setScale($scale);
+            if(isset($options['default'])){
+                $col->setDefault($options['default']);
+            }
+            $isNull = isset($options['is-null']) ? $options['is-null'] === true : false;
+            $col->setIsNull($isNull);
+            if(isset($options['is-primary'])){
+                $col->setIsPrimary($options['is-primary']);
+                if(isset($options['auto-inc'])){
+                    $col->setIsAutoInc($options['auto-inc']);
+                }
+            }
+            if(isset($options['is-unique'])){
+                $col->setIsUnique($options['is-unique']);
+            }
+            if(isset($options['auto-update'])){
+                $col->setAutoUpdate($options['auto-update']);
+            }
+            if(isset($options['comment'])){
+                $col->setComment($options['comment']);
+            }
+            return $col;
+        }
+        return null;
+    }
+    /**
      * Adds new column to the table.
      * @param string $key The index at which the column will be added to. The name 
      * of the key can only have the following characters: [A-Z], [a-z], [0-9] 
      * and '-'.
-     * @param Column $col An object of type Column. Note that the column will 
-     * be added only if no column was found in the table which has the same name 
+     * @param MySQLColumn|array $col An object of type Column. Also, it can be 
+     * an associative array of column options. The available options 
+     * are: 
+     * <ul>
+     * <li><b>name</b>: Required. The name of the column in the database.</li>
+     * <li><b>datatype</b>: The datatype of the column.  If not provided, 'varchar' 
+     * will be used.</li>
+     * <li><b>size</b>: Size of the column (if datatype does support size). 
+     * If not provided, 1 will be used.</li>
+     * <li><b>default</b>: A default value for the column if its value 
+     * is not present in case of insert.</li>
+     * <li><b>is-null</b>: A boolean. If the column allows null values, this should 
+     * be set to true. Default is false.</li>
+     * <li><b>is-primary</b>: A boolean. It must be set to true if the column 
+     * represents a primary key. Note that the column will be set as unique 
+     * once its set as a primary.</li>
+     * <li><b>auto-inc</b>: A boolean. Only applicable if the column is a 
+     * primary key. Set to true to auto-increment column value by 1 for every 
+     * insert.</li>
+     * <li><b>is-unique</b>: A boolean. If set to true, a unique index will 
+     * be created for the column.</li>
+     * <li><b>auto-update</b>: A boolean. If the column datatype is 'timestamp' or 
+     * 'datetime' and this parameter is set to true, the time of update will 
+     * change automatically without having to change it manually.</li>
+     * <li><b>scale</b>: Number of numbers to the left of the decimal 
+     * point. Only supported for decimal datatype.</li>
+     * <li><b>comment</b> A comment which can be used to describe the column.</li>
+     * </ul>
+     * Note that the column will be added only if no column was found in the table which has the same name 
      * as the given column (key name and database name).
      * @return boolean true if the column is added. false otherwise.
      * @since 1.0
@@ -669,7 +813,10 @@ class MySQLTable {
         $trimmedKey = trim($key);
         $keyLen = strlen($trimmedKey);
         if(strlen($keyLen) != 0 && $this->_isKeyNameValid($trimmedKey)){
-            if($col instanceof Column){
+            if(gettype($col) === 'array'){
+                $col = $this->_createColObj($col);
+            }
+            if($col instanceof MySQLColumn){
                 if(!isset($this->colSet[$trimmedKey])){
                     $givanColName = $col->getName();
                     foreach ($this->columns() as $val){
@@ -721,7 +868,7 @@ class MySQLTable {
     /**
      * Returns the column object given the key that it was stored in.
      * @param string $key The name of the column key.
-     * @return Column|null A reference to an object of type Column if the given 
+     * @return MySQLColumn|null A reference to an object of type Column if the given 
      * column was found. null in case of no column was found.
      * @since 1.0
      */
@@ -736,7 +883,7 @@ class MySQLTable {
     /**
      * Returns the index of a column given its key.
      * @param string $key The name of the column key.
-     * @return Column|null The index of the column if a column was 
+     * @return MySQLColumn|null The index of the column if a column was 
      * found which has the given key. -1 in case of no column was found.
      * @since 1.6
      */
@@ -750,7 +897,7 @@ class MySQLTable {
     /**
      * Returns a column given its index.
      * @param int $index The index of the column.
-     * @return Column|null If a column was found which has the specified index, 
+     * @return MySQLColumn|null If a column was found which has the specified index, 
      * it is returned. Other than that, The method will return null.
      * @since 1.6
      */
