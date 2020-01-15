@@ -9,7 +9,7 @@
 namespace phMysql\tests;
 use phMysql\ForeignKey;
 use phMysql\MySQLTable;
-use phMysql\Column;
+use phMysql\MySQLColumn;
 use PHPUnit\Framework\TestCase;
 /**
  * Description of FKTest
@@ -55,14 +55,14 @@ class FKTest extends TestCase{
      */
     public function testConstructor01() {
         $owner = new MySQLTable('users');
-        $owner->addColumn('user-id', new Column('id', 'int'));
-        $owner->addColumn('user-name', new Column('name', 'varchar'));
-        $owner->addColumn('user-password', new Column('password', 'varchar'));
-        $owner->addColumn('user-email', new Column('email', 'varchar'));
+        $owner->addColumn('user-id', new MySQLColumn('id', 'int'));
+        $owner->addColumn('user-name', new MySQLColumn('name', 'varchar'));
+        $owner->addColumn('user-password', new MySQLColumn('password', 'varchar'));
+        $owner->addColumn('user-email', new MySQLColumn('email', 'varchar'));
         $source = new MySQLTable('anothet_table');
-        $source->addColumn('user-id', new Column('user_id', 'int'));
-        $source->addColumn('email', new Column('email', 'int'));
-        $source->addColumn('email-2', new Column('email_2', 'varchar'));
+        $source->addColumn('user-id', new MySQLColumn('user_id', 'int'));
+        $source->addColumn('email', new MySQLColumn('email', 'int'));
+        $source->addColumn('email-2', new MySQLColumn('email_2', 'varchar'));
         $fk = new ForeignKey('new_key',$owner,$source,[
             'user-id'=>'user-id',
             'user-email'=>'email-2'
