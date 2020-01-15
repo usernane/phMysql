@@ -24,7 +24,7 @@
  */
 namespace phMysql;
 use phMysql\MySQLTable;
-use phMysql\Column;
+use phMysql\MySQLColumn;
 /**
  * A class that represents a foreign key.
  * A foreign key must have an owner table and a source table. The 
@@ -193,10 +193,10 @@ class ForeignKey {
             $sourceTbl = $this->getSource();
             if($sourceTbl !== null){
                 $ownerCol = $ownerTbl->getCol($ownerColName);
-                if($ownerCol instanceof Column){
+                if($ownerCol instanceof MySQLColumn){
                     $sourceColName = $sourceColName === null ? $ownerColName : trim($sourceColName);
                     $sourceCol = $sourceTbl->getCol($sourceColName);
-                    if($sourceCol instanceof Column){
+                    if($sourceCol instanceof MySQLColumn){
                         if($sourceCol->getType() == $ownerCol->getType()){
                             $this->ownerCols[$ownerColName] = $ownerCol;
                             $this->sourceCols[$sourceColName] = $sourceCol;
