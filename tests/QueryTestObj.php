@@ -8,33 +8,27 @@
 
 namespace phMysql\tests;
 use phMysql\MySQLQuery;
-use phMysql\MySQLTable;
-use phMysql\Column;
 /**
  * An object which used as a base for testing the class 'MySQLQuery'.
  *
  * @author Ibrahim
  */
 class QueryTestObj extends MySQLQuery{
-    /**
-     *
-     * @var MySQLTable 
-     */
-    private $MySQLTable;
     public function __construct() {
-        parent::__construct();
-        $this->MySQLTable = new MySQLTable('first_table');
-        $this->getStructure()->addColumn('first-col', new Column('col_00'));
-        $this->getStructure()->addColumn('second-col', new Column('col_01'));
-        $this->getStructure()->addColumn('third-col', new Column('col_02'));
-        $this->getStructure()->addColumn('fourth-col', new Column('col_03'));
+        parent::__construct('first_table');
+        $this->getTable()->addColumns([
+            'first-col'=>[
+                'name'=>'col_00'
+            ],
+            'second-col'=>[
+                'name'=>'col_01'
+            ],
+            'third-col'=>[
+                'name'=>'col_02'
+            ],
+            'fourth-col'=>[
+                'name'=>'col_03'
+            ]
+        ]);
     }
-    /**
-     * 
-     * @return MySQLTable
-     */
-    public function getStructure() {
-        return $this->MySQLTable;
-    }
-
 }
