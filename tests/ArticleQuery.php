@@ -1,7 +1,7 @@
 <?php
 namespace phMysql\tests;
 use phMysql\MySQLQuery;
-use phMysql\Column;
+use phMysql\MySQLColumn;
 use phMysql\MySQLTable;
 /**
  * Description of ArticleQuery
@@ -9,15 +9,9 @@ use phMysql\MySQLTable;
  * @author Ibrahim
  */
 class ArticleQuery extends MySQLQuery{
-    /**
-     *
-     * @var MySQLTable 
-     */
-    private $table;
     public function __construct() {
-        parent::__construct();
-        $this->table = new MySQLTable('articles');
-        $this->table->addDefaultCols([
+        parent::__construct('articles');
+        $this->getTable()->addDefaultCols([
             'id'=>[
                 'key-name'=>'article-id',
                 'db-name'=>'article_id'
@@ -25,22 +19,26 @@ class ArticleQuery extends MySQLQuery{
             'created-on'=>[],
             'last-updated'=>[]
         ]);
-        $this->table->addColumn('author-id', new Column('author_id', 'int', 11));
-        $this->table->addColumn('author-name', new Column('author_name', 'varchar', 20));
-        $this->table->getCol('author-name')->setIsPrimary(true);
-        $this->table->addColumn('content', new Column('content', 'varchar', 5000));
+        $this->getTable()->addColumns([
+            'author-id'=>[
+                'name'=>'author_id',
+                'datatype'=>'int',
+                'size'=>11
+            ],
+            'author-name'=>[
+                'name'=>'author_name',
+                'size'=>20,
+                'is-primary'=>true
+            ],
+            'content'=>[
+                'name'=>'content',
+                'size'=>5000
+            ]
+        ]);
         
-        $this->table->addReference('phMysql\tests\UsersQuery', [
+        $this->getTable()->addReference('phMysql\tests\UsersQuery', [
             'author-id'=>'user-id'
         ], 'author_fk');
     }
-    /**
-     * 
-     * @return MySQLTable
-     */
-    public function getStructure(){
-        return $this->table;
-    }
-
 }
 
