@@ -599,7 +599,7 @@ class MySQLQuery{
      * sub associative arrays which has columns 'order by' info. The sub associative 
      * arrays can have the following indices:
      * <ul>
-     * <li><b>col<b>: The name of the column.</li>
+     * <li><b>col</b>: The name of the column.</li>
      * <li>order-type: An optional string to represent the order. It can 
      * be 'A' for ascending or 'D' for descending</li>
      * </ul></li>
