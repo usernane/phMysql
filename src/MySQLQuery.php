@@ -819,6 +819,17 @@ class MySQLQuery{
             else{
                 $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
             }
+            $asView = isset($selectOptions['as-view']) ? $selectOptions['as-view'] === true : false;
+            if($asView === true){
+                $viewName = $this->getTableName();
+                if(isset($selectOptions['view-name'])){
+                    $trimmed = trim($selectOptions['view-name']);
+                    if(strlen($trimmed) != 0){
+                        $viewName = $trimmed;
+                    }
+                }
+                $this->setQuery('create view '.$viewName.' as ('.trim($this->getQuery(),';').');', 'create');
+            }
             return true;
         }
         return false;
