@@ -210,9 +210,13 @@ class MySQLColumn{
         $this->setIsUnique(false);
     }
     /**
-     * 
-     * @param string|int|double|null $val
-     * @param boolean $dateEndOfDay Description
+     * Clean and validates a value against the datatype of the column.
+     * @param mixed $val The value that will be cleaned. It can be a single value or 
+     * an array of values.
+     * @param boolean $dateEndOfDay If the datatype of the column is 'datetime' 
+     * or 'timestamp' and time is not specified in the passed value and this 
+     * attribute is set to true, The time will be set to '23:59:59'. Default is 
+     * false.
      * @return int|string|null The return type of the method will depend on 
      * the type of the column as follows:
      * <ul>
@@ -226,20 +230,33 @@ class MySQLColumn{
      * @since 1.6.4
      */
     public function cleanValue($val,$dateEndOfDay=false) {
-        $type = $this->getType();
+        $valType = gettype($val);
+        if($valType == 'array'){
+            $retVal = [];
+            foreach ($val as $arrVal){
+                $retVal = $this->_cleanValueHelper($arrVal, $dateEndOfDay);
+            }
+            return $retVal;
+        }
+        else{
+            return $this->_cleanValueHelper($val, $dateEndOfDay);
+        }
+    }
+    private function _cleanValueHelper($val,$dateEndOfDay=false){
+        $colDatatype = $this->getType();
         if($val === null){
             return null;
         }
-        else if($type == 'int'){
+        else if($colDatatype == 'int'){
             return intval($val);
         }
-        else if($type == 'decimal' || $type == 'float' || $type == 'double'){
+        else if($colDatatype == 'decimal' || $colDatatype == 'float' || $colDatatype == 'double'){
             return '\''.floatval($val).'\'';
         }
-        else if($type == 'varchar' || $type == 'text' || $type == 'mediumtext'){
+        else if($colDatatype == 'varchar' || $colDatatype == 'text' || $colDatatype == 'mediumtext'){
             return '\''.str_replace("'", "\'", $val).'\'';
         }
-        else if($type == 'datetime' || $type == 'timestamp'){
+        else if($colDatatype == 'datetime' || $colDatatype == 'timestamp'){
             $trimmed = strtolower(trim($val));
             if($trimmed == 'current_timestamp'){
                 return 'current_timestamp';
@@ -325,6 +342,12 @@ class MySQLColumn{
     public function getScale() {
         return $this->scale;
     }
+    /**
+     * Checks if a date-time string is valid or not.
+     * @param string $date A date string in the format 'YYYY-MM-DD HH:MM:SS'.
+     * @return boolean If the string represents correct date and time, the 
+     * method will return true. False if it is not valid.
+     */
     private function _validateDateAndTime($date) {
         $trimmed = trim($date);
         if(strlen($trimmed) == 19){
