@@ -5,6 +5,7 @@ use phMysql\ForeignKey;
 use phMysql\MySQLTable;
 use phMysql\tests\QueryTestObj;
 use phMysql\tests\ArticleQuery;
+use phMysql\MySQLQuery;
 /**
  * Unit tests for testing the class 'MySQLQuery'.
  *
@@ -627,6 +628,81 @@ class MySQLQueryTest extends TestCase{
             'conditions'=>['!=']
         ]);
         $this->assertEquals('select * from articles where author_id is not null;',$aq->getQuery());
+    }
+    /**
+     * @test
+     * @return MySQLQuery
+     */
+    public function testSelect017() {
+        $query = new MySQLQuery('user_data');
+        $query->getTable()->addColumns([
+            'user-id'=>[
+                'datatype'=>'int',
+                'size'=>10,
+                'is-primary'=>true
+            ],
+            'username'=>[
+                'size'=>25,
+                'is-unique'=>true
+            ],
+            'reg-date'=>[
+                'datatype'=>'timestamp',
+                'default'=>'current_timestamp'
+            ],
+            'last-login'=>[
+                'datatype'=>'datetime'
+            ]
+        ]);
+        $query->select([
+            'where'=>[
+                'user-id'=>[
+                    'values'=>[
+                        1,4,6
+                    ],
+                    'conditions'=>[
+                        'or','and'
+                    ]
+                ]
+            ]
+        ]);
+        $this->assertEquals('select * from user_data where user_id = 1 or user_id = 4 and user_id = 6;',$query->getQuery());
+        return $query;
+    }
+    /**
+     * @test
+     * @param MySQLQuery $query
+     * @depends testSelect017
+     */
+    public function testSelect018($query) {
+        $query->select([
+            'where'=>[
+                'user-id'=>[
+                    'values'=>[
+                        1,4,6
+                    ],
+                    'conditions'=>'in'
+                ]
+            ]
+        ]);
+        $this->assertEquals('select * from user_data where user_id in(1,4,6);',$query->getQuery());
+    }
+    /**
+     * @test
+     * @param MySQLQuery $query
+     * @depends testSelect017
+     */
+    public function testSelect019($query) {
+        $query->select([
+            'where'=>[
+                'user-id'=>[
+                    'values'=>[
+                        1,4,6
+                    ],
+                    'conditions'=>'not in'
+                ]
+            ]
+        ]);
+        $this->assertEquals('select * from user_data where user_id not in(1,4,6);',$query->getQuery());
     }
     /**
      * @test
