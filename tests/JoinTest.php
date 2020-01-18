@@ -38,15 +38,12 @@ class JoinTest extends TestCase{
         $userQ = new UsersQuery();
         $joinQuery = $articleQ->join($userQ);
         $joinQuery->select([
-            'columns'=>[
-                'name','content'
-            ],
             'where'=>[
                 'article-id'=>55
             ],
             'as-view'=>true,
             'view-name'=>'author_content'
         ]);
-        $this->assertEquals('','');
+        $this->assertEquals('',$joinQuery->getQuery());
     }
 }
