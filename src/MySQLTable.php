@@ -780,7 +780,8 @@ class MySQLTable {
      * an associative array of column options. The available options 
      * are: 
      * <ul>
-     * <li><b>name</b>: Required. The name of the column in the database.</li>
+     * <li><b>name</b>: The name of the column in the database. If not provided, 
+     * the name of the key will be used but with every '-' replaced by '_'.</li>
      * <li><b>datatype</b>: The datatype of the column.  If not provided, 'varchar' 
      * will be used.</li>
      * <li><b>size</b>: Size of the column (if datatype does support size). 
@@ -814,6 +815,9 @@ class MySQLTable {
         $keyLen = strlen($trimmedKey);
         if(strlen($keyLen) != 0 && $this->_isKeyNameValid($trimmedKey)){
             if(gettype($col) === 'array'){
+                if(!isset($col['name'])){
+                    $col['name'] = str_replace('-', '_', $trimmedKey);
+                }
                 $col = $this->_createColObj($col);
             }
             if($col instanceof MySQLColumn){
