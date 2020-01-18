@@ -787,8 +787,8 @@ class MySQLQuery{
             $selectOptions['conditions'] = isset($selectOptions['conditions']) && 
                     gettype($selectOptions['conditions']) == 'array' ? $selectOptions['conditions'] : array();
             if(isset($selectOptions['condition-cols-and-vals']) && isset($selectOptions['conditions'])){
-                $cols = array();
-                $vals = array();
+                $cols = [];
+                $vals = [];
                 foreach($selectOptions['condition-cols-and-vals'] as $valOrColIndex => $colOrVal){
                     if($colOrVal instanceof MySQLColumn){
                         $cols[] = $colOrVal;
