@@ -543,7 +543,7 @@ class MySQLColumn{
      */
     public function getName($tablePrefix=false){
         if($tablePrefix === true && $this->getOwner() !== null){
-            return $this->getOwner().'.'.$this->name;
+            return $this->getOwner()->getName().'.'.$this->name;
         }
         return $this->name;
     }
