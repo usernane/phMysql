@@ -184,7 +184,10 @@ class MySQLQuery{
         $this->queryType = 'select';
     }
     /**
-     * Sets the name of database that the query will be executed on.
+     * Sets the name of database (Schema) that the query will be executed on.
+     * A schema is a collection of tables. On the other hand, a database 
+     * is a collection of schema. In MySQL, the two terms usually refer to the 
+     * same thing.
      * @param string $name Database schema name. A valid name 
      * must have the following conditions:
      * <ul>
@@ -215,7 +218,7 @@ class MySQLQuery{
                     }
                 }
                 $this->schemaName = $nameT;
-                $this->getTable()->setDatabaseName($nameT);
+                $this->getTable()->setSchemaName($nameT);
                 return true;
             }
         }
@@ -223,6 +226,9 @@ class MySQLQuery{
     }
     /**
      * Returns database schema name that the query will be executed on.
+     * A schema is a collection of tables. On the other hand, a database 
+     * is a collection of schema. In MySQL, the two terms usually refer to the 
+     * same thing.
      * @return string Database schema name. If not set, the method will 
      * return null.
      * @since 1.8.7
@@ -1218,8 +1224,20 @@ class MySQLQuery{
             //then check if column object is given
             if($col instanceof MySQLColumn){
                 //then check value
-                $cleanVal = $col->cleanValue($vals[$index]);
-                $valLower = gettype($vals[$index]) != 'array' ? strtolower(trim($vals[$index])) : '';
+                if(gettype($vals[$index]) != 'array'){
+                    $cleanVal = $col->cleanValue($vals[$index]);
+                    $valLower = strtolower(trim($vals[$index]));
+                }
+                else{
+                    $val = isset($vals[$index]['values']) ? $vals[$index]['values'] : null;
+                    if(gettype($val) == 'array'){
+                        $cleanVal = $col->cleanValue($val);
+                        $valLower = gettype($vals[$index]) != 'array' ? strtolower(trim($vals[$index])) : '';
+                    }
+                    else{
+                        continue;
+                    }
+                }
                 if($valLower == 'is null' || $valLower == 'is not null'){
                     $where .= $col->getName().' '.$valLower.' ';
                 }
@@ -1257,6 +1275,57 @@ class MySQLQuery{
                         }
                         else if($equalityCond == '<'){
                             $where .= $col->getName().' < '.$cleanVal.' ';
+                        }
+                    }
+                    else if(gettype($vals[$index]) == 'array'){
+                        $conditions = isset($vals[$index]['conditions']) ? $vals[$index]['conditions'] : [];
+                        $joinConditions = isset($vals[$index]['join-operators']) ? $vals[$index]['join-operators'] : [];
+                        while(count($conditions) < count($cleanVal)){
+                            $conditions[] = '=';
+                        }
+                        while(count($joinConditions) < count($cleanVal)){
+                            $joinConditions[] = 'and';
+                        }
+                        if(gettype($conditions) == 'array'){
+                            $condIndex = 0;
+                            foreach ($cleanVal as $singleVal){
+                                $cond = $conditions[$condIndex];
+                                if(!in_array($cond, $supportedConds)){
+                                    $cond = '=';
+                                }
+                                if($condIndex > 0){
+                                    $joinCond = $joinConditions[$condIndex];
+                                    if($joinCond == 'and' || $joinCond == 'or'){
+                                        
+                                    }
+                                    else{
+                                        $joinCond = 'and';
+                                    }
+                                    $where .= $joinCond.' '.$col->getName().' '.$cond.' '.$singleVal.' ';
+                                }
+                                else{
+                                    $where .= $col->getName().' '.$cond.' '.$singleVal.' ';
+                                }
+                                $condIndex++;
+                            }
+                        }
+                        else{
+                            $lCond = strtolower(trim($conditions));
+                            if($lCond == 'in' || $lCond == 'not in'){
+                                $inCond = $lCond.'(';
+                                for($x = 0 ; $x < count($cleanVal) ; $x++){
+                                    if($x + 1 == count($cleanVal)){
+                                        $inCond .= $cleanVal[$x];
+                                    }
+                                    else{
+                                        $inCond .= $cleanVal[$x].',';
+                                    }
+                                }
+                                $where .= $col->getName().' '.$inCond.')';
+                            }
+                            else{
+                                
+                            }
                         }
                     }
                     else{
