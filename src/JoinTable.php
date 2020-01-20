@@ -24,18 +24,29 @@
  */
 namespace phMysql;
 use phMysql\MySQLTable;
-
+use phMysql\MySQLColumn;
 /**
  * Experimental class. DO NOT USE.
  *
  * @author Ibrahim
  */
 class JoinTable extends MySQLTable{
+    /**
+     * The number of joins which was performed before.
+     * @var type 
+     * @since 1.9.0
+     */
+    private static $JoinsCount = 0;
     private $leftTable;
     private $rightTable;
     private $joinType;
+    private $joinCond;
     public function __construct($leftTable,$rightTable,$tableName) {
-        parent::__construct($tableName);
+        parent::__construct();
+        if(!$this->setName($tableName)){
+            $this->setName('T'.self::$JoinsCount);
+        }
+        self::$JoinsCount++;
         if($leftTable instanceof MySQLTable){
             $this->leftTable = $leftTable;
         }
@@ -56,6 +67,49 @@ class JoinTable extends MySQLTable{
         }
         $this->joinType = 'left';
         $this->_addAndValidateColmns();
+    }
+    public function getJoinCondition() {
+        return $this->joinCond;
+    }
+    public function setJoinCondition($cols,$conds=[],$joinOps=[]) {
+        if(gettype($cols) == 'array'){
+            while (count($conds) < count($cols)){
+                $conds[] = '=';
+            }
+            while (count($joinOps) < count($cols)){
+                $joinOps[] = 'and';
+            }
+            $index = 0;
+            foreach ($cols as $leftCol => $rightCol){
+                $leftColObj = $this->getLeftTable()->getCol($leftCol);
+                if($leftColObj instanceof MySQLColumn){
+                    $rightColObj = $this->getRightTable()->getCol($rightCol);
+                    if($rightColObj instanceof MySQLColumn){
+                        if($rightColObj->getType() == $leftColObj->getType()){
+                            $cond = $conds[$index];
+                            if(strlen($this->joinCond) == 0){
+                                $this->joinCond = 'on '. $this->getLeftTable()->getName().'.'
+                                       . $leftColObj->getName().' '.$cond.' '
+                                       . $this->getRightTable()->getName().'.'
+                                       . $rightColObj->getName();
+                            }
+                            else {
+                                $joinOp = $joinOps[$index - 1];
+                                if($joinOp != 'and' && $joinOp != 'or'){
+                                    $joinOp = 'and';
+                                }
+                                $this->joinCond .= 
+                                       ' '.$joinOp.' '.$this->getLeftTable()->getName().'.'
+                                       . $leftColObj->getName().' '.$cond.' '
+                                       . $this->getRightTable()->getName().'.'
+                                       . $rightColObj->getName();
+                            }
+                        }
+                    }
+                }
+                $index++;
+            }
+        } 
     }
     public function getJoinType() {
         return $this->joinType;
