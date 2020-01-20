@@ -151,7 +151,7 @@ class MySQLTable {
     public function setOwnerQuery($qObj) {
         if($qObj instanceof MySQLQuery){
             $this->ownerQuery = $qObj;
-            $this->setDatabaseName($qObj->getSchemaName());
+            $this->setSchemaName($qObj->getSchemaName());
         }
         else if($qObj === null){
             $this->ownerQuery = null;
@@ -197,7 +197,7 @@ class MySQLTable {
      * it will return false.
      * @since 1.6.1
      */
-    public function setDatabaseName($name) {
+    public function setSchemaName($name) {
         if($this->ownerQuery !== null){
             $this->schema = $this->ownerQuery->getSchemaName();
             return true;
