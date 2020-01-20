@@ -623,10 +623,11 @@ class MySQLQuery{
      * an object of type 'MySQLQuery' that can be used to get info from joined 
      * tables. If no join is formed, the method will return null.
      */
-    public function join($right,$alias='T0') {
+    public function join($right,$joinCols,$conds=[],$joinOps=[],$alias='T0') {
         if($right instanceof MySQLQuery || $right instanceof MySQLTable){
             $joinQuery = new MySQLQuery();
             $joinTable = new JoinTable($this, $right, $alias);
+            $joinTable->setJoinCondition($joinCols, $conds, $joinOps);
             $joinQuery->setTable($joinTable);
             return $joinQuery;
         }
@@ -779,7 +780,7 @@ class MySQLQuery{
             else{
                 if($table instanceof JoinTable){
                     $selectQuery .= '* from '.$table->getLeftTable()->getName().' '.$table->getJoinType().' join '
-                            .$table->getRightTable()->getName();
+                            .$table->getRightTable()->getName().' '.$table->getJoinCondition();
                 }
                 else{
                     $selectQuery .= '* from '.$this->getTableName();
@@ -811,7 +812,9 @@ class MySQLQuery{
                         $vals[] = $colOrVal;
                     }
                 }
-                $where = $this->createWhereConditions($cols, $vals, $selectOptions['conditions'], $selectOptions['join-operators']);
+                $where = $table instanceof JoinTable ? 
+                        $this->createWhereConditions($cols, $vals, $selectOptions['conditions'], $selectOptions['join-operators'],$table->getName()) :
+                        $this->createWhereConditions($cols, $vals, $selectOptions['conditions'], $selectOptions['join-operators']);
             }
             else{
                 $where = '';
@@ -820,7 +823,7 @@ class MySQLQuery{
                 $where = '';
             }
             if($table instanceof JoinTable){
-                $this->setQuery('select * from ('.$selectQuery.$where.') as '.$table->getName().$groupByPart.$orderByPart.$limitPart.';', 'select');
+                $this->setQuery('select * from ('.$selectQuery.') as '.$table->getName().$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
             }
             else{
                 $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
@@ -1190,10 +1193,14 @@ class MySQLQuery{
      * @param array $jointOps An array which contains conditional operators 
      * to join conditions. The operators can be logical or bitwise. Possible 
      * values include: &&, ||, and, or, |, &, xor.
+     * @param string $tablePrefix An optional string that represents table prefix.
      * @return string A string that represents the 'where' part of the query.
      * @since 1.8.2
      */
-    private function createWhereConditions($cols,$vals,$valsConds,$jointOps){
+    private function createWhereConditions($cols,$vals,$valsConds,$jointOps,$tablePrefix=null){
+        if($tablePrefix !== null){
+            $tablePrefix = trim($tablePrefix).'.';
+        }
         $colsCount = count($cols);
         $valsCount = count($vals);
         $condsCount = count($valsConds);
@@ -1239,75 +1246,77 @@ class MySQLQuery{
                     }
                 }
                 if($valLower == 'is null' || $valLower == 'is not null'){
-                    $where .= $col->getName().' '.$valLower.' ';
+                    $where .= $tablePrefix.$col->getName().' '.$valLower.' ';
                 }
                 else if($cleanVal === null){
                     if($equalityCond == '='){
-                        $where .= $col->getName().' is null ';
+                        $where .= $tablePrefix.$col->getName().' is null ';
                     }
                     else{
-                        $where .= $col->getName().' is not null ';
+                        $where .= $tablePrefix.$col->getName().' is not null ';
                     }
                 }
                 else{
                     if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
                         if($equalityCond == '='){
-                            $where .= $col->getName().' >= '.$cleanVal.' ';
+                            $where .= $tablePrefix.$col->getName().' >= '.$cleanVal.' ';
                             $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= 'and '.$col->getName().' <= '.$cleanVal.' ';
+                            $where .= 'and '.$tablePrefix.$col->getName().' <= '.$cleanVal.' ';
                         }
                         else if($equalityCond == '!='){
-                            $where .= $col->getName().' < '.$cleanVal.' ';
+                            $where .= $tablePrefix.$col->getName().' < '.$cleanVal.' ';
                             $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= 'and '.$col->getName().' > '.$cleanVal.' ';
+                            $where .= 'and '.$tablePrefix.$col->getName().' > '.$cleanVal.' ';
                         }
                         else if($equalityCond == '>='){
-                            $where .= $col->getName().' >= '.$cleanVal.' ';
+                            $where .= $tablePrefix.$col->getName().' >= '.$cleanVal.' ';
                             $cleanVal = $col->cleanValue($vals[$index],true);
                         }
                         else if($equalityCond == '<='){
                             $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= $col->getName().' <= '.$cleanVal.' ';
+                            $where .= $tablePrefix.$col->getName().' <= '.$cleanVal.' ';
                         }
                         else if($equalityCond == '>'){
                             $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= $col->getName().' > '.$cleanVal.' ';
+                            $where .= $tablePrefix.$col->getName().' > '.$cleanVal.' ';
                         }
                         else if($equalityCond == '<'){
-                            $where .= $col->getName().' < '.$cleanVal.' ';
+                            $where .= $tablePrefix.$col->getName().' < '.$cleanVal.' ';
                         }
                     }
                     else if(gettype($vals[$index]) == 'array'){
                         $conditions = isset($vals[$index]['conditions']) ? $vals[$index]['conditions'] : [];
                         $joinConditions = isset($vals[$index]['join-operators']) ? $vals[$index]['join-operators'] : [];
-                        while(count($conditions) < count($cleanVal)){
-                            $conditions[] = '=';
-                        }
-                        while(count($joinConditions) < count($cleanVal)){
-                            $joinConditions[] = 'and';
-                        }
+                        $where .= '(';
                         if(gettype($conditions) == 'array'){
                             $condIndex = 0;
+                            while(count($conditions) < count($cleanVal)){
+                                $conditions[] = '=';
+                            }
+                            while(count($joinConditions) < count($cleanVal)){
+                                $joinConditions[] = 'and';
+                            }
                             foreach ($cleanVal as $singleVal){
                                 $cond = $conditions[$condIndex];
                                 if(!in_array($cond, $supportedConds)){
                                     $cond = '=';
                                 }
                                 if($condIndex > 0){
-                                    $joinCond = $joinConditions[$condIndex];
+                                    $joinCond = $joinConditions[$condIndex - 1];
                                     if($joinCond == 'and' || $joinCond == 'or'){
                                         
                                     }
                                     else{
                                         $joinCond = 'and';
                                     }
-                                    $where .= $joinCond.' '.$col->getName().' '.$cond.' '.$singleVal.' ';
+                                    $where .= $joinCond.' '.$tablePrefix.$col->getName().' '.$cond.' '.$singleVal.' ';
                                 }
                                 else{
-                                    $where .= $col->getName().' '.$cond.' '.$singleVal.' ';
+                                    $where .= $tablePrefix.$col->getName().' '.$cond.' '.$singleVal.' ';
                                 }
                                 $condIndex++;
                             }
+                            
                         }
                         else{
                             $lCond = strtolower(trim($conditions));
@@ -1321,15 +1330,16 @@ class MySQLQuery{
                                         $inCond .= $cleanVal[$x].',';
                                     }
                                 }
-                                $where .= $col->getName().' '.$inCond.')';
+                                $where .= $tablePrefix.$col->getName().' '.$inCond.')';
                             }
                             else{
                                 
                             }
                         }
+                        $where = trim($where).')';
                     }
                     else{
-                        $where .= $col->getName().' '.$equalityCond.' '.$cleanVal.' ';
+                        $where .= $tablePrefix.$col->getName().' '.$equalityCond.' '.$cleanVal.' ';
                     }
                 }
                 if($index + 1 != $colsCount){
