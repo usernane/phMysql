@@ -569,10 +569,12 @@ class MySQLTable {
             if($fk->setKeyName($keyname) === true){
                 foreach ($cols as $target => $source){
                     if(gettype($target) == 'integer'){
-                        //indexed array
+                        //indexed array. 
+                        //It means source and target columns have same name.
                         $fk->addReference($source, $source);
                     }
                     else{
+                        //Associative. Probably two columns with different names.
                         $fk->addReference($target, $source);
                     }
                 }
@@ -583,6 +585,12 @@ class MySQLTable {
                     return true;
                 }
             }
+            else{
+                trigger_error('Invalid FK name: \''.$keyname.'\'.');
+            }
+        }
+        else{
+            trigger_error('Referenced table is not an instance of the class \'MySQLTable\'.');
         }
         return false;
     }
