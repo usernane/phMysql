@@ -38,11 +38,11 @@ class MySQLTableTest extends TestCase{
      */
     public function testSetDBName00() {
         $table = new MySQLTable('table');
-        $this->assertFalse($table->setDatabaseName(''));
-        $this->assertFalse($table->setDatabaseName('0-db'));
-        $this->assertTrue($table->setDatabaseName('_db'));
+        $this->assertFalse($table->setSchemaName(''));
+        $this->assertFalse($table->setSchemaName('0-db'));
+        $this->assertTrue($table->setSchemaName('_db'));
         $this->assertEquals('_db',$table->getDatabaseName());
-        $this->assertFalse($table->setDatabaseName('_db x'));
+        $this->assertFalse($table->setSchemaName('_db x'));
         $this->assertEquals('_db',$table->getDatabaseName());
         $this->assertEquals('_db.table',$table->getName());
         $this->assertEquals('table',$table->getName(false));
