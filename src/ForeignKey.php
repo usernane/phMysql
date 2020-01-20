@@ -202,9 +202,22 @@ class ForeignKey {
                             $this->sourceCols[$sourceColName] = $sourceCol;
                             return true;
                         }
+                        else{
+                            trigger_error('Source['.$sourceColName.'] and target['.$ownerCol.'] columns have incompatible datatypes. '
+                                    . 'Source type: \''.$sourceCol->getType().'\'. Target type: \''.$ownerCol->getType().'\'.');
+                        }
                     }
                 }
+                else{
+                    trigger_error('No column which has the name \''.$ownerColName.'\' was found in the table \''.$ownerTbl->getName().'\'.');
+                }
             }
+            else{
+                trigger_error('Source table is not set.');
+            }
+        }
+        else{
+            trigger_error('Owner table is not set.');
         }
         return false;
     }
