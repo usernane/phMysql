@@ -234,7 +234,7 @@ class MySQLColumn{
         if($valType == 'array'){
             $retVal = [];
             foreach ($val as $arrVal){
-                $retVal = $this->_cleanValueHelper($arrVal, $dateEndOfDay);
+                $retVal[] = $this->_cleanValueHelper($arrVal, $dateEndOfDay);
             }
             return $retVal;
         }
