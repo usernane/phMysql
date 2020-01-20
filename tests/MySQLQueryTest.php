@@ -659,7 +659,7 @@ class MySQLQueryTest extends TestCase{
                     'values'=>[
                         1,4,6
                     ],
-                    'conditions'=>[
+                    'join-operators'=>[
                         'or','and'
                     ]
                 ]
