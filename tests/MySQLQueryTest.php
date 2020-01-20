@@ -665,7 +665,7 @@ class MySQLQueryTest extends TestCase{
                 ]
             ]
         ]);
-        $this->assertEquals('select * from user_data where user_id = 1 or user_id = 4 and user_id = 6;',$query->getQuery());
+        $this->assertEquals('select * from user_data where (user_id = 1 or user_id = 4 and user_id = 6);',$query->getQuery());
         return $query;
     }
     /**
@@ -684,7 +684,7 @@ class MySQLQueryTest extends TestCase{
                 ]
             ]
         ]);
-        $this->assertEquals('select * from user_data where user_id in(1,4,6);',$query->getQuery());
+        $this->assertEquals('select * from user_data where (user_id in(1,4,6));',$query->getQuery());
     }
     /**
      * @test
@@ -702,7 +702,7 @@ class MySQLQueryTest extends TestCase{
                 ]
             ]
         ]);
-        $this->assertEquals('select * from user_data where user_id not in(1,4,6);',$query->getQuery());
+        $this->assertEquals('select * from user_data where (user_id not in(1,4,6));',$query->getQuery());
     }
     /**
      * @test
