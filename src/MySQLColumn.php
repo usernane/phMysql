@@ -692,6 +692,10 @@ class MySQLColumn{
                 }
                 return $retVal;
             }
+            else if(($this->default == 'now()' || $this->default == 'current_timestamp') &&
+                    ($dt == 'datetime' || $dt == 'timestamp')){
+                return date('Y-m-d H:i:s');
+            }
             else if($dt == 'int'){
                 return intval($defaultVal);
             }
