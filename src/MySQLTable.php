@@ -161,7 +161,8 @@ class MySQLTable {
      * Adds multiple columns at once.
      * @param array $colsArr An associative array. The keys will act as column 
      * key in the table. The value of the key should be an associative array of 
-     * column options.
+     * column options. For supported options, check the method 
+     * MySQLTable::addColumn().
      * @since 1.6.4
      */
     public function addColumns($colsArr) {
