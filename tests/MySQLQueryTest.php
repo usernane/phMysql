@@ -707,6 +707,56 @@ class MySQLQueryTest extends TestCase{
     /**
      * @test
      */
+    public function testCreateTable00() {
+        $query = new MySQLQuery('users');
+        $query->getTable()->addDefaultCols();
+        $query->getTable()->addColumns([
+            'username'=>[
+                'datatype'=>'varchar',
+                'size'=>20,
+                'unique'=>true
+            ],
+            'password'=>[
+                'datatype'=>'varchar',
+                'size'=>64,
+                'comment'=>'The password of the user must be SHA256 hash (64 characters).'
+            ],
+            'last-success-login'=>[
+                'datatype'=>'datetime',
+                'is-null'=>true
+            ],
+            'last-failed-login'=>[
+                'datatype'=>'datetime',
+                'is-null'=>true
+            ],
+            'failed-login-attempts'=>[
+                'datatype'=>'int',
+                'name'=>'f_logins',
+                'size'=>2,
+                'default'=>0
+            ],
+        ]);
+        $query->createStructure();
+        print_r($query->getQuery());
+        $this->assertEquals("create table if not exists users(
+    id int(11) not null unique,
+    created_on timestamp not null default current_timestamp',
+    last_updated datetime null,
+    username varchar(20) not null collate utf8mb4_unicode_ci,
+    password varchar(64) not null collate utf8mb4_unicode_ci comment 'The password of the user must be SHA256 hash (64 characters).',
+    last_success_login datetime null,
+    last_failed_login datetime null,
+    f_logins int(2) not null default 0
+)
+ENGINE = InnoDB
+DEFAULT CHARSET = utf8mb4
+collate = utf8mb4_unicode_ci;
+alter table users add constraint users_pk primary key (id);
+alter table users modify id int(11) not null unique auto_increment;",$query->getQuery());
+    }
+    /**
+     * @test
+     */
     public function testSelectAll00() {
         $aq = new ArticleQuery();
         $aq->selectAll();
