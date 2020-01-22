@@ -921,9 +921,6 @@ class MySQLTable {
                 }
             }
         }
-        else{
-            trigger_error('Invalid key column: \''.$trimmedKey.'\'.');
-        }
         return false;
     }
     
