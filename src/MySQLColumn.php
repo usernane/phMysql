@@ -664,7 +664,7 @@ class MySQLColumn{
         $type = $this->getType();
         if($type == 'datetime' || $type == 'timestamp'){
             if($this->default == 'now()' || $default == 'current_timestamp'){
-                $this->default = '\''.date('Y-m-d H:i:s').'\'';
+                //$this->default = '\''.date('Y-m-d H:i:s').'\'';
             }
             else if(strlen($this->default) == 0 && $this->default !== null){
                 $this->default = null;
@@ -682,7 +682,7 @@ class MySQLColumn{
         if($defaultVal !== null){
             $dt = $this->getType();
             if($dt == 'varchar' || $dt == 'text' || $dt == 'mediumtext' || 
-                    $dt == 'timestamp' || $dt == 'datetime' || 
+                    //$dt == 'timestamp' || $dt == 'datetime' || 
                     $dt == 'tinyblob' || $dt == 'blob' || $dt == 'mediumblob' || 
                     $dt == 'longblob' || $dt == 'decimal' || $dt == 'float' || $dt == 'double'
                     ){
@@ -695,6 +695,9 @@ class MySQLColumn{
             else if(($this->default == 'now()' || $this->default == 'current_timestamp') &&
                     ($dt == 'datetime' || $dt == 'timestamp')){
                 return date('Y-m-d H:i:s');
+            }
+            else if($dt == 'timestamp' || $dt == 'datetime'){
+                return substr($defaultVal, 1, strlen($defaultVal) - 2);
             }
             else if($dt == 'int'){
                 return intval($defaultVal);
