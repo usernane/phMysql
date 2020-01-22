@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit colors="true" bootstrap="tests/loader.php">
+<phpunit 
+    convertErrorsToExceptions="true"
+    convertNoticesToExceptions="true"
+    convertWarningsToExceptions="true"
+    stopOnFailure="false"
+    strict="true"
+    colors="true" 
+    bootstrap="tests/loader.php">
     <php>
     </php>
     <filter>
