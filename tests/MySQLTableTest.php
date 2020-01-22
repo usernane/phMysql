@@ -144,7 +144,6 @@ class MySQLTableTest extends TestCase{
      * @test
      */
     public function testAddColumn01() {
-        $this->expectException(\Exception::class);
         $table = new MySQLTable();
         $this->assertTrue($table->addColumn(' new-col ', new MySQLColumn()));
         $this->assertFalse($table->addColumn('invalid key', new MySQLColumn('col_2')));
