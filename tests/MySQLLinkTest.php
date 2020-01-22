@@ -99,7 +99,7 @@ class MySQLLinkTest extends TestCase{
                     'values'=>[33]
                 ]
             ],
-            'map-result-to'=>'phMysql\tests\EntityUser'
+            'map-result-to'=>'\phMysql\tests\EntityUser'
         ]);
         $this->assertTrue($conn->executeQuery($q));
         $this->assertEquals(1,$conn->rows());
