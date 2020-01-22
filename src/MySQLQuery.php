@@ -1045,7 +1045,7 @@ class MySQLQuery{
         $index = 0;
         $comma = '';
         $columnsWithVals = [];
-        $defaultCols = $this->getStructure()->getDefaultColsKeys();
+        $defaultCols = $this->getTable()->getDefaultColsKeys();
         $createdOnKey = $defaultCols['created-on'];
         if($createdOnKey !== null){
             $createdOnColObj = $this->getCol($createdOnKey);
@@ -1061,10 +1061,10 @@ class MySQLQuery{
                 $comma = ',';
             }
             if(gettype($colIndex) == 'integer'){
-                $column = $this->getStructure()->getColByIndex($colIndex);
+                $column = $this->getTable()->getColByIndex($colIndex);
             }
             else{
-                $column = $this->getStructure()->getCol($colIndex);
+                $column = $this->getTable()->getCol($colIndex);
             }
             if($column instanceof MySQLColumn){
                 $columnsWithVals[] = $colIndex;
@@ -1126,7 +1126,12 @@ class MySQLQuery{
         }
         if($createdOnColObj !== null){
             $cols .= ','.$createdOnColObj->getName();
-            $vals .= ','.$createdOnColObj->cleanValue($createdOnColObj->getDefault());
+            if($createdOnColObj->getDefault() == 'now()' || $createdOnColObj->getDefault() == 'current_timestamp'){
+                $vals .= ",'".date('Y-m-d H:i:s')."'";
+            }
+            else{
+                $vals .= ','.$createdOnColObj->cleanValue($createdOnColObj->getDefault());
+            }
         }
         
         $cols = ' ('.$cols.')';
