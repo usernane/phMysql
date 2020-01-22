@@ -19,7 +19,8 @@ class MySQLLinkTest extends TestCase{
     public function testConnect00() {
         $conn = new MySQLLink('localhost', 'root', '123456','3307');
         $this->assertEquals(2002,$conn->getErrorCode());
-        $this->assertEquals('No connection could be made because the target machine actively refused it.',$conn->getErrorMessage());
+        $this->assertTrue('No connection could be made because the target machine actively refused it.' == $conn->getErrorMessage() 
+                || 'Connection refused' == $conn->getErrorMessage());
     }
     /**
      * @test
@@ -27,7 +28,8 @@ class MySQLLinkTest extends TestCase{
     public function testConnect01() {
         $conn = new MySQLLink('programmingacademia.com', 'root', '123456',5543);
         $this->assertEquals(2002,$conn->getErrorCode());
-        $this->assertEquals('No connection could be made because the target machine actively refused it.',$conn->getErrorMessage());
+        $this->assertTrue('No connection could be made because the target machine actively refused it.' == $conn->getErrorMessage() 
+                || 'Connection refused' == $conn->getErrorMessage());
     }
     /**
      * @test
