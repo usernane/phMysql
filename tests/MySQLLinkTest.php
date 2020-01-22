@@ -52,6 +52,7 @@ class MySQLLinkTest extends TestCase{
      * 
      * @param MySQLLink $conn
      * @depends testConnect03
+     * @test
      */
     public function testSetDb00($conn) {
         $this->assertFalse($conn->setDB('not_exist'));
@@ -83,11 +84,12 @@ class MySQLLinkTest extends TestCase{
             'name'=>'Test User #33'
         ]);
         $this->assertTrue($conn->executeQuery($q));
+        return $conn;
     }
     /**
-     * @depends addDataTest00
-     * @param MySQLLink $conn
      * @test
+     * @param MySQLLink $conn
+     * @depends testAddDataTest00
      */
     public function testGetDataTest00($conn) {
         $q = new UsersQuery();
