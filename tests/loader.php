@@ -49,3 +49,24 @@ require_once $rootDir.'src'.$DS.'JoinTable.php';
 require_once $rootDir.'tests'.$DS.'QueryTestObj.php';
 require_once $rootDir.'tests'.$DS.'UsersQuery.php';
 require_once $rootDir.'tests'.$DS.'ArticleQuery.php';
+
+echo "Initializing Database...\n";
+$conn = new phMysql\MySQLLink('localhost', 'root', '123456');
+$conn->setDB('testing_db');
+$q00 = new phMysql\tests\UsersQuery();
+$q00->createStructure();
+if($conn->executeQuery($q00)){
+    $q00 = new phMysql\tests\ArticleQuery();
+    $q00->createStructure();
+    if($conn->executeQuery($q00)){
+        echo "Successfully Created Tables.\n";
+    }
+    else{
+        echo 'Unable to create the table '.$q00->getTableName()."\n";
+        die();
+    }
+}
+else{
+    echo 'Unable to create the table '.$q00->getTableName()."\n";
+    die();
+}
