@@ -275,6 +275,21 @@ class MySQLLink{
         return null;
     }
     /**
+     * Map a record to an entity class.
+     * @param array $row An associative array that contains record's data.
+     * @return object The object at which the record was mapped to.
+     */
+    private function _map($row) {
+        $entityName = $this->getLastQuery()->getMappedEntity();
+        $entity = new $entityName();
+        foreach ($this->getLastQuery()->getTable()->getSettersMap() as $methodName => $colName){
+            if(isset($row[$colName])){
+                $entity->$methodName($row[$colName]);
+            }
+        }
+        return $entity;
+    }
+    /**
      * Helper method that is used to initialize the array of rows in case 
      * of first call to the method getRow()
      * @param type $retry
@@ -321,18 +336,26 @@ class MySQLLink{
         }
         $result = $this->getResult();
         if(function_exists('mysqli_fetch_all')){
-            $rows = $result !== null ? mysqli_fetch_all($result, MYSQLI_ASSOC) : array();
+            $rows = $result !== null ? mysqli_fetch_all($result, MYSQLI_ASSOC) : [];
         }
         else{
-            $rows = array();
+            $rows = [];
             if($result !== null){
                 while ($row = $result->fetch_assoc()){
                     $rows[] = $row;
                 }
             }
         }
-        $this->resultRows = $rows;
-        return $rows;
+        if($this->getLastQuery()->getMappedEntity() !== null){
+            $this->resultRows = [];
+            foreach ($rows as $row){
+                $this->resultRows[] = $this->_map($row);
+            }
+        }
+        else{
+            $this->resultRows = $rows;
+        }
+        return $this->resultRows;
     }
     /**
      * Returns an array which contains all data from a specific column given its 
@@ -346,7 +369,7 @@ class MySQLLink{
      * @since 1.2
      */
     public function getColumn($colKey) {
-        $retVal = array();
+        $retVal = [];
         $rows = $this->getRows();
         $colNameInDb = $this->getLastQuery()->getColName($colKey);
         if($colKey != MySQLTable::NO_SUCH_COL){

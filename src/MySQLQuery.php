@@ -33,6 +33,13 @@ use phMysql\MySQLTable;
  */
 class MySQLQuery{
     /**
+     * The name of the entity class at which a select 
+     * statement result will be mapped to.
+     * @var string|null
+     * @since 1.9.0
+     */
+    private $resultMap;
+    /**
      * The linked database table.
      * @var MySQLTable 
      */
@@ -113,6 +120,16 @@ class MySQLQuery{
     public function schemaTablesCount($schemaName){
         $this->query = 'select count(*) as tables_count from information_schema.tables where TABLE_TYPE = \'BASE TABLE\' and TABLE_SCHEMA = \''.$schemaName.'\';';
         $this->queryType = 'select';
+    }
+    /**
+     * Returns the name of the entity class at which a select result will 
+     * be mapped to.
+     * @return string|null If the entity name is set, the method will return 
+     * it as string. If not set, the method will return null.
+     * @since 1.9.0
+     */
+    public function getMappedEntity() {
+        return $this->resultMap;
     }
     /**
      * Constructs a query which can be used to update the server's global 
@@ -637,6 +654,10 @@ class MySQLQuery{
      * @param array $selectOptions An associative array which contains 
      * options to construct different select queries. The available options are: 
      * <ul>
+     * <li><b>map-result-to</b>: A string that represents the name 
+     * of the entity class at which query result will be mapped to. If the 
+     * entity class is in a namespace, then this value must have the name of the 
+     * namespace.</li>
      * <li><b>colums</b>: An optional array which can have the keys of columns that 
      * will be select.</li>
      * <li><b>limit</b>: The 'limit' attribute of the query.</li>
@@ -646,7 +667,16 @@ class MySQLQuery{
      * be values and the value at each index is an objects of type 'Column'. 
      * Or the indices can be column indices or columns names taken from MySQLTable object and 
      * the values are set for each index. The second way is recommended as one 
-     * table might have two columns with the same values.</li>
+     * table might have two columns with the same values. For multiple values select, 
+     * the value of the indices must be a sub array that can have the following indices: 
+     * 
+     * <ul>
+     * <li><b>values</b>: The values that the column can have.</li>
+     * <li><b>conditions</b>: An array of conditions such as '=' or a string. The 
+     * string can only have one of two values: 'in' or 'not in'</li>
+     * <li><b>join-conditions</b>: An array of conditions which are used to join the 
+     * values. The array can have one of two values: 'and' or 'or'.<li>
+     * </ul></li>
      * <li><b>where</b>: Similar to 'condition-cols-and-vals'.</li>
      * <li><b>conditions</b>: An array that can contains conditions (=, !=, &lt;, 
      * &lt;=, &gt; or &gt;=). If anything else is given at specific index, '=' will be used. In 
@@ -838,6 +868,17 @@ class MySQLQuery{
                     }
                 }
                 $this->setQuery('create view '.$viewName.' as ('.trim($this->getQuery(),';').');', 'create');
+            }
+            if(isset($selectOptions['map-result-to'])){
+                if(class_exists($selectOptions['map-result-to'])){
+                    $this->resultMap = $selectOptions['map-result-to'];
+                }
+                else{
+                    $this->resultMap = null;
+                }
+            }
+            else{
+                $this->resultMap = null;
             }
             return true;
         }
