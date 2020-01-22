@@ -29,7 +29,7 @@ use phMysql\MySQLColumn;
  * A class that represents MySQL table.
  *
  * @author Ibrahim
- * @version 1.6.4
+ * @version 1.6.5
  */
 class MySQLTable {
     /**
@@ -358,6 +358,81 @@ class MySQLTable {
      */
     public function getDefaultColsKeys() {
         return $this->defaultColsKeys;
+    }
+    /**
+     * Returns an associative array that maps possible entity methods names with 
+     * table columns names in the database.
+     * Assuming that the table has two columns. The first one has a key = 'user-id' 
+     * and the second one has a key 'password'. Also, let's assume that the first column 
+     * has the name 'id' in the database and the second one has the name 'user_pass'. 
+     * If this is the case, the method will return something like the following array:
+     * <p>
+     * <code>[<br/>
+     * 'setUserId'=>'id',<br/>
+     * 'setPassword'=>'user_pass'<br/>
+     * ]</code>
+     * </p>
+     * @return array An associative array. The indices represents the names of 
+     * the methods in the entity class and the values are the names of table 
+     * columns as they appear in the database.
+     * @since 1.6.5
+     */
+    public function getSettersMap() {
+        $keys = array_keys($this->getColumns());
+        $retVal = [];
+        foreach ($keys as $keyName){
+            $split = explode('-', $keyName);
+            $methodName = '';
+            foreach ($split as $namePart){
+                if(strlen($namePart) == 1){
+                    $methodName .= strtoupper($namePart);
+                }
+                else{
+                    $firstChar = $namePart[0];
+                    $methodName .= strtoupper($firstChar).substr($namePart, 1);
+                }
+            }
+            $mappedCol = $this->getCol($keyName)->getName();
+            $retVal['set'.$methodName] = $mappedCol;
+        }
+        return $retVal;
+    }
+    /**
+     * Returns an associative array that contains the possible names 
+     * of the methods which exist in the entity class that the result 
+     * of a select query on the table will be mapped to.
+     * The names of the methods are constructed from the names of columns 
+     * keys. For example, if the name of the column key is 'user-id', the 
+     * name of setter method will be 'setUserId' and the name of setter 
+     * method will be 'setUserId'.
+     * @return array An associative array. The array will have two indices. 
+     * The first index has the name 'setters' which will contain the names 
+     * of setters and the second index is 'getters' which contains the names 
+     * of the getters.
+     * @since 1.6.5
+     */
+    public function getEntityMethods() {
+        $keys = array_keys($this->getColumns());
+        $retVal = [
+            'setters'=>[],
+            'getters'=>[]
+        ];
+        foreach ($keys as $keyName){
+            $split = explode('-', $keyName);
+            $methodName = '';
+            foreach ($split as $namePart){
+                if(strlen($namePart) == 1){
+                    $methodName .= strtoupper($namePart);
+                }
+                else{
+                    $firstChar = $namePart[0];
+                    $methodName .= strtoupper($firstChar).substr($namePart, 1);
+                }
+            }
+            $retVal['getters'][] = 'get'.$methodName;
+            $retVal['setters'][] = 'set'.$methodName;
+        }
+        return $retVal;
     }
     /**
      * Returns version number of MySQL server.
@@ -841,10 +916,13 @@ class MySQLTable {
                     if($this->_isKeyNameValid($trimmedKey)){
                         $col->setOwner($this);
                         $this->colSet[$trimmedKey] = $col;
+                        return true;
                     }
-                    return true;
                 }
             }
+        }
+        else{
+            trigger_error('Invalid key column: \''.$trimmedKey.'\'.');
         }
         return false;
     }
@@ -857,16 +935,19 @@ class MySQLTable {
      */
     private function _isKeyNameValid($key) {
         $keyLen = strlen($key);
+        $actualKeyLen = $keyLen;
         for ($x = 0 ; $x < $keyLen ; $x++){
             $ch = $key[$x];
             if($ch == '-' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
-
+                if($ch == '-'){
+                    $actualKeyLen--;
+                }
             }
             else{
                 return false;
             }
         }
-        return true;
+        return $actualKeyLen != 0;
     }
 
     /**
