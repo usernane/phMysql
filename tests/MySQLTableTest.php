@@ -71,6 +71,66 @@ class MySQLTableTest extends TestCase{
         $this->assertEquals('last_updated',$colsNamesInDb[2]);
     }
     /**
+     * @test
+     */
+    public function testGetEntityMethodsTest00() {
+        $table = new MySQLTable();
+        $table->addColumn('user-id', new MySQLColumn('user_id', 'varchar', 15));
+        $this->assertEquals([
+            'setters'=>[
+                'setUserId'
+            ],
+            'getters'=>[
+                'getUserId'
+            ]
+        ],$table->getEntityMethods());
+        return  $table;
+    }
+    /**
+     * 
+     * @param MySQLTable $table
+     * @depends testGetEntityMethodsTest00
+     */
+    public function testSettersMap($table) {
+        $this->assertEquals([
+            'setUserId'=>'user_id'
+        ],$table->getSettersMap());
+    }
+    /**
+     * @test
+     */
+    public function testGetEntityMethodsTest01() {
+        $table = new MySQLTable();
+        $table->addColumn('user-id', new MySQLColumn('user_id', 'varchar', 15));
+        $table->addColumn('PASS', new MySQLColumn('user_pass', 'varchar', 15));
+        $table->addColumn('c-in', new MySQLColumn('created_on', 'datetime'));
+        $this->assertEquals([
+            'setters'=>[
+                'setUserId',
+                'setPASS',
+                'setCIn'
+            ],
+            'getters'=>[
+                'getUserId',
+                'getPASS',
+                'getCIn'
+            ]
+        ],$table->getEntityMethods());
+        return  $table;
+    }
+    /**
+     * 
+     * @param MySQLTable $table
+     * @depends testGetEntityMethodsTest01
+     */
+    public function testSettersMap01($table) {
+        $this->assertEquals([
+            'setUserId'=>'user_id',
+            'setPASS'=>'user_pass',
+            'setCIn'=>'created_on'
+        ],$table->getSettersMap());
+    }
+    /**
      * 
      * @param MySQLTable $table
      * @depends testAddColumn00
@@ -84,9 +144,12 @@ class MySQLTableTest extends TestCase{
      * @test
      */
     public function testAddColumn01() {
+        $this->expectException(\Exception::class);
         $table = new MySQLTable();
         $this->assertTrue($table->addColumn(' new-col ', new MySQLColumn()));
         $this->assertFalse($table->addColumn('invalid key', new MySQLColumn('col_2')));
+        $this->assertFalse($table->addColumn('-', new MySQLColumn('col_2')));
+        $this->assertFalse($table->addColumn('--', new MySQLColumn('col_2')));
         return $table;
     }
     /**
