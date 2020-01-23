@@ -105,6 +105,6 @@ class MySQLLinkTest extends TestCase{
         $this->assertEquals(1,$conn->rows());
         $obj = $conn->getRow();
         $this->assertTrue($obj instanceof EntityUser);
-        $this->assertEquals('ID [33] Name: [Test User #33] Email: [33@test.com]',$obj.'');
+        $this->assertEquals('ID: [33] Name: [Test User #33] Email: [33@test.com]',$obj.'');
     }
 }
