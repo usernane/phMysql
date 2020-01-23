@@ -16,10 +16,10 @@ class EntityUser {
     public function getEmail() {
         return $this->email;
     }
-    public function getId() {
+    public function getUserId() {
         return $this->userId;
     }
-    public function setId($id) {
+    public function setUserId($id) {
         $this->userId = $id;
     }
     public function setName($name) {
