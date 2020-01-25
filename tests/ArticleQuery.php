@@ -25,13 +25,11 @@ class ArticleQuery extends MySQLQuery{
                 'datatype'=>'int',
                 'size'=>11
             ],
-            'author-name'=>[
-                'name'=>'author_name',
-                'size'=>20,
-                'is-primary'=>true
+            'title'=>[
+                'size'=>150,
             ],
             'content'=>[
-                'name'=>'content',
+                'name'=>'article_content',
                 'size'=>5000
             ]
         ]);
