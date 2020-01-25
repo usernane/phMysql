@@ -508,6 +508,14 @@ class MySQLQuery{
         $this->setQuery('show '.$toShow.';', 'show');
     }
     /**
+     * Constructs a query that can be used to delete the table from the 
+     * database.
+     * @since 1.9.0
+     */
+    public function dropTable() {
+        $this->setQuery('drop table '.$this->getTableName().';', 'delete');
+    }
+    /**
      * Returns the value of the property $query.
      * It is simply the query that was constructed by calling any method 
      * of the class.
@@ -629,21 +637,42 @@ class MySQLQuery{
     }
     /**
      * Creates an object of the class which represents a join between two tables.
-     * For every join, there is a left table and a right table. The table which 
+     * For every join, there is a left table, a right table and a join 
+     * condition. The table which 
      * will be on the left side of the join will be the table which is 
-     * linked with current instance.
+     * linked with current instance and the right table is the one which is 
+     * supplied as a parameter to the method.
+     * 
      * @param MySQLQuery|MySQLTable $right The table or the query that represents 
      * the table which exist on the right side of the join.
+     * 
+     * @param array $joinCols An associative array of columns. The indices should be 
+     * the names of columns keys taken from left table and the values should be 
+     * columns keys taken from right table.
+     * 
+     * @param string $joinType A string that represents the type of the join. 
+     * It can have a value such as 'left', 'right' or 'cross'. Default is 'join'.
+     * 
+     * @param array $conds An optional array of join conditions. It can have 
+     * values like '=' or '!='.
+     * 
+     * @param array $joinOps An array that contains conditions which are used 
+     * to join the conditions in case of multiple columns joins. It can have 
+     * one of two values, 'and' or 'or'.
+     * 
      * @param string $alias An optional name for the table that will be created 
-     * by the join. Default is 'T0'
+     * by the join. Default is null which means a name will be generated 
+     * automatically.
+     * 
      * @return MySQLQuery|null If the join is a success, the method will return 
      * an object of type 'MySQLQuery' that can be used to get info from joined 
      * tables. If no join is formed, the method will return null.
      */
-    public function join($right,$joinCols,$conds=[],$joinOps=[],$alias='T0') {
+    public function join($right,$joinCols,$joinType='join',$conds=[],$joinOps=[],$alias=null) {
         if($right instanceof MySQLQuery || $right instanceof MySQLTable){
             $joinQuery = new MySQLQuery();
             $joinTable = new JoinTable($this, $right, $alias);
+            $joinTable->setJoinType($joinType);
             $joinTable->setJoinCondition($joinCols, $conds, $joinOps);
             $joinQuery->setTable($joinTable);
             return $joinQuery;
@@ -809,8 +838,14 @@ class MySQLQuery{
             }
             else{
                 if($table instanceof JoinTable){
-                    $selectQuery .= '* from '.$table->getLeftTable()->getName().' '.$table->getJoinType().' join '
+                    if($table->getJoinType() == 'join'){
+                        $selectQuery .= '* from '.$table->getLeftTable()->getName().' join '
                             .$table->getRightTable()->getName().' '.$table->getJoinCondition();
+                    }
+                    else{
+                        $selectQuery .= '* from '.$table->getLeftTable()->getName().' '.$table->getJoinType().' join '
+                            .$table->getRightTable()->getName().' '.$table->getJoinCondition();
+                    }
                 }
                 else{
                     $selectQuery .= '* from '.$this->getTableName();
