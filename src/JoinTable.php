@@ -42,6 +42,7 @@ class JoinTable extends MySQLTable{
     private $rightTable;
     private $joinType;
     private $joinCond;
+    private $selectCols;
     /**
      * Creates new instance of the class.
      * @param MySQLQuery|MySQLTable $leftTable The left table.
@@ -75,6 +76,7 @@ class JoinTable extends MySQLTable{
             $this->rightTable = new MySQLTable('right_table');
         }
         $this->joinType = 'left';
+        $this->selectCols = '';
         $this->_addAndValidateColmns();
     }
     /**
@@ -196,6 +198,7 @@ class JoinTable extends MySQLTable{
      * @since 1.0
      */
     private function _addAndValidateColmns() {
+        //collect common keys btween the two tables.
         $commonColsKeys = [];
         $leftColsKeys = $this->getLeftTable()->colsKeys();
         $rightColsKeys = $this->getRightTable()->colsKeys();
@@ -206,6 +209,7 @@ class JoinTable extends MySQLTable{
                 }
             }
         }
+        //collect common columns names in the two tables.
         $commonCols = [];
         $rightCols = $this->getRightTable()->getColsNames();
         $leftCols = $this->getLeftTable()->getColsNames();
@@ -216,38 +220,76 @@ class JoinTable extends MySQLTable{
                 }
             }
         }
+        //build an array that contains all columns in the joined table.
         $colsArr = [];
         foreach ($leftColsKeys as $col){
             if(in_array($col, $commonColsKeys)){
-                $colsArr['left-'.$col] = $this->getLeftTable()->getCol($col);
+                $colsArr['left-'.$col] = clone $this->getLeftTable()->getCol($col);
             }
             else{
-                $colsArr[$col] = $this->getLeftTable()->getCol($col);
+                $colsArr[$col] = clone $this->getLeftTable()->getCol($col);
             }
         }
         foreach ($rightColsKeys as $col){
             if(in_array($col, $commonColsKeys)){
-                $colsArr['right-'.$col] = $this->getRightTable()->getCol($col);
+                $colsArr['right-'.$col] = clone $this->getRightTable()->getCol($col);
             }
             else{
-                $colsArr[$col] = $this->getRightTable()->getCol($col);
+                $colsArr[$col] = clone $this->getRightTable()->getCol($col);
             }
         }
+        //rename common columns.
         $index = 0;
         $leftCount = count($leftCols);
+        $totalCount = $leftCount + count($rightCols);
+        $hasCommon = false;
         foreach ($colsArr as $colkey => $colObj){
             if($colObj instanceof MySQLColumn){
                 if(in_array($colObj->getName(), $commonCols)){
+                    $hasCommon = true;
                     if($index < $leftCount){
+                        if($index + 1 == $totalCount){
+                            $this->selectCols .= $colObj->getName(true).' as left_'.$colObj->getName()."\n";
+                        }
+                        else{
+                            $this->selectCols .= $colObj->getName(true).' as left_'.$colObj->getName().",\n";
+                        }
                         $colObj->setName('left_'.$colObj->getName());
                     }
                     else{
+                        if($index + 1 == $totalCount){
+                            $this->selectCols .= $colObj->getName(true).' as right_'.$colObj->getName()."\n";
+                        }
+                        else{
+                            $this->selectCols .= $colObj->getName(true).' as right_'.$colObj->getName().",\n";
+                        }
                         $colObj->setName('right_'.$colObj->getName());
+                    }
+                }
+                else{
+                    if($hasCommon){
+                        if($index + 1 == $totalCount){
+                            $this->selectCols .= $colObj->getName(true)."\n";
+                        }
+                        else{
+                            $this->selectCols .= $colObj->getName(true).",\n";
+                        }
                     }
                 }
             }
             $this->addColumn($colkey, $colObj);
             $index++;
         }
+        if(!$hasCommon){
+            $this->selectCols = '*';
+        }
+    }
+    /**
+     * 
+     * @return type
+     * @since 1.0
+     */
+    public function getSelectStatement() {
+        return $this->selectCols;
     }
 }
