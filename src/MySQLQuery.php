@@ -839,12 +839,41 @@ class MySQLQuery{
             else{
                 if($table instanceof JoinTable){
                     if($table->getJoinType() == 'join'){
-                        $selectQuery .= '* from '.$table->getLeftTable()->getName().' join '
-                            .$table->getRightTable()->getName().' '.$table->getJoinCondition();
+                        if($table->getLeftTable() instanceof JoinTable){
+                            if($table->getRightTable() instanceof JoinTable){
+                                
+                            }
+                            else{
+                                
+                            }
+                        }
+                        else if($table->getRightTable() instanceof JoinTable){
+                            $tempQ = new MySQLQuery();
+                            $tempQ->setTable($table->getRightTable());
+                            $tempQ->select();
+                            $selectQuery .= '* from '.$table->getLeftTable()->getName().' join '.$tempQ->getQuery().' '.$table->getJoinCondition();
+                        }
+                        else{
+                            $selectQuery .= '* from '.$table->getLeftTable()->getName().' join '
+                                .$table->getRightTable()->getName().' '.$table->getJoinCondition();
+                        }
                     }
                     else{
-                        $selectQuery .= '* from '.$table->getLeftTable()->getName().' '.$table->getJoinType().' join '
-                            .$table->getRightTable()->getName().' '.$table->getJoinCondition();
+                        if($table->getLeftTable() instanceof JoinTable){
+                            if($table->getRightTable() instanceof JoinTable){
+                                
+                            }
+                            else{
+                                
+                            }
+                        }
+                        else if($table->getRightTable() instanceof JoinTable){
+                            
+                        }
+                        else{
+                            $selectQuery .= '* from '.$table->getLeftTable()->getName().' '.$table->getJoinType().' join '
+                                .$table->getRightTable()->getName().' '.$table->getJoinCondition();
+                        }
                     }
                 }
                 else{
