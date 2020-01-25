@@ -747,6 +747,9 @@ class MySQLTable {
     public function setName($param) {
         $trimmedName = trim($param);
         $len = strlen($trimmedName);
+        if($len == 0){
+            return false;
+        }
         for ($x = 0 ; $x < $len ; $x++){
             $ch = $trimmedName[$x];
             if($x == 0){
