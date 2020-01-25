@@ -749,7 +749,8 @@ class MySQLQuery{
         'column'=>'',
         'rename-to'=>'',
         'order-by'=>null,
-        'group-by'=>null
+        'group-by'=>null,
+        'without-select'=>false
         )) {
         $table = $this->getTable();
         if($table instanceof MySQLTable){
@@ -839,42 +840,12 @@ class MySQLQuery{
             else{
                 if($table instanceof JoinTable){
                     if($table->getJoinType() == 'join'){
-                        if($table->getLeftTable() instanceof JoinTable){
-                            if($table->getRightTable() instanceof JoinTable){
-                                
-                            }
-                            else{
-                                
-                            }
-                        }
-                        else if($table->getRightTable() instanceof JoinTable){
-                            $tempQ = new MySQLQuery();
-                            $tempQ->setTable($table->getRightTable());
-                            $tempQ->select();
-                            $selectQuery .= '* from '.$table->getLeftTable()->getName().' join '.$tempQ->getQuery().' '.$table->getJoinCondition();
-                        }
-                        else{
-                            $selectQuery .= '* from '.$table->getLeftTable()->getName().' join '
-                                .$table->getRightTable()->getName().' '.$table->getJoinCondition();
-                        }
+                        $joinStm = 'join';
                     }
                     else{
-                        if($table->getLeftTable() instanceof JoinTable){
-                            if($table->getRightTable() instanceof JoinTable){
-                                
-                            }
-                            else{
-                                
-                            }
-                        }
-                        else if($table->getRightTable() instanceof JoinTable){
-                            
-                        }
-                        else{
-                            $selectQuery .= '* from '.$table->getLeftTable()->getName().' '.$table->getJoinType().' join '
-                                .$table->getRightTable()->getName().' '.$table->getJoinCondition();
-                        }
+                        $joinStm = $table->getJoinType().' join';
                     }
+                    $selectQuery .= $this->_getJoinStm($table, $joinStm);
                 }
                 else{
                     $selectQuery .= '* from '.$this->getTableName();
@@ -917,7 +888,12 @@ class MySQLQuery{
                 $where = '';
             }
             if($table instanceof JoinTable){
-                $this->setQuery('select * from ('.$selectQuery.') as '.$table->getName().$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
+                if(isset($selectOptions['without-select']) && $selectOptions['without-select'] === true){
+                    $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
+                }
+                else{
+                    $this->setQuery('select * from ('.$selectQuery.') as '.$table->getName().$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
+                }
             }
             else{
                 $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
@@ -947,6 +923,41 @@ class MySQLQuery{
             return true;
         }
         return false;
+    }
+    private function _getJoinStm($table,$joinStm){
+        $selectQuery = '';
+        if($table->getLeftTable() instanceof JoinTable){
+            if($table->getRightTable() instanceof JoinTable){
+                $tempQ = new MySQLQuery();
+                $tempQ->setTable($table->getLeftTable());
+                $tempQ->select(['without-select'=>true]);
+                $tempQ2 = new MySQLQuery();
+                $tempQ2->setTable($table->getRightTable());
+                $tempQ2->select(['without-select'=>true]);
+                $selectQuery .= $table->getSelectStatement().' from '
+                        . '('.trim($tempQ->getQuery(),';').') as '
+                        .$table->getLeftTable()->getName().' '.$joinStm.' '
+                        .'('.trim($tempQ->getQuery(),';').') as '.
+                        $table->getRightTable()->getName().' '.$table->getJoinCondition();
+            }
+            else{
+                $tempQ = new MySQLQuery();
+                $tempQ->setTable($table->getLeftTable());
+                $tempQ->select(['without-select'=>true]);
+                $selectQuery .= $table->getSelectStatement().' from ('.trim($tempQ->getQuery(),';').') as '.$table->getLeftTable()->getName().' '.$joinStm.' '.$table->getRightTable()->getName().' '.$table->getJoinCondition();
+            }
+        }
+        else if($table->getRightTable() instanceof JoinTable){
+            $tempQ = new MySQLQuery();
+            $tempQ->setTable($table->getRightTable());
+            $tempQ->select(['without-select'=>true]);
+            $selectQuery .= $table->getSelectStatement().' from '.$table->getLeftTable()->getName().' '.$joinStm.' '.$tempQ->getQuery().' '.$table->getJoinCondition();
+        }
+        else{
+            $selectQuery .= $table->getSelectStatement().' from '.$table->getLeftTable()->getName().' '.$joinStm.' '
+                .$table->getRightTable()->getName().' '.$table->getJoinCondition();
+        }
+        return $selectQuery;
     }
     /**
      * Constructs the 'order by' part of a query.
