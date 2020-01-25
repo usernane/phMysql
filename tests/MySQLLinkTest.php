@@ -107,4 +107,27 @@ class MySQLLinkTest extends TestCase{
         $this->assertTrue($obj instanceof EntityUser);
         $this->assertEquals('ID: [33] Name: [Test User #33] Email: [33@test.com]',$obj.'');
     }
+    /**
+     * @test
+     * @param MySQLLink $conn
+     * @depends testAddDataTest00
+     */
+    public function testGetDataTest01($conn) {
+        $q = new UsersQuery();
+        $q2 = new ArticleQuery();
+        $q3 = $q2->join($q, [
+            'author-id'=>'user-id'
+        ]);
+        $q3->select([
+            'where'=>[
+                'author-id'=>1
+            ]
+        ]);
+        $r = $conn->executeQuery($q3);
+        if($r === false){
+            print_r($conn->getErrorCode().': '.$conn->getErrorMessage());
+        }
+        $this->assertTrue($r);
+        $this->assertEquals(4,$conn->rows());
+    }
 }
