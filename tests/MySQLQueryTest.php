@@ -26,9 +26,9 @@ class MySQLQueryTest extends TestCase{
         $now = date('Y-m-d H:i:s');
         $query = $aq->getQuery();
         $next = date('Y-m-d H:i:s', time() + 1);
-        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \''.$prev.'\' where article_id = 77;'
-                || $query == 'update articles set content = \'Hello\',last_updated = \''.$now.'\' where article_id = 77;'
-                || $query == 'update articles set content = \'Hello\',last_updated = \''.$next.'\' where article_id = 77;';
+        $isEqual = $query == 'update articles set article_content = \'Hello\',last_updated = \''.$prev.'\' where article_id = 77;'
+                || $query == 'update articles set article_content = \'Hello\',last_updated = \''.$now.'\' where article_id = 77;'
+                || $query == 'update articles set article_content = \'Hello\',last_updated = \''.$next.'\' where article_id = 77;';
         $this->assertTrue($isEqual);
     }
     /**
@@ -43,7 +43,7 @@ class MySQLQueryTest extends TestCase{
             'article-id'=>77
         ]);
         $query = $aq->getQuery();
-        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \'2019-11-09 10:00:56\' where article_id = 77;';
+        $isEqual = $query == 'update articles set article_content = \'Hello\',last_updated = \'2019-11-09 10:00:56\' where article_id = 77;';
         $this->assertTrue($isEqual);
     }
     /**
@@ -59,7 +59,7 @@ class MySQLQueryTest extends TestCase{
             'author-id'=>1
         ]);
         $query = $aq->getQuery();
-        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \'2019-11-09 10:00:56\' where article_id = 77 and author_id = 1;';
+        $isEqual = $query == 'update articles set article_content = \'Hello\',last_updated = \'2019-11-09 10:00:56\' where article_id = 77 and author_id = 1;';
         $this->assertTrue($isEqual);
     }
     /**
@@ -75,7 +75,7 @@ class MySQLQueryTest extends TestCase{
             'author-id'=>1
         ],['!=']);
         $query = $aq->getQuery();
-        $isEqual = $query == 'update articles set content = \'Hello\',last_updated = \'2019-11-09 10:00:56\' where article_id != 77 and author_id = 1;';
+        $isEqual = $query == 'update articles set article_content = \'Hello\',last_updated = \'2019-11-09 10:00:56\' where article_id != 77 and author_id = 1;';
         $this->assertTrue($isEqual);
     }
     /**
@@ -183,11 +183,10 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->insertRecord([
             'author-id'=>66,
-            'author-name'=>'Ibrahim',
             'content'=>null,
             'created-on'=>'2019-11-17 12:05:02'
         ]);
-        $this->assertEquals('insert into articles (author_id,author_name,content,created_on) values (66,\'Ibrahim\',null,\'2019-11-17 12:05:02\');',$aq->getQuery());
+        $this->assertEquals('insert into articles (author_id,article_content,created_on) values (66,null,\'2019-11-17 12:05:02\');',$aq->getQuery());
     }
     /**
      * @test
@@ -196,11 +195,10 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->insertRecord([
             'author-id'=>66,
-            'author-name'=>'Ibrahim',
             'content'=>'null',
             'created-on'=>'2019-09-09 00:00:00'
         ]);
-        $this->assertEquals('insert into articles (author_id,author_name,content,created_on) values (66,\'Ibrahim\',null,\'2019-09-09 00:00:00\');',$aq->getQuery());
+        $this->assertEquals('insert into articles (author_id,article_content,created_on) values (66,null,\'2019-09-09 00:00:00\');',$aq->getQuery());
     }
     /**
      * @test
@@ -208,16 +206,15 @@ class MySQLQueryTest extends TestCase{
     public function testInsert003() {
         $aq = new ArticleQuery();
         $aq->insertRecord([
-            'author-id'=>66,
-            'author-name'=>'Ibrahim'
+            'author-id'=>66
         ]);
         $prev = date('Y-m-d H:i:s', time() - 1);
         $now = date('Y-m-d H:i:s');
         $query = $aq->getQuery();
         $next = date('Y-m-d H:i:s', time() + 1);
-        $isEqual = $query == 'insert into articles (author_id,author_name,created_on) values (66,\'Ibrahim\',\''.$prev.'\');'
-                || $query == 'insert into articles (author_id,author_name,created_on) values (66,\'Ibrahim\',\''.$next.'\');'
-                || $query == 'insert into articles (author_id,author_name,created_on) values (66,\'Ibrahim\',\''.$now.'\');';
+        $isEqual = $query == 'insert into articles (author_id,created_on) values (66,\''.$prev.'\');'
+                || $query == 'insert into articles (author_id,created_on) values (66,,\''.$next.'\');'
+                || $query == 'insert into articles (author_id,created_on) values (66,\''.$now.'\');';
         $this->assertTrue($isEqual);
     }
     /**
@@ -245,11 +242,11 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->selectCount([
             'where'=>[
-                'author-name'=>'Ibrahim Ali'
+                'author-id'=>'66'
             ]
         ]);
         $this->assertEquals('select count(*) as count from '
-                . 'articles where author_name = \'Ibrahim Ali\';',$aq->getQuery());
+                . 'articles where author_id = 66;',$aq->getQuery());
     }
     /**
      * @test
@@ -258,12 +255,12 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->selectCount([
             'where'=>[
-                'author-name'=>'Ibrahim Ali',
+                'author-id'=>'66',
                 'last-updated'=>'2019-09-09'
             ]
         ]);
         $this->assertEquals('select count(*) as count from '
-                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'articles where author_id = 66 and '
                 . 'last_updated >= \'2019-09-09 00:00:00\' and last_updated <= \'2019-09-09 23:59:59\';',$aq->getQuery());
     }
     /**
@@ -273,13 +270,13 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->selectCount([
             'where'=>[
-                'author-name'=>'Ibrahim Ali',
+                'author-id'=>'100',
                 'last-updated'=>'2019-09-09'
             ],
             'conditions'=>['=','<']
         ]);
         $this->assertEquals('select count(*) as count from '
-                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'articles where author_id = 100 and '
                 . 'last_updated < \'2019-09-09 00:00:00\';',$aq->getQuery());
     }
     /**
@@ -289,13 +286,13 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->selectCount([
             'where'=>[
-                'author-name'=>'Ibrahim Ali',
+                'author-id'=>'76',
                 'last-updated'=>'2019-09-09'
             ],
             'conditions'=>['=','<=']
         ]);
         $this->assertEquals('select count(*) as count from '
-                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'articles where author_id = 76 and '
                 . 'last_updated <= \'2019-09-09 23:59:59\';',$aq->getQuery());
     }
     /**
@@ -305,13 +302,13 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->selectCount([
             'where'=>[
-                'author-name'=>'Ibrahim Ali',
+                'author-id'=>'90',
                 'last-updated'=>'2019-09-09 06:00:00'
             ],
             'conditions'=>['=','<=']
         ]);
         $this->assertEquals('select count(*) as count from '
-                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'articles where author_id = 90 and '
                 . 'last_updated <= \'2019-09-09 06:00:00\';',$aq->getQuery());
     }
     /**
@@ -321,13 +318,13 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->selectCount([
             'where'=>[
-                'author-name'=>'Ibrahim Ali',
+                'author-id'=>'34',
                 'last-updated'=>'2019-09-09'
             ],
             'conditions'=>['=','>']
         ]);
         $this->assertEquals('select count(*) as count from '
-                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'articles where author_id = 34 and '
                 . 'last_updated > \'2019-09-09 23:59:59\';',$aq->getQuery());
     }
     /**
@@ -337,13 +334,13 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->selectCount([
             'where'=>[
-                'author-name'=>'Ibrahim Ali',
+                'author-id'=>'98',
                 'last-updated'=>'2019-09-09'
             ],
             'conditions'=>['=','>=']
         ]);
         $this->assertEquals('select count(*) as count from '
-                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'articles where author_id = 98 and '
                 . 'last_updated >= \'2019-09-09 00:00:00\';',$aq->getQuery());
     }
     /**
@@ -353,13 +350,13 @@ class MySQLQueryTest extends TestCase{
         $aq = new ArticleQuery();
         $aq->selectCount([
             'where'=>[
-                'author-name'=>'Ibrahim Ali',
+                'author-id'=>'65',
                 'last-updated'=>'2019-09-09'
             ],
             'conditions'=>['=','!=']
         ]);
         $this->assertEquals('select count(*) as count from '
-                . 'articles where author_name = \'Ibrahim Ali\' and '
+                . 'articles where author_id = 65 and '
                 . 'last_updated < \'2019-09-09 00:00:00\' and last_updated > \'2019-09-09 23:59:59\';',$aq->getQuery());
     }
     /**
@@ -368,7 +365,7 @@ class MySQLQueryTest extends TestCase{
     public function testAddPrimaryKey00() {
         $aq = new ArticleQuery();
         $aq->addPrimaryKey($aq->getStructure());
-        $this->assertEquals("alter table articles add constraint articles_pk primary key (article_id,author_name);\n"
+        $this->assertEquals("alter table articles add constraint articles_pk primary key (article_id);\n"
                 . "alter table articles modify article_id int(11) not null unique auto_increment;\n",$aq->getQuery());
     }
     /**
