@@ -25,23 +25,32 @@
 namespace phMysql;
 use phMysql\MySQLTable;
 use phMysql\MySQLColumn;
+use phMysql\MySQLQuery;
 /**
  * Experimental class. DO NOT USE.
  *
  * @author Ibrahim
+ * @version 1.0
  */
 class JoinTable extends MySQLTable{
     /**
      * The number of joins which was performed before.
      * @var type 
-     * @since 1.9.0
      */
     private static $JoinsCount = 0;
     private $leftTable;
     private $rightTable;
     private $joinType;
     private $joinCond;
-    public function __construct($leftTable,$rightTable,$tableName) {
+    /**
+     * Creates new instance of the class.
+     * @param MySQLQuery|MySQLTable $leftTable The left table.
+     * @param MySQLQuery|MySQLTable $rightTable The right table.
+     * @param string $tableName An optional name for the table which will be 
+     * generated from the join. If not given, a name will be generated automatically.
+     * @since 1.0
+     */
+    public function __construct($leftTable,$rightTable,$tableName=null) {
         parent::__construct();
         if(!$this->setName($tableName)){
             $this->setName('T'.self::$JoinsCount);
@@ -68,9 +77,49 @@ class JoinTable extends MySQLTable{
         $this->joinType = 'left';
         $this->_addAndValidateColmns();
     }
+    /**
+     * Sets the type of the join that will be performed.
+     * @param string $type A string that represents join type. Possible values
+     * are: 
+     * <ul>
+     * <li>left</li>
+     * <li>right</li>
+     * <li>natural</li>
+     * <li>natural left</li>
+     * <li>natural right</li>
+     * <li>cross</li>
+     * <li>join</li>
+     * </ul>
+     * @since 1.0
+     */
+    public function setJoinType($type) {
+        $lType = strtolower(trim($type));
+        if($lType == 'left' || $lType == 'natural left' ||
+           $lType == 'right' || $lType == 'natural right'|| 
+           $lType == 'cross' || $lType == 'natural' || $lType == 'join'){
+            $this->joinType = $lType;
+        }
+    }
+    /**
+     * Returns a string that represents join condition.
+     * @return string A string that represents join condition.
+     * @since 1.0
+     */
     public function getJoinCondition() {
         return $this->joinCond;
     }
+    /**
+     * Sets the condition at which the two tables will be joined on.
+     * @param array $cols An associative array of columns. The indices should be 
+     * the names of columns keys taken from left table and the values should be 
+     * columns keys taken from right table.
+     * @param string $conds An optional array of join conditions. It can have 
+     * values like '=' or '!='.
+     * @param string $joinOps An array that contains conditions which are used 
+     * to join the conditions in case of multiple columns joins. It can have 
+     * one of two values, 'and' or 'or'.
+     * @since 1.0
+     */
     public function setJoinCondition($cols,$conds=[],$joinOps=[]) {
         if(gettype($cols) == 'array'){
             while (count($conds) < count($cols)){
@@ -111,23 +160,41 @@ class JoinTable extends MySQLTable{
             }
         } 
     }
+    /**
+     * Returns a string that represents the type of the join that will 
+     * be performed.
+     * @return string Possible return values are:
+     * <ul>
+     * <li>left</li>
+     * <li>right</li>
+     * <li>cross</li>
+     * </ul>
+     * @since 1.0
+     */
     public function getJoinType() {
         return $this->joinType;
     }
     /**
-     * 
-     * @return MySQLTable
+     * Returns the right table of the join.
+     * @return MySQLTable An instance of the class 'MySQLTable' that represents 
+     * right table of the join.
+     * @since 1.0
      */
     public function getRightTable() {
         return $this->rightTable;
     }
     /**
-     * 
-     * @return MySQLTable
+     * Returns the left table of the join.
+     * @return MySQLTable An instance of the class 'MySQLTable' that represents 
+     * left table of the join.
+     * @since 1.0
      */
     public function getLeftTable() {
         return $this->leftTable;
     }
+    /**
+     * @since 1.0
+     */
     private function _addAndValidateColmns() {
         $commonColsKeys = [];
         $leftColsKeys = $this->getLeftTable()->colsKeys();
