@@ -51,23 +51,68 @@ require_once $rootDir.'tests'.$DS.'UsersQuery.php';
 require_once $rootDir.'tests'.$DS.'ArticleQuery.php';
 require_once $rootDir.'tests'.$DS.'EntityUser.php';
 
+
 echo "Initializing Database...\n";
 $conn = new phMysql\MySQLLink('localhost', 'root', '123456');
 $conn->setDB('testing_db');
 $q00 = new phMysql\tests\UsersQuery();
 $q00->createStructure();
+echo $q00->getQuery();
 if($conn->executeQuery($q00)){
     $q00 = new phMysql\tests\ArticleQuery();
     $q00->createStructure();
+    echo $q00->getQuery();
     if($conn->executeQuery($q00)){
         echo "Successfully Created Tables.\n";
+        echo "Adding Test Dataset...\n";
+        for($x = 0 ; $x < 5 ; $x++){
+            $q = new phMysql\tests\UsersQuery();
+            $q->insertRecord([
+                'user-id'=>$x + 1,
+                'email'=>$x.'@test.com',
+                'name'=>'Test User #'.$x
+            ]);
+            echo $q->getQuery()."\n";
+            if($conn->executeQuery($q)){
+                for($y = 0 ; $y < 4 ; $y++){
+                    $q = new \phMysql\tests\ArticleQuery();
+                    $q->insertRecord([
+                        'author-id'=>$x + 1,
+                        'content'=>'This is the body of article number '.$y.' which '
+                        . 'is created by the user which has the ID '.($x + 1).'.',
+                        'title'=>'User # '.($x + 1).' Article #'.$y
+                    ]);
+                    echo $q->getQuery()."\n";
+                    if(!$conn->executeQuery($q)){
+                        echo "Unable to execute query.\n";
+                        echo $conn->getErrorCode().': '.$conn->getErrorMessage()."\n";
+                    }
+                }
+            }
+            else{
+                echo "Unable to execute query.\n";
+                echo $conn->getErrorCode().': '.$conn->getErrorMessage()."\n";
+            }
+        }
     }
     else{
         echo 'Unable to create the table '.$q00->getTableName()."\n";
-        die();
+        echo $conn->getErrorCode().': '.$conn->getErrorMessage()."\n";
     }
 }
 else{
     echo 'Unable to create the table '.$q00->getTableName()."\n";
-    die();
+    echo $conn->getErrorCode().': '.$conn->getErrorMessage()."\n";
 }
+register_shutdown_function(function(){
+    echo "Dropping tables...\n";
+    $conn = new phMysql\MySQLLink('localhost', 'root', '123456');
+    $conn->setDB('testing_db');
+    $q = new \phMysql\tests\ArticleQuery();
+    $q->dropTable();
+    $conn->executeQuery($q);
+    $q = new \phMysql\tests\UsersQuery();
+    $q->dropTable();
+    $conn->executeQuery($q);
+    echo "Done.\n";
+});
