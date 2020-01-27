@@ -182,8 +182,10 @@ class MySQLColumn{
      * array Column::DATATYPES. If the given datatype is invalid, 'varchar' 
      * will be used as default type for the column.
      * @param int $size The size of the column. Used only in case of 
-     * 'varachar' and 'int'. If the given size is invalid, 1 will be used as default 
-     * value.
+     * 'varachar', 'int' or decimal. If the given size is invalid, 1 will be used as default 
+     * value. Note that in case of decimal, if this value is 1, scale is set to 
+     * 0. If this value is 2, scale is set to 1. If this value is greater than 
+     * or equal to 3, scale is set to 2 by default.
      * @since 1.0
      */
     public function __construct($colName='col',$datatype='varchar',$size=1) {
@@ -349,8 +351,11 @@ class MySQLColumn{
      * Scale is simply the number of digits that will appear to the right of 
      * decimal point. Only applicable if the datatype of the column is decimal, 
      * float and double.
-     * @return int The number of numbers after the decimal point. Default return 
-     * value is 0.
+     * @return int The number of numbers after the decimal point. Note that 
+     * if the size of datatype of the column is 1, scale is set to 
+     * 0 by default. If if the size of datatype of the column is 2, scale is 
+     * set to 1. If if the size of datatype of the column is greater than 
+     * or equal to 3, scale is set to 2 by default.
      * @since 1.6.2
      */
     public function getScale() {
