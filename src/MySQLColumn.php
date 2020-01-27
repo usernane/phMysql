@@ -202,8 +202,22 @@ class MySQLColumn{
             }
         }
         if($realDatatype == 'decimal' || $realDatatype == 'float' || $realDatatype == 'double'){
-            $this->setScale(0);
-            $this->setSize(0);
+            if(!$this->setSize($size)){
+                $this->setSize(10);
+                $this->setScale(0);
+            }
+            else{
+                $size = $this->getSize();
+                if($size == 0 || $size == 1){
+                    $this->setScale(0);
+                }
+                else if($size == 2){
+                    $this->setScale(1);
+                }
+                else{
+                    $this->setScale(2);
+                }
+            }
         }
         
         $this->setIsNull(false);
