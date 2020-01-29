@@ -779,31 +779,10 @@ class MySQLQuery{
             if(isset($selectOptions['order-by']) && gettype($selectOptions['order-by']) == 'array'){
                 $orderByPart = $this->_buildOrderByCondition($selectOptions['order-by']);
             }
-            if(isset($selectOptions['columns']) && count($selectOptions['columns']) != 0){
-                $count = count($selectOptions['columns']);
-                $i = 0;
-                $colsFound = 0;
-                foreach ($selectOptions['columns'] as $column){
-                    if($table->hasColumn($column)){
-                        $colsFound++;
-                        if($i + 1 == $count){
-                            $selectQuery .= $this->getColName($column).' from '.$this->getStructureName();
-                        }
-                        else{
-                            $selectQuery .= $this->getColName($column).',';
-                        }
-                    }
-                    else{
-                        if($i + 1 == $count && $colsFound != 0){
-                            $selectQuery = trim($selectQuery, ',');
-                            $selectQuery .= ' from '.$this->getStructureName();
-                        }
-                        else if($i + 1 == $count && $colsFound == 0){
-                            $selectQuery .= '* from '.$this->getStructureName();
-                        }
-                    }
-                    $i++;
-                }
+            if(isset($selectOptions['columns']) && gettype($selectOptions['columns']) == 'array'){
+                $withTablePrefix = isset($selectOptions['table-prefix']) ? $selectOptions['table-prefix'] === true : false;
+                $columnsStr = $this->_createColsToSelect($selectOptions['columns'], $withTablePrefix);
+                $selectQuery .= trim($columnsStr).' from '.$this->getTableName();
             }
             else if(isset ($selectOptions['select-max']) && $selectOptions['select-max'] === true){
                 $renameTo = isset($selectOptions['rename-to']) ? $selectOptions['rename-to'] : '';
@@ -923,6 +902,51 @@ class MySQLQuery{
             return true;
         }
         return false;
+    }
+    /**
+     * Constructs a string which contains columns names that will be selected.
+     * @param array $colsArr It can be an indexed array which contains columns 
+     * names as specified while creating the linked table. Or it can be an 
+     * associative array. The key should be the name of the column and the value 
+     * is an alias to the column. For example, If the following array is given:
+     * <p>
+     * <code>[
+     * 'name','id'=>'user_id','email'
+     * ]</code>
+     * </p>
+     * And assuming that the column names are the same as given values, 
+     * Then the output will be the following string:
+     * <p>
+     * <code>name, id as user_id, email</code>
+     * </p>
+     * @param boolean $withTablePrefix If set to true, then column name will be 
+     * prefixed with table name.
+     * @return string
+     * @since 1.9.0
+     */
+    private function _createColsToSelect($colsArr,$withTablePrefix){
+        $retVal = '';
+        if(count($colsArr) == 0){
+            $retVal = '*';
+        }
+        else{
+            $comma = ' ';
+            foreach ($colsArr as $index => $colName){
+                if(gettype($index) == 'string'){
+                    $colObj = $this->getCol($index);
+                    $asPart = ' as '.$colName;
+                }
+                else{
+                    $colObj = $this->getCol($colName);
+                    $asPart = '';
+                }
+                if($colObj instanceof MySQLColumn){
+                    $retVal .= $comma.$colObj->getName($withTablePrefix).$asPart;
+                    $comma = ',';
+                }
+            }
+        }
+        return $retVal;
     }
     private function _getJoinStm($table,$joinStm){
         $selectQuery = '';
