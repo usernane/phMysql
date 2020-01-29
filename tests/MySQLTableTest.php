@@ -50,6 +50,41 @@ class MySQLTableTest extends TestCase{
     /**
      * @test
      */
+    public function testPrimaryKey00() {
+        $table = new MySQLTable('hello');
+        $table->addColumn('id-col', [
+            'is-primary'=>true,
+            'size'=>3
+        ]);
+        $this->assertTrue($table->getCol('id-col')->isUnique());
+        return $table;
+    }
+    /**
+     * @test
+     * @param MySQLTable $table
+     * @depends testPrimaryKey00
+     */
+    public function testPrimaryKey01($table) {
+        $table->addColumn('id-col-2', [
+            'is-primary'=>true
+        ]);
+        $this->assertFalse($table->getCol('id-col')->isUnique());
+        $this->assertFalse($table->getCol('id-col-2')->isUnique());
+        return $table;
+    }
+    /**
+     * @test
+     * @param MySQLTable $table
+     * @depends testPrimaryKey01
+     */
+    public function testPrimaryKey02($table) {
+        $table->removeColumn('id-col');
+        $this->assertTrue($table->getCol('id-col-2')->isUnique());
+        return $table;
+    }
+    /**
+     * @test
+     */
     public function testAddColumn00() {
         $table = new MySQLTable();
         $this->assertTrue($table->addColumn('new-col', new MySQLColumn()));
