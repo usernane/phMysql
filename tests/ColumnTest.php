@@ -168,7 +168,7 @@ class ColumnTest extends TestCase{
     public function testConstructor09() {
         $col = new MySQLColumn('amount', 'decimal ');
         $this->assertEquals('decimal',$col->getType());
-        $this->assertEquals(0,$col->getSize());
+        $this->assertEquals(1,$col->getSize());
         return $col;
     }
     /**
@@ -313,13 +313,13 @@ class ColumnTest extends TestCase{
      */
     public function testSetDefault07() {
         $col = new MySQLColumn('id', 'decimal');
-        $this->assertEquals('id decimal not null',$col.'');
+        $this->assertEquals('id decimal(1,0) not null',$col.'');
         $col->setDefault(1);
         $this->assertEquals(1,$col->getDefault());
-        $this->assertEquals('id decimal not null default \'1\'',$col.'');
+        $this->assertEquals('id decimal(1,0) not null default \'1\'',$col.'');
         $col->setDefault(1.66);
         $this->assertEquals(1.66,$col->getDefault());
-        $this->assertEquals('id decimal not null default \'1.66\'',$col.'');
+        $this->assertEquals('id decimal(1,0) not null default \'1.66\'',$col.'');
         $col->setDefault(null);
         $this->assertNull($col->getDefault());
         $col->setDefault('33');
