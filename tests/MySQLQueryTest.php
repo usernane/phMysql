@@ -704,6 +704,62 @@ class MySQLQueryTest extends TestCase{
     /**
      * @test
      */
+    public function testSelect020() {
+        $q = new MySQLQuery('hello');
+        $q->getTable()->addColumns([
+            'user-id'=>[
+                'name'=>'u_id',
+                'type'=>'int',
+                'size'=>4,
+                'is-primary'=>true
+            ],
+            'first-name'=>[
+                'size'=>15
+            ],
+            'last-name'=>[
+                'size'=>15
+            ],
+            'email-address'=>[
+                'size'=>150
+            ]
+        ]);
+        $q->select([
+            'columns'=>[
+                'user-id',
+                'first-name'=>'f_name',
+                'last-name'=>'l_name',
+                'email-address'
+            ]
+        ]);
+        $this->assertEquals('select u_id,first_name as f_name,last_name as l_name,email_address from hello;',$q->getQuery());
+        $q->select([
+            'columns'=>[
+                'user-id',
+                'first-name'=>'f_name',
+                'last-name'=>'l_name',
+                'email-address'
+            ],
+            'table-prefix'=>true
+        ]);
+        $this->assertEquals('select hello.u_id,hello.first_name as f_name,hello.last_name as l_name,hello.email_address from hello;',$q->getQuery());
+        $q->select([
+            'columns'=>[
+                'x'=>'bb',
+                'user-id',
+                'first-name'=>'f_name',
+                'last-name'=>'l_name',
+                'email-address',
+                'jjkk',
+                0
+            ]
+        ]);
+        $this->assertEquals('select u_id,first_name as f_name,last_name as l_name,email_address from hello;',$q->getQuery());
+        $q->select();
+        $this->assertEquals('select * from hello;',$q->getQuery());
+    }
+    /**
+     * @test
+     */
     public function testCreateTable00() {
         $query = new MySQLQuery('users');
         $query->getTable()->addDefaultCols();
