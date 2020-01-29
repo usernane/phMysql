@@ -672,12 +672,12 @@ class MySQLTable {
     }
     /**
      * Returns the columns of the table which are a part of the primary key.
-     * @return array An array which contains an objects of type 'Column'. If 
+     * @return array An array which contains an objects of type 'MySQLColumn'. If 
      * the table has no primary key, the array will be empty.
      * @since 1.5.1
      */
     public function getPrimaryKeyCols() {
-        $arr = array();
+        $arr = [];
         foreach ($this->columns() as $col){
             if($col->isPrimary()){
                 $arr[] = $col;
@@ -783,6 +783,7 @@ class MySQLTable {
             foreach ($this->colSet as $key => $col){
                 if($col->getIndex() == $colKeyOrIndex){
                     unset($this->colSet[$key]);
+                    $this->_checkPKs();
                     return true;
                 }
             }
@@ -790,6 +791,7 @@ class MySQLTable {
         }
         else{
             unset($this->colSet[$colKeyOrIndex]);
+            $this->_checkPKs();
             return true;
         }
     }
@@ -858,6 +860,23 @@ class MySQLTable {
         }
         return null;
     }
+    private function _checkPKs() {
+        $primaryCount = $this->primaryKeyColsCount();
+        if($primaryCount > 1){
+            foreach ($this->getPrimaryKeyCols() as $col){
+                if($col->isPrimary()){
+                    $col->setIsUnique(false);
+                }
+            }
+        }
+        else{
+            foreach ($this->getPrimaryKeyCols() as $col){
+                if($col->isPrimary()){
+                    $col->setIsUnique(true);
+                }
+            }
+        }
+    }
     /**
      * Adds new column to the table.
      * @param string $key The index at which the column will be added to. The name 
@@ -919,6 +938,7 @@ class MySQLTable {
                     if($this->_isKeyNameValid($trimmedKey)){
                         $col->setOwner($this);
                         $this->colSet[$trimmedKey] = $col;
+                        $this->_checkPKs();
                         return true;
                     }
                 }
