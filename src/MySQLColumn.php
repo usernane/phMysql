@@ -191,6 +191,7 @@ class MySQLColumn{
     public function __construct($colName='col',$datatype='varchar',$size=1) {
         $this->mySqlVersion = '5.5';
         $this->autoUpdate = false;
+        $this->isPrimary = false;
         if($this->setName($colName) !== true){
             $this->setName('col');
         }
@@ -611,7 +612,7 @@ class MySQLColumn{
     }
     /**
      * Checks if the column is a primary key or not.
-     * @return boolean true if the colum is primary.
+     * @return boolean true if the column is primary.
      * @since 1.0
      */
     public function isPrimary(){

@@ -142,6 +142,15 @@ class MySQLTable {
         $this->ownerQuery = null;
     }
     /**
+     * Returns the query object which owns the table.
+     * @return MySQLQuery|null If the owner is set, the method will return an 
+     * object of type 'MySQLQuery'. Other than that, null is returned.
+     * @since 1.6.5
+     */
+    public function getOwnerQuery() {
+        return $this->ownerQuery;
+    }
+    /**
      * Sets the query object at which the table is belonging to.
      * The developer does not have to call this method. It is used automatically 
      * my the class 'MySQLQuery' to set the owner query.
@@ -231,7 +240,8 @@ class MySQLTable {
      * in case of varchar or text data types. If MySQL version is '5.5' or lower, 
      * collation will be set to 'utf8mb4_unicode_ci'. Other than that, the 
      * collation will be set to 'utf8mb4_unicode_520_ci'.
-     * @param string $vNum MySQL version number (such as '5.5').
+     * @param string $vNum MySQL version number (such as '5.5'). It must be in 
+     * the format 'X.X.X' or the version won't be set. The last 'X' is optional.
      * @since 1.6.1
      */
     public function setMySQLVersion($vNum) {
@@ -1015,7 +1025,7 @@ class MySQLTable {
      * it is returned. Other than that, The method will return null.
      * @since 1.6
      */
-    public function &getColByIndex($index){
+    public function getColByIndex($index){
         foreach ($this->colSet as $k => $col){
             if($col->getIndex() == $index){
                 return $col;

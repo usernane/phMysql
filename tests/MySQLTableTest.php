@@ -126,7 +126,7 @@ class MySQLTableTest extends TestCase{
      * @param MySQLTable $table
      * @depends testGetEntityMethodsTest00
      */
-    public function testSettersMap($table) {
+    public function testSettersMap00($table) {
         $this->assertEquals([
             'setUserId'=>'user_id'
         ],$table->getSettersMap());
@@ -457,5 +457,88 @@ class MySQLTableTest extends TestCase{
         $table = $query->getStructure();
         $this->assertFalse($table->removeColumn(20));
         $this->assertEquals(6,count($table->columns()));
+    }
+    /**
+     * @test
+     */
+    public function setOwnerQueryTest00() {
+        $table = new MySQLTable();
+        $table->setOwnerQuery(null);
+        $this->assertNull($table->getOwnerQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSetMySQLVersion00() {
+        $table = new MySQLTable();
+        $table->setMySQLVersion('5.4');
+        $this->assertEquals('5.4',$table->getMySQLVersion());
+        $this->assertEquals('utf8mb4_unicode_ci',$table->getCollation());
+    }
+    /**
+     * @test
+     */
+    public function testSetMySQLVersion01() {
+        $table = new MySQLTable();
+        $table->setMySQLVersion('8.0');
+        $this->assertEquals('8.0',$table->getMySQLVersion());
+        $this->assertEquals('utf8mb4_unicode_520_ci',$table->getCollation());
+    }
+    /**
+     * @test
+     */
+    public function testSetMySQLVersion02() {
+        $table = new MySQLTable();
+        $table->setMySQLVersion('8');
+        $this->assertEquals('5.5',$table->getMySQLVersion());
+        $this->assertEquals('utf8mb4_unicode_ci',$table->getCollation());
+    }
+    /**
+     * @test
+     */
+    public function testSetMySQLVersion03() {
+        $table = new MySQLTable();
+        $table->setMySQLVersion('8.0.77');
+        $this->assertEquals('8.0.77',$table->getMySQLVersion());
+        $this->assertEquals('utf8mb4_unicode_520_ci',$table->getCollation());
+    }
+    /**
+     * 
+     * @test
+     */
+    public function testGetColByIndex() {
+        $table = new MySQLTable();
+        $table->addColumns([
+            'user-id'=>[
+                'datatype'=>'int',
+                'size'=>11,
+                'is-primary'=>true
+            ],
+            'username'=>[
+                'size'=>20,
+                'is-unique'=>true
+            ],
+            'email'=>[
+                'size'=>150,
+                'is-unique'=>true
+            ],
+            'password'=>[
+                'size'=>64
+            ]
+        ]);
+        $col00 = $table->getColByIndex(0);
+        $this->assertEquals('user_id',$col00->getName());
+        $this->assertEquals('int',$col00->getType());
+        $this->assertEquals(11,$col00->getSize());
+        $this->assertTrue($col00->isPrimary());
+        
+        $col01 = $table->getColByIndex(2);
+        $this->assertEquals('varchar',$col01->getType());
+        $this->assertEquals(150,$col01->getSize());
+        $this->assertFalse($col01->isPrimary());
+        $this->asserttrue($col01->isUnique());
+        
+        $col02 = $table->getColByIndex(6);
+        $this->assertNull($col02);
     }
 }
