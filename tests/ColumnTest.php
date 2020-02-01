@@ -84,6 +84,158 @@ class ColumnTest extends TestCase{
     /**
      * @test
      */
+    public function testSetName00() {
+        $col = new MySQLColumn();
+        $this->assertFalse($col->setName('invalid,name'));
+        $this->assertFalse($col->setName('invalid-name'));
+        $this->assertFalse($col->setName('invalid name'));
+        $this->assertFalse($col->setName(''));
+        $this->assertFalse($col->setName('       '));
+    }
+    /**
+     * @test
+     */
+    public function testSetName01() {
+        $col = new MySQLColumn();
+        $this->assertTrue($col->setName('valid_name'));
+        $this->assertEquals('valid_name',$col->getName());
+        $this->assertTrue($col->setName('  valid_name_2  '));
+        $this->assertEquals('valid_name_2',$col->getName());
+        $this->assertTrue($col->setName('VALID_name'));
+        $this->assertEquals('VALID_name',$col->getName());
+    }
+    /**
+     * @test
+     */
+    public function testSetType00() {
+        $col = new MySQLColumn();
+        $this->assertTrue($col->setType('int', 0));
+        $this->assertEquals('int',$col->getType());
+        $this->assertEquals(1,$col->getSize());
+        $this->assertNull($col->getDefault());
+        $this->assertTrue($col->setType('  int', 11,6000));
+        $this->assertEquals('int',$col->getType());
+        $this->assertEquals(11,$col->getSize());
+        $this->assertEquals(6000,$col->getDefault());
+        $this->assertTrue($col->setType('int  ', 12,698));
+        $this->assertEquals('int',$col->getType());
+        $this->assertEquals(11,$col->getSize());
+    }
+    /**
+     * @test
+     */
+    public function testSetType01() {
+        $col = new MySQLColumn();
+        $this->assertTrue($col->setType('varchar', 0));
+        $this->assertEquals('varchar',$col->getType());
+        $this->assertEquals(1,$col->getSize());
+        $this->assertNull($col->getDefault());
+        $this->assertTrue($col->setType('  varchar', 5000,6000));
+        $this->assertEquals('varchar',$col->getType());
+        $this->assertEquals(5000,$col->getSize());
+        $this->assertSame('6000',$col->getDefault());
+        $this->assertTrue($col->setType('varchar  ', 500000,'Hello World'));
+        $this->assertEquals('mediumtext',$col->getType());
+        $this->assertEquals(500000,$col->getSize());
+        $this->assertSame('Hello World',$col->getDefault());
+    }
+    /**
+     * @test
+     */
+    public function testSetType02() {
+        $col = new MySQLColumn();
+        $this->assertTrue($col->setType('varchar', 5000,'Hello'));
+        $this->assertEquals('varchar',$col->getType());
+        $this->assertEquals(5000,$col->getSize());
+        $this->assertSame('Hello',$col->getDefault());
+        $col->setType('int');
+        $this->assertEquals('int',$col->getType());
+        $this->assertEquals(1,$col->getSize());
+        $this->assertNull($col->getDefault());
+    }
+    /**
+     * @test
+     */
+    public function testSetType03() {
+        $col = new MySQLColumn();
+        $this->assertTrue($col->setType('datetime', 0,'2019-01-11'));
+        $this->assertEquals('datetime',$col->getType());
+        $this->assertEquals(1,$col->getSize());
+        $this->assertSame('2019-01-11 00:00:00',$col->getDefault());
+    }
+    /**
+     * @test
+     */
+    public function testSetType04() {
+        $col = new MySQLColumn();
+        $this->assertTrue($col->setType('datetime', 0,'2019-01-11 28:00:00'));
+        $this->assertEquals('datetime',$col->getType());
+        $this->assertEquals(1,$col->getSize());
+        $this->assertNull($col->getDefault());
+        $this->assertTrue($col->setType('timestamp', 0,'2019-13-11 00:00:00'));
+        $this->assertNull($col->getDefault());
+        $this->assertTrue($col->setType('timestamp', 0,'2019-04-44 00:00:00'));
+        $this->assertNull($col->getDefault());
+        $this->assertTrue($col->setType('timestamp', 0,'2019-12-11 00:60:00'));
+        $this->assertNull($col->getDefault());
+        $this->assertTrue($col->setType('timestamp', 0,'2019-12-11 00:00:60'));
+        $this->assertNull($col->getDefault());
+        $this->assertTrue($col->setType('timestamp', 0,'2019-12-30 23:59:59'));
+        $this->assertEquals('2019-12-30 23:59:59',$col->getDefault());
+    }
+    /**
+     * @test
+     */
+    public function testSetType05() {
+        $col = new MySQLColumn();
+        $this->assertTrue($col->setType('datetime', 0,'now()'));
+        $this->assertTrue(in_array($col->getDefault(), 
+                [date('Y-m-d H:i:s + 1'),date('Y-m-d H:i:s'),date('Y-m-d H:i:s - 1')]));
+        $this->assertTrue($col->setType('datetime', 0,'current_timestamp'));
+        $this->assertTrue(in_array($col->getDefault(), 
+                [date('Y-m-d H:i:s + 1'),date('Y-m-d H:i:s'),date('Y-m-d H:i:s - 1')]));
+        
+    }
+    /**
+     * @test
+     */
+    public function testSetType06() {
+        $col = new MySQLColumn();
+        $this->assertTrue($col->setType('timestamp', 0,'now()'));
+        $this->assertTrue(in_array($col->getDefault(), 
+                [date('Y-m-d H:i:s + 1'),date('Y-m-d H:i:s'),date('Y-m-d H:i:s - 1')]));
+        $this->assertTrue($col->setType('timestamp', 0,'current_timestamp'));
+        $this->assertTrue(in_array($col->getDefault(), 
+                [date('Y-m-d H:i:s + 1'),date('Y-m-d H:i:s'),date('Y-m-d H:i:s - 1')]));
+        
+    }
+    /**
+     * @test
+     */
+    public function testAutoUpdate00() {
+        $col = new MySQLColumn();
+        $this->assertFalse($col->isAutoUpdate());
+        $col->setAutoUpdate(true);
+        $this->assertFalse($col->isAutoUpdate());
+        $col->setType('datetime');
+        $col->setAutoUpdate(true);
+        $this->assertTrue($col->isAutoUpdate());
+    }
+    /**
+     * @test
+     */
+    public function testAutoUpdate01() {
+        $col = new MySQLColumn();
+        $this->assertFalse($col->isAutoUpdate());
+        $col->setAutoUpdate(true);
+        $this->assertFalse($col->isAutoUpdate());
+        $col->setType('timestamp');
+        $col->setAutoUpdate(true);
+        $this->assertTrue($col->isAutoUpdate());
+    }
+    /**
+     * @test
+     */
     public function testConstructor00() {
         $col = new MySQLColumn();
         $this->assertEquals('varchar',$col->getType());
@@ -172,6 +324,66 @@ class ColumnTest extends TestCase{
         return $col;
     }
     /**
+     * @test
+     */
+    public function testConstructor10() {
+        $col = new MySQLColumn('amount', 'decimal ',0);
+        $this->assertEquals('decimal',$col->getType());
+        $this->assertEquals(0,$col->getSize());
+        $this->assertEquals(0,$col->getScale());
+        return $col;
+    }
+    /**
+     * @test
+     */
+    public function testConstructor11() {
+        $col = new MySQLColumn('amount', 'decimal ',1);
+        $this->assertEquals('decimal',$col->getType());
+        $this->assertEquals(1,$col->getSize());
+        $this->assertEquals(0,$col->getScale());
+        return $col;
+    }
+    /**
+     * @test
+     */
+    public function testConstructor12() {
+        $col = new MySQLColumn('amount', 'decimal ',2);
+        $this->assertEquals('decimal',$col->getType());
+        $this->assertEquals(2,$col->getSize());
+        $this->assertEquals(1,$col->getScale());
+        return $col;
+    }
+    /**
+     * @test
+     */
+    public function testConstructor13() {
+        $col = new MySQLColumn('amount', 'decimal ',3);
+        $this->assertEquals('decimal',$col->getType());
+        $this->assertEquals(3,$col->getSize());
+        $this->assertEquals(2,$col->getScale());
+        return $col;
+    }
+    /**
+     * @test
+     */
+    public function testConstructor14() {
+        $col = new MySQLColumn('amount', 'decimal ',4);
+        $this->assertEquals('decimal',$col->getType());
+        $this->assertEquals(4,$col->getSize());
+        $this->assertEquals(2,$col->getScale());
+        return $col;
+    }
+    /**
+     * @test
+     */
+    public function testConstructor15() {
+        $col = new MySQLColumn('amount', 'decimal ',-9);
+        $this->assertEquals('decimal',$col->getType());
+        $this->assertEquals(10,$col->getSize());
+        $this->assertEquals(2,$col->getScale());
+        return $col;
+    }
+    /**
      * 
      * @param MySQLColumn $col
      * @depends testConstructor09
@@ -186,6 +398,42 @@ class ColumnTest extends TestCase{
         $this->assertEquals(9,$col->getScale());
         $this->assertFalse($col->setScale(10));
         $this->assertEquals(9,$col->getScale());
+    }
+    /**
+     * @test
+     */
+    public function testSetMySQLVersion00() {
+        $col = new MySQLColumn();
+        $col->setMySQLVersion('5.4');
+        $this->assertEquals('5.4',$col->getMySQLVersion());
+        $this->assertEquals('utf8mb4_unicode_ci',$col->getCollation());
+    }
+    /**
+     * @test
+     */
+    public function testSetMySQLVersion01() {
+        $col = new MySQLColumn();
+        $col->setMySQLVersion('8.0');
+        $this->assertEquals('8.0',$col->getMySQLVersion());
+        $this->assertEquals('utf8mb4_unicode_520_ci',$col->getCollation());
+    }
+    /**
+     * @test
+     */
+    public function testSetMySQLVersion02() {
+        $column = new MySQLColumn();
+        $column->setMySQLVersion('8');
+        $this->assertEquals('5.5',$column->getMySQLVersion());
+        $this->assertEquals('utf8mb4_unicode_ci',$column->getCollation());
+    }
+    /**
+     * @test
+     */
+    public function testSetMySQLVersion03() {
+        $col = new MySQLColumn();
+        $col->setMySQLVersion('8.0.77');
+        $this->assertEquals('8.0.77',$col->getMySQLVersion());
+        $this->assertEquals('utf8mb4_unicode_520_ci',$col->getCollation());
     }
     /**
      * @test

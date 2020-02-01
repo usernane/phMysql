@@ -207,7 +207,7 @@ class MySQLColumn{
         if($realDatatype == 'decimal' || $realDatatype == 'float' || $realDatatype == 'double'){
             if(!$this->setSize($size)){
                 $this->setSize(10);
-                $this->setScale(0);
+                $this->setScale(2);
             }
             else{
                 $size = $this->getSize();
@@ -524,7 +524,7 @@ class MySQLColumn{
      * The name of the column must be a string and its not empty. 
      * Also it must not contain any spaces or any characters other than A-Z, a-z and 
      * underscore.
-     * @param string $name The name to set.
+     * @param string $name The name of the table as it appears in the database.
      * @return boolean The method will return true if the column name updated. 
      * If the given value is null or invalid string, the method will return 
      * false.
@@ -623,11 +623,11 @@ class MySQLColumn{
      * The datatype must be a value from the array <b>Column::DATATYPES</b>. It 
      * can be in lower case or upper case.
      * @param string $type The type of column data.
-     * @param int $size Size of column data (for 'int' and 'varchar'). If the passed 
-     * size is invalid, 1 will be used.
+     * @param int $size Size of column data (for 'int', 'varchar', 'float', 'double' and 
+     * 'decimal'). If the passed size is invalid, 1 will be used as a default value.
      * @param mixed $default Default value for the column to set in case no value is 
      * given in case of insert.
-     * @return boolean true if the data type is set. False otherwise.
+     * @return boolean The method will return true if the data type is set. False otherwise.
      * @since 1.0
      */
     public function setType($type,$size=1,$default=null){
@@ -637,19 +637,18 @@ class MySQLColumn{
                 $this->setIsAutoInc(false);
             }
             $this->type = $s_type;
-            if($s_type == 'varchar' || $s_type == 'int'){
+            if($s_type == 'varchar' || $s_type == 'int' || 
+               $s_type == 'double' || $s_type == 'float' || $s_type == 'decimal'){
                 if(!$this->setSize($size)){
                     $this->setSize(1);
                 }
             }
+            else{
+                $this->setSize(1);
+            }
             $this->default = null;
-            if($default != null){
-                if($s_type == 'varchar'){
-                    $this->setDefault($default);
-                }
-                else if($s_type == 'int'){
-                    $this->setDefault($default);
-                }
+            if($default !== null){
+                $this->setDefault($default);
             }
             return true;
         }
@@ -808,7 +807,7 @@ class MySQLColumn{
      * or float, the value will represents the overall number of digits in the 
      * number (Precision) (e.g: size of 54.323 is 5). If the datatype is varchar, then the 
      * number will represents number of characters. Default value is 1 for 
-     * 'varchar' and 'int'. Zero for decimal, float and double.
+     * all types including datetime and timestamp.
      * @since 1.0
      */
     public function getSize(){
