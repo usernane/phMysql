@@ -31,6 +31,11 @@ The library support all versions starting from version 5.6 up to version 7.4.
 ## Installation
 The easy option is to download the latest release manually from <a href="https://github.com/usernane/phMySql/releases">Release</a>.
 
+## The Idea
+The overall idea of the library is as follows, every table in the database is represented as an instance of the class '<a href="https://github.com/usernane/phMysql/blob/master/src/MySQLTable.php">MySQLTable</a>'. The instance is associated with an instance of the class '<a href="https://github.com/usernane/phMysql/blob/master/src/MySQLQuery.php">MySQLQuery</a>'. The main aim of the class 'MySQLQuery' is to construct different types of queries which can be executed and get data from the table. 
+
+The class '<a href="https://github.com/usernane/phMysql/blob/master/src/MySQLLink.php">MySQLink</a>' is used to connect to MySQL database and execute any instance of the class 'MySQLQuery'. In addition to that, it is used to access the data which can be the result of executing a 'select' query.
+
 ## Basic Usage
 ### Creating Database Tables
 ### Building Queries
