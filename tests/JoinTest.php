@@ -128,6 +128,19 @@ class JoinTest extends TestCase{
             'left-user-id'=>'user-id'
         ], 'join', [], [], 'SuperJoin');
         $joinQuery4->select();
-        print_r($joinQuery4->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function test04() {
+        $articleQ = new ArticleQuery();
+        $userQ = new UsersQuery();
+        $joinQuery = $articleQ->join($userQ,['author-id'=>'user-id'],'left');
+        $joinQuery->select([
+            'columns'=>[
+                'author-id','article-id','name','title'
+            ]
+        ]);
+        $this->assertEquals('select * from (select author_id,article_id,name,title from articles left join system_users on articles.author_id = system_users.user_id) as T0;',$joinQuery->getQuery());
     }
 }

@@ -399,7 +399,7 @@ class MySQLQuery{
      * in the generated SQL which description what is happening in every SQL Statement.
      * @since 1.4
      */
-    private function createTable($table,$inclSqlComments=false){
+    private function _createTable($table,$inclSqlComments=false){
         if($table instanceof MySQLTable){
             $query = '';
             if($inclSqlComments === true){
@@ -738,10 +738,10 @@ class MySQLQuery{
      * @since 1.8.3
      */
     public function select($selectOptions=array(
-        'colums'=>array(),
-        'condition-cols-and-vals'=>array(),
-        'conditions'=>array(),
-        'join-operators'=>array(),
+        'colums'=>[],
+        'condition-cols-and-vals'=>[],
+        'conditions'=>[],
+        'join-operators'=>[],
         'limit'=>-1,
         'offset'=>-1,
         'select-min'=>false,
@@ -782,7 +782,19 @@ class MySQLQuery{
             if(isset($selectOptions['columns']) && gettype($selectOptions['columns']) == 'array'){
                 $withTablePrefix = isset($selectOptions['table-prefix']) ? $selectOptions['table-prefix'] === true : false;
                 $columnsStr = $this->_createColsToSelect($selectOptions['columns'], $withTablePrefix);
-                $selectQuery .= trim($columnsStr).' from '.$this->getTableName();
+                if($table instanceof JoinTable){
+                    $selectQuery .= trim($columnsStr).' from '.$table->getJoinCondition();
+                    if($table->getJoinType() == 'join'){
+                        $joinStm = 'join';
+                    }
+                    else{
+                        $joinStm = $table->getJoinType().' join';
+                    }
+                    $selectQuery .= $this->_getJoinStm($table, $joinStm);
+                }
+                else{
+                    $selectQuery .= trim($columnsStr).' from '.$this->getTableName();
+                }
             }
             else if(isset ($selectOptions['select-max']) && $selectOptions['select-max'] === true){
                 $renameTo = isset($selectOptions['rename-to']) ? $selectOptions['rename-to'] : '';
@@ -847,10 +859,10 @@ class MySQLQuery{
                     }
                     else{
                         if(gettype($valOrColIndex) == 'integer'){
-                            $testCol = $this->getStructure()->getColByIndex($valOrColIndex);
+                            $testCol = $this->getTable()->getColByIndex($valOrColIndex);
                         }
                         else{
-                            $testCol = $this->getStructure()->getCol($valOrColIndex);
+                            $testCol = $this->getTable()->getCol($valOrColIndex);
                         }
                         $cols[] = $testCol;
                         $vals[] = $colOrVal;
@@ -1276,7 +1288,7 @@ class MySQLQuery{
         
         $cols = ' ('.$cols.')';
         $vals = ' ('.$vals.')';
-        $this->setQuery(self::INSERT.$this->getStructureName().$cols.' values'.$vals.';', 'insert');
+        $this->setQuery(self::INSERT.$this->getTableName().$cols.' values'.$vals.';', 'insert');
     }
     /**
      * Removes a record from the table.
@@ -1314,16 +1326,16 @@ class MySQLQuery{
             }
             else{
                 if(gettype($valOrIndex) == 'integer'){
-                    $testCol = $this->getStructure()->getColByIndex($valOrIndex);
+                    $testCol = $this->getTable()->getColByIndex($valOrIndex);
                 }
                 else{
-                    $testCol = $this->getStructure()->getCol($valOrIndex);
+                    $testCol = $this->getTable()->getCol($valOrIndex);
                 }
                 $cols[] = $testCol;
                 $vals[] = $colObjOrVal;
             }
         }
-        $query = 'delete from '.$this->getStructureName();
+        $query = 'delete from '.$this->getTableName();
         $this->setQuery($query.$this->createWhereConditions($cols, $vals, $valsConds, $jointOps).';', 'delete');
     }
     /**
@@ -1531,7 +1543,7 @@ class MySQLQuery{
             $jointOps[] = 'and';
             $joinOpsCount = count($jointOps);
         }
-        $defaultCols = $this->getStructure()->getDefaultColsKeys();
+        $defaultCols = $this->getTable()->getDefaultColsKeys();
         $lastUpdatedKey = $defaultCols['last-updated'];
         if($lastUpdatedKey !== null){
             $lastUpdatedColObj = $this->getCol($lastUpdatedKey);
@@ -1551,10 +1563,10 @@ class MySQLQuery{
                 $comma = ',';
             }
             if(gettype($colIndex) == 'integer'){
-                $column = $this->getStructure()->getColByIndex($colIndex);
+                $column = $this->getTable()->getColByIndex($colIndex);
             }
             else{
-                $column = $this->getStructure()->getCol($colIndex);
+                $column = $this->getTable()->getCol($colIndex);
             }
             if($column instanceof MySQLColumn){
                 $colsStr .= $column->getName().' = ';
@@ -1626,16 +1638,16 @@ class MySQLQuery{
             }
             else{
                 if(gettype($valueOrIndex) == 'integer'){
-                    $testCol = $this->getStructure()->getColByIndex($valueOrIndex);
+                    $testCol = $this->getTable()->getColByIndex($valueOrIndex);
                 }
                 else{
-                    $testCol = $this->getStructure()->getCol($valueOrIndex);
+                    $testCol = $this->getTable()->getCol($valueOrIndex);
                 }
                 $colsArr[] = $testCol;
                 $valsArr[] = $colObjOrVal;
             }
         }
-        $this->setQuery('update '.$this->getStructureName().' set '.$colsStr.$this->createWhereConditions($colsArr, $valsArr, $valsConds, $jointOps).';', 'update');
+        $this->setQuery('update '.$this->getTableName().' set '.$colsStr.$this->createWhereConditions($colsArr, $valsArr, $valsConds, $jointOps).';', 'update');
     }
     /**
      * Checks if the query represents a blob insert or update.
@@ -1691,7 +1703,7 @@ class MySQLQuery{
             }
             $index++;
         }
-        $this->setQuery('update '.$this->getStructureName().' set '.$cols.' where '.$idColName.' = '.$id, 'update');
+        $this->setQuery('update '.$this->getTableName().' set '.$cols.' where '.$idColName.' = '.$id, 'update');
     }
     /**
      * Constructs a query that can be used to select maximum value of a table column.
@@ -1731,18 +1743,27 @@ class MySQLQuery{
      * @param boolean $inclComments If set to true, the generated MySQL 
      * query will have basic comments explaining the structure.
      * @return boolean Once the query is structured, the method will return 
-     * true. If the query is not created, the method will return false. 
-     * The query will not constructed if the method 'MySQLQuery::getStructure()' 
-     * did not return an object of type 'Table'.
+     * true. If the query is not created, the method will return false.
+     * @deprecated since version 1.9.0
      * @since 1.5
      */
     public function createStructure($inclComments=false){
-        $t = $this->getStructure();
+        $t = $this->getTable();
         if($t instanceof MySQLTable){
-            $this->createTable($t,$inclComments);
+            $this->_createTable($t,$inclComments);
             return true;
         }
         return false;
+    }
+    /**
+     * Constructs a query that can be used to create the table which is linked 
+     * with the query class.
+     * @param boolean $withComments If set to true, the generated MySQL 
+     * query will have basic comments explaining the structure.
+     * @since 1.9.0
+     */
+    public function createTable($withComments=false) {
+        $this->createStructure($withComments);
     }
     /**
      * Returns the name of the column from the table given its key.
