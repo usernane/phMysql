@@ -668,7 +668,15 @@ class MySQLQuery{
      * an object of type 'MySQLQuery' that can be used to get info from joined 
      * tables. If no join is formed, the method will return null.
      */
-    public function join($right,$joinCols,$joinType='join',$conds=[],$joinOps=[],$alias=null) {
+    public function join($options) {
+        $right = isset($options['right-table']) ? $options['right-table'] : null;
+        $joinCols = isset($options['join-cols']) && 
+                gettype($options['join-conditions']) == 'array' ? $options['join-conditions'] : [];
+        $joinType = isset($options['join-type']) ? $options['join-type'] : 'join';
+        $conds = isset($options['join-conditions']) && 
+                gettype($options['join-conditions']) == 'array' ? $options['join-conditions'] : [];
+        $joinOps = [];
+        $alias = isset($options['alias']) ? $options['alias'] : null;
         if($right instanceof MySQLQuery || $right instanceof MySQLTable){
             $joinQuery = new MySQLQuery();
             $joinTable = new JoinTable($this, $right, $alias);
@@ -781,7 +789,7 @@ class MySQLQuery{
             }
             if(isset($selectOptions['columns']) && gettype($selectOptions['columns']) == 'array'){
                 $withTablePrefix = isset($selectOptions['table-prefix']) ? $selectOptions['table-prefix'] === true : false;
-                $columnsStr = $this->_createColsToSelect($selectOptions['columns'], $withTablePrefix);
+                $columnsStr = $this->createColsToSelect($selectOptions['columns'], $withTablePrefix);
                 if($table instanceof JoinTable){
                     $selectQuery .= trim($columnsStr).' from '.$table->getJoinCondition();
                     if($table->getJoinType() == 'join'){
@@ -936,25 +944,73 @@ class MySQLQuery{
      * @return string
      * @since 1.9.0
      */
-    private function _createColsToSelect($colsArr,$withTablePrefix){
+    public function createColsToSelect($colsArr,$withTablePrefix){
         $retVal = '';
-        if(count($colsArr) == 0){
-            $retVal = '*';
+        $table = $this->getTable();
+        if($table instanceof JoinTable && $table->hasCommon()){
+            if(count($colsArr) == 0){
+                $comma = ' ';
+                foreach ($table->getLeftTable()->getColumns() as $colObj){
+                    $asPart = $comma.$colObj->getName(true).' as left_'.$colObj->getName();
+                    $retVal .= $asPart;
+                    $comma = ',';
+                }
+                foreach ($table->getRightTable()->getColumns() as $colObj){
+                    $asPart = $comma.$colObj->getName(true).' as right_'.$colObj->getName();
+                    $retVal .= $asPart;
+                }
+            }
+            else{
+                $comma = ' ';
+                foreach ($colsArr as $index => $colName){
+                    if(gettype($index) == 'string'){
+                        $colObj = $table->getLeftTable()->getCol($index);
+                        if(!($colObj instanceof MySQLTable)){
+                            $colObj = $table->getRightTable()->getCol($index);
+                            if($colObj instanceof MySQLColumn){
+                                $asPart = ' as '.$colName;
+                            }
+                        }
+                        else{
+                            $asPart = ' as '.$colName;
+                        }
+                    }
+                    else{
+                        $colObj = $table->getLeftTable()->getCol($colName);
+                        if(!($colObj instanceof MySQLTable)){
+                            $colObj = $table->getRightTable()->getCol($index);
+                            if($colObj instanceof MySQLColumn){
+                                $asPart = ' as '.$colName;
+                            }
+                        }
+                        $asPart = '';
+                    }
+                    if($colObj instanceof MySQLColumn){
+                        $retVal .= $comma.$colObj->getName(true).$asPart;
+                        $comma = ',';
+                    }
+                }
+            }
         }
         else{
-            $comma = ' ';
-            foreach ($colsArr as $index => $colName){
-                if(gettype($index) == 'string'){
-                    $colObj = $this->getCol($index);
-                    $asPart = ' as '.$colName;
-                }
-                else{
-                    $colObj = $this->getCol($colName);
-                    $asPart = '';
-                }
-                if($colObj instanceof MySQLColumn){
-                    $retVal .= $comma.$colObj->getName($withTablePrefix).$asPart;
-                    $comma = ',';
+            if(count($colsArr) == 0){
+                $retVal = '*';
+            }
+            else{
+                $comma = ' ';
+                foreach ($colsArr as $index => $colName){
+                    if(gettype($index) == 'string'){
+                        $colObj = $this->getCol($index);
+                        $asPart = ' as '.$colName;
+                    }
+                    else{
+                        $colObj = $this->getCol($colName);
+                        $asPart = '';
+                    }
+                    if($colObj instanceof MySQLColumn){
+                        $retVal .= $comma.$colObj->getName($withTablePrefix).$asPart;
+                        $comma = ',';
+                    }
                 }
             }
         }
