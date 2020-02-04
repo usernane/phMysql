@@ -475,7 +475,7 @@ class MySQLColumn{
      * If the column has no owner, the method will return null.
      * @since 1.5
      */
-    public function &getOwner() {
+    public function getOwner() {
         return $this->ownerTable;
     }
     /**

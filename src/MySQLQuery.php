@@ -791,17 +791,17 @@ class MySQLQuery{
                 $withTablePrefix = isset($selectOptions['table-prefix']) ? $selectOptions['table-prefix'] === true : false;
                 $columnsStr = $this->createColsToSelect($selectOptions['columns'], $withTablePrefix);
                 if($table instanceof JoinTable){
-                    $selectQuery .= trim($columnsStr).' from '.$table->getJoinCondition();
                     if($table->getJoinType() == 'join'){
                         $joinStm = 'join';
                     }
                     else{
                         $joinStm = $table->getJoinType().' join';
                     }
-                    $selectQuery .= $this->_getJoinStm($table, $joinStm);
+                    $completeJoin = $this->_getJoinStm($table, $joinStm);
+                    $selectQuery .= trim($columnsStr,' ').'from '.$completeJoin;
                 }
                 else{
-                    $selectQuery .= trim($columnsStr).' from '.$this->getTableName();
+                    $selectQuery .= trim($columnsStr).'from '.$this->getTableName();
                 }
             }
             else if(isset ($selectOptions['select-max']) && $selectOptions['select-max'] === true){
@@ -838,13 +838,14 @@ class MySQLQuery{
             }
             else{
                 if($table instanceof JoinTable){
+                    $colsToSelect = $this->createColsToSelect([], true);
                     if($table->getJoinType() == 'join'){
                         $joinStm = 'join';
                     }
                     else{
                         $joinStm = $table->getJoinType().' join';
                     }
-                    $selectQuery .= $this->_getJoinStm($table, $joinStm);
+                    $selectQuery .= trim($colsToSelect,' ')."from ".$this->_getJoinStm($table, $joinStm);
                 }
                 else{
                     $selectQuery .= '* from '.$this->getTableName();
@@ -891,7 +892,7 @@ class MySQLQuery{
                     $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
                 }
                 else{
-                    $this->setQuery('select * from ('.$selectQuery.') as '.$table->getName().$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
+                    $this->setQuery('select * from ('.$selectQuery.")\nas ".$table->getName().$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
                 }
             }
             else{
@@ -949,11 +950,11 @@ class MySQLQuery{
         $table = $this->getTable();
         if($table instanceof JoinTable && $table->hasCommon()){
             if(count($colsArr) == 0){
-                $comma = ' ';
+                $comma = " \n";
                 foreach ($table->getLeftTable()->getColumns() as $colObj){
                     $asPart = $comma.$colObj->getName(true).' as left_'.$colObj->getName();
                     $retVal .= $asPart;
-                    $comma = ',';
+                    $comma = ",\n";
                 }
                 foreach ($table->getRightTable()->getColumns() as $colObj){
                     $asPart = $comma.$colObj->getName(true).' as right_'.$colObj->getName();
@@ -961,14 +962,17 @@ class MySQLQuery{
                 }
             }
             else{
-                $comma = ' ';
+                $comma = " \n";
                 foreach ($colsArr as $index => $colName){
                     if(gettype($index) == 'string'){
                         $colObj = $table->getLeftTable()->getCol($index);
-                        if(!($colObj instanceof MySQLTable)){
+                        if(!($colObj instanceof MySQLColumn)){
                             $colObj = $table->getRightTable()->getCol($index);
                             if($colObj instanceof MySQLColumn){
                                 $asPart = ' as '.$colName;
+                            }
+                            else{
+                                $asPart = '';
                             }
                         }
                         else{
@@ -977,17 +981,22 @@ class MySQLQuery{
                     }
                     else{
                         $colObj = $table->getLeftTable()->getCol($colName);
-                        if(!($colObj instanceof MySQLTable)){
+                        if(!($colObj instanceof MySQLColumn)){
                             $colObj = $table->getRightTable()->getCol($index);
                             if($colObj instanceof MySQLColumn){
-                                $asPart = ' as '.$colName;
+                                $asPart = ' as right_'.$colObj->getName();
+                            }
+                            else{
+                                $asPart = '';
                             }
                         }
-                        $asPart = '';
+                        else{
+                            $asPart = ' as left_'.$colObj->getName();
+                        }
                     }
                     if($colObj instanceof MySQLColumn){
                         $retVal .= $comma.$colObj->getName(true).$asPart;
-                        $comma = ',';
+                        $comma = ",\n";
                     }
                 }
             }
@@ -997,7 +1006,7 @@ class MySQLQuery{
                 $retVal = '*';
             }
             else{
-                $comma = ' ';
+                $comma = " \n";
                 foreach ($colsArr as $index => $colName){
                     if(gettype($index) == 'string'){
                         $colObj = $this->getCol($index);
@@ -1009,45 +1018,38 @@ class MySQLQuery{
                     }
                     if($colObj instanceof MySQLColumn){
                         $retVal .= $comma.$colObj->getName($withTablePrefix).$asPart;
-                        $comma = ',';
+                        $comma = ",\n";
                     }
                 }
             }
         }
-        return $retVal;
+        return $retVal."\n";
     }
+    /**
+     * 
+     * @param JoinTable $table
+     * @param string $joinStm
+     * @return string
+     * @since 1.9.0
+     */
     private function _getJoinStm($table,$joinStm){
         $selectQuery = '';
-        if($table->getLeftTable() instanceof JoinTable){
-            if($table->getRightTable() instanceof JoinTable){
-                $tempQ = new MySQLQuery();
-                $tempQ->setTable($table->getLeftTable());
-                $tempQ->select(['without-select'=>true]);
-                $tempQ2 = new MySQLQuery();
-                $tempQ2->setTable($table->getRightTable());
-                $tempQ2->select(['without-select'=>true]);
-                $selectQuery .= $table->getSelectStatement().' from '
-                        . '('.trim($tempQ->getQuery(),';').') as '
-                        .$table->getLeftTable()->getName().' '.$joinStm.' '
-                        .'('.trim($tempQ->getQuery(),';').') as '.
-                        $table->getRightTable()->getName().' '.$table->getJoinCondition();
+        $lt = $table->getLeftTable();
+        $rt = $table->getRightTable();
+        $joinCond = $table->getJoinCondition();
+        if($lt instanceof JoinTable){
+            if($rt instanceof JoinTable){
+                
             }
             else{
-                $tempQ = new MySQLQuery();
-                $tempQ->setTable($table->getLeftTable());
-                $tempQ->select(['without-select'=>true]);
-                $selectQuery .= $table->getSelectStatement().' from ('.trim($tempQ->getQuery(),';').') as '.$table->getLeftTable()->getName().' '.$joinStm.' '.$table->getRightTable()->getName().' '.$table->getJoinCondition();
+                
             }
         }
-        else if($table->getRightTable() instanceof JoinTable){
-            $tempQ = new MySQLQuery();
-            $tempQ->setTable($table->getRightTable());
-            $tempQ->select(['without-select'=>true]);
-            $selectQuery .= $table->getSelectStatement().' from '.$table->getLeftTable()->getName().' '.$joinStm.' '.$tempQ->getQuery().' '.$table->getJoinCondition();
+        else if($rt instanceof JoinTable){
+        
         }
         else{
-            $selectQuery .= $table->getSelectStatement().' from '.$table->getLeftTable()->getName().' '.$joinStm.' '
-                .$table->getRightTable()->getName().' '.$table->getJoinCondition();
+            $selectQuery = $lt->getName().' '.$joinStm.' '.$rt->getName()."\n".$joinCond;
         }
         return $selectQuery;
     }
