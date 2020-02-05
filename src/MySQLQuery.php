@@ -963,42 +963,13 @@ class MySQLQuery{
             }
             else{
                 $comma = " \n";
-                foreach ($colsArr as $index => $colName){
-                    if(gettype($index) == 'string'){
-                        $colObj = $table->getLeftTable()->getCol($index);
-                        if(!($colObj instanceof MySQLColumn)){
-                            $colObj = $table->getRightTable()->getCol($index);
-                            if($colObj instanceof MySQLColumn){
-                                $asPart = ' as '.$colName;
-                            }
-                            else{
-                                $asPart = '';
-                            }
-                        }
-                        else{
-                            $asPart = ' as '.$colName;
-                        }
-                    }
-                    else{
-                        $colObj = $table->getLeftTable()->getCol($colName);
-                        if(!($colObj instanceof MySQLColumn)){
-                            $colObj = $table->getRightTable()->getCol($index);
-                            if($colObj instanceof MySQLColumn){
-                                $asPart = ' as right_'.$colObj->getName();
-                            }
-                            else{
-                                $asPart = '';
-                            }
-                        }
-                        else{
-                            $asPart = ' as left_'.$colObj->getName();
-                        }
-                    }
-                    if($colObj instanceof MySQLColumn){
-                        $retVal .= $comma.$colObj->getName(true).$asPart;
-                        $comma = ",\n";
-                    }
+                if(isset($colsArr['left']) && gettype($colsArr['left']) == 'array'){
+                    $retVal .= $this->_createColToSelechH1($colsArr['left'], $comma);
                 }
+                if(isset($colsArr['right']) && gettype($colsArr['right']) == 'array'){
+                    $retVal .= $this->_createColToSelechH1($colsArr['right'], $comma);
+                }
+                $retVal .= $this->_createColToSelechH1($colsArr, $comma);
             }
         }
         else{
@@ -1024,6 +995,59 @@ class MySQLQuery{
             }
         }
         return $retVal."\n";
+    }
+    private function _createColToSelechH1($colsArr,&$comma,$leftOrRightOrBoth='both') {
+        $retVal = '';
+        foreach ($colsArr as $index => $colName){
+            $colPart = null;
+            if(gettype($index) == 'string'){
+                $colPart = $this->_createColToSelectH2($index, $colName, $leftOrRightOrBoth);
+            }
+            else{
+                $colPart = $retVal .= $this->_createColToSelectH2($colName, null, $leftOrRightOrBoth);
+            }
+            if($colPart !== null){
+                $retVal .= $comma.$colPart;
+                $comma = ",\n";
+            }
+        }
+        return $retVal;
+    }
+    private function _createColToSelectH2($colKey,$alias=null,$leftOrRight='both') {
+        $table = $this->getTable();
+        $left = true;
+        $asPart = null;
+        if($leftOrRight == 'left'){
+            $colObj = $table->getLeftTable()->getCol($colKey);
+        }
+        else if($leftOrRight == 'right'){
+            $left = false;
+            $colObj = $table->getRightTable()->getCol($colKey);
+        }
+        else{
+            $colObj = $table->getLeftTable()->getCol($colKey);
+            if(!($colObj instanceof MySQLColumn)){
+                $left = false;
+                $colObj = $table->getRightTable()->getCol($colKey);
+            }
+        }
+        if($colObj instanceof MySQLColumn){
+            if($alias !== null){
+                $asPart = $colObj->getName(true).' as '.$alias;
+            }
+            else{
+                if($left === true){
+                    $asPart = $colObj->getName(true).' as left_'.$colObj->getName();
+                }
+                else{
+                    $asPart = $colObj->getName(true).' as right_'.$colObj->getName();
+                }
+            }
+        }
+        else{
+            $asPart = null;
+        }
+        return $asPart;
     }
     /**
      * 

@@ -108,6 +108,7 @@ class JoinTest extends TestCase{
                 'id','created-on'
             ]
         ]);
+        print_r("\n\n".$query->getQuery());
         $this->assertEquals('select * from ('
                 . 'select '."\n"
                 . 'a_left_table.id as left_id,'."\n"
@@ -135,26 +136,27 @@ class JoinTest extends TestCase{
      * @param MySQLQuery $query
      * @test
      */
-//    public function testJoinSelect02($query) {
-//        $query->select([
-//            'columns'=>[
-//                'left'=>[
-//                    'id','created-on'
-//                ],
-//                'right'=>[
-//                    'last-updated'
-//                ]
-//            ]
-//        ]);
-//        $this->assertEquals('select * from ('
-//                . 'select '
-//                . 'a_left_table.id as left_id,'."\n"
-//                . 'a_left_table.created_on as left_created_on,'."\n"
-//                . 'a_right_table.created_on as right_created_on,'."\n"
-//                . ' from a_left_table left join a_right_table '
-//                . 'on a_left_table.id = a_right_table.id and a_left_table.created_on = a_right_table.created_on'
-//                . ') as JoinTable;',$query->getQuery());
-//    }
+    public function testJoinSelect02($query) {
+        $query->select([
+            'columns'=>[
+                'left'=>[
+                    'id','created-on'
+                ],
+                'right'=>[
+                    'last-updated'
+                ]
+            ]
+        ]);
+        print_r("\n\n".$query->getQuery());
+        $this->assertEquals('select * from ('
+                . 'select '
+                . 'a_left_table.id as left_id,'."\n"
+                . 'a_left_table.created_on as left_created_on,'."\n"
+                . 'a_right_table.created_on as right_created_on,'."\n"
+                . 'from a_left_table left join a_right_table'."\n"
+                . 'on a_left_table.id = a_right_table.id and a_left_table.created_on = a_right_table.created_on'
+                . ') as JoinTable;',$query->getQuery());
+    }
 }
 
 
