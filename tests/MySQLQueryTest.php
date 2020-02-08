@@ -503,7 +503,8 @@ class MySQLQueryTest extends TestCase{
                 ]
             ]
         ]);
-        $this->assertEquals('select col_00,col_03 from first_table order by col_00 desc, col_01, col_03 asc;',$obj->getQuery());
+        $this->assertEquals('select col_00,'."\n"
+                . 'col_03 from first_table order by col_00 desc, col_01, col_03 asc;',$obj->getQuery());
     }
     /**
      * @test
@@ -731,7 +732,10 @@ class MySQLQueryTest extends TestCase{
                 'email-address'
             ]
         ]);
-        $this->assertEquals('select u_id,first_name as f_name,last_name as l_name,email_address from hello;',$q->getQuery());
+        $this->assertEquals('select u_id,'."\n"
+                . 'first_name as f_name,'."\n"
+                . 'last_name as l_name,'."\n"
+                . 'email_address from hello;',$q->getQuery());
         $q->select([
             'columns'=>[
                 'user-id',
@@ -741,7 +745,10 @@ class MySQLQueryTest extends TestCase{
             ],
             'table-prefix'=>true
         ]);
-        $this->assertEquals('select hello.u_id,hello.first_name as f_name,hello.last_name as l_name,hello.email_address from hello;',$q->getQuery());
+        $this->assertEquals('select hello.u_id,'."\n"
+                . 'hello.first_name as f_name,'."\n"
+                . 'hello.last_name as l_name,'."\n"
+                . 'hello.email_address from hello;',$q->getQuery());
         $q->select([
             'columns'=>[
                 'x'=>'bb',
@@ -753,7 +760,9 @@ class MySQLQueryTest extends TestCase{
                 0
             ]
         ]);
-        $this->assertEquals('select u_id,first_name as f_name,last_name as l_name,email_address from hello;',$q->getQuery());
+        $this->assertEquals('select u_id,'."\n"
+                . 'first_name as f_name,last_name as l_name,'."\n"
+                . 'email_address from hello;',$q->getQuery());
         $q->select();
         $this->assertEquals('select * from hello;',$q->getQuery());
     }
