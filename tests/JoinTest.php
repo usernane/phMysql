@@ -108,7 +108,6 @@ class JoinTest extends TestCase{
                 'id','created-on'
             ]
         ]);
-        print_r("\n\n".$query->getQuery());
         $this->assertEquals('select * from ('
                 . 'select '."\n"
                 . 'a_left_table.id as left_id,'."\n"
@@ -121,7 +120,6 @@ class JoinTest extends TestCase{
                 'id'=>'user_id','created-on'=>'insert_date'
             ]
         ]);
-        print_r("\n\n".$query->getQuery());
         $this->assertEquals('select * from ('
                 . 'select '."\n"
                 . 'a_left_table.id as user_id,'."\n"
@@ -147,15 +145,32 @@ class JoinTest extends TestCase{
                 ]
             ]
         ]);
-        print_r("\n\n".$query->getQuery());
         $this->assertEquals('select * from ('
-                . 'select '
+                . 'select '."\n"
                 . 'a_left_table.id as left_id,'."\n"
                 . 'a_left_table.created_on as left_created_on,'."\n"
-                . 'a_right_table.created_on as right_created_on,'."\n"
+                . 'a_right_table.last_updated as right_last_updated'."\n"
                 . 'from a_left_table left join a_right_table'."\n"
                 . 'on a_left_table.id = a_right_table.id and a_left_table.created_on = a_right_table.created_on'
-                . ') as JoinTable;',$query->getQuery());
+                . ")\nas JoinTable;",$query->getQuery());
+        $query->select([
+            'columns'=>[
+                'left'=>[
+                    'id','created-on'=>'cr_date'
+                ],
+                'right'=>[
+                    'last-updated'=>'l_updated'
+                ]
+            ]
+        ]);
+        $this->assertEquals('select * from ('
+                . 'select '."\n"
+                . 'a_left_table.id as left_id,'."\n"
+                . 'a_left_table.created_on as cr_date,'."\n"
+                . 'a_right_table.last_updated as l_updated'."\n"
+                . 'from a_left_table left join a_right_table'."\n"
+                . 'on a_left_table.id = a_right_table.id and a_left_table.created_on = a_right_table.created_on'
+                . ")\nas JoinTable;",$query->getQuery());
     }
 }
 
