@@ -801,7 +801,7 @@ class MySQLQuery{
                     $selectQuery .= trim($columnsStr,' ').'from '.$completeJoin;
                 }
                 else{
-                    $selectQuery .= trim($columnsStr).'from '.$this->getTableName();
+                    $selectQuery .= trim($columnsStr).' from '.$this->getTableName();
                 }
             }
             else if(isset ($selectOptions['select-max']) && $selectOptions['select-max'] === true){
@@ -1872,7 +1872,7 @@ class MySQLQuery{
      * string MySQLQuery::NO_STRUCTURE.
      * @since 1.6
      */
-    public function &getCol($colKey){
+    public function getCol($colKey){
         $structure = $this->getStructure();
         $retVal = self::NO_STRUCTURE;
         if($structure instanceof MySQLTable){
