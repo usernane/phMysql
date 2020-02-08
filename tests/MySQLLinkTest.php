@@ -125,7 +125,7 @@ class MySQLLinkTest extends TestCase{
         ]);
         $r = $conn->executeQuery($q3);
         if($r === false){
-            print_r($conn->getErrorCode().': '.$conn->getErrorMessage());
+            print_r("\n".$conn->getErrorCode().': '.$conn->getErrorMessage()."\n");
         }
         $this->assertTrue($r);
         $this->assertEquals(4,$conn->rows());
