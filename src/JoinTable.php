@@ -239,6 +239,7 @@ class JoinTable extends MySQLTable{
         $leftCount = count($leftCols);
         $hasCommon = false;
         foreach ($colsArr as $colkey => $colObj){
+            $isAdded = false;
             if($colObj instanceof MySQLColumn){
                 if(in_array($colObj->getName(), $commonCols)){
                     $hasCommon = true;
