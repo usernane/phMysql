@@ -964,10 +964,10 @@ class MySQLQuery{
             else{
                 $comma = " \n";
                 if(isset($colsArr['left']) && gettype($colsArr['left']) == 'array'){
-                    $retVal .= $this->_createColToSelechH1($colsArr['left'], $comma);
+                    $retVal .= $this->_createColToSelechH1($colsArr['left'], $comma, 'left');
                 }
                 if(isset($colsArr['right']) && gettype($colsArr['right']) == 'array'){
-                    $retVal .= $this->_createColToSelechH1($colsArr['right'], $comma);
+                    $retVal .= $this->_createColToSelechH1($colsArr['right'], $comma, 'right');
                 }
                 $retVal .= $this->_createColToSelechH1($colsArr, $comma);
             }
@@ -1004,7 +1004,7 @@ class MySQLQuery{
                 $colPart = $this->_createColToSelectH2($index, $colName, $leftOrRightOrBoth);
             }
             else{
-                $colPart = $retVal .= $this->_createColToSelectH2($colName, null, $leftOrRightOrBoth);
+                $colPart = $this->_createColToSelectH2($colName, null, $leftOrRightOrBoth);
             }
             if($colPart !== null){
                 $retVal .= $comma.$colPart;
