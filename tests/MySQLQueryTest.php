@@ -761,7 +761,8 @@ class MySQLQueryTest extends TestCase{
             ]
         ]);
         $this->assertEquals('select u_id,'."\n"
-                . 'first_name as f_name,last_name as l_name,'."\n"
+                . 'first_name as f_name,'."\n"
+                . 'last_name as l_name,'."\n"
                 . 'email_address from hello;',$q->getQuery());
         $q->select();
         $this->assertEquals('select * from hello;',$q->getQuery());

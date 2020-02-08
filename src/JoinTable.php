@@ -38,7 +38,6 @@ class JoinTable extends MySQLTable{
     private $joinType;
     private $joinCond;
     private $hasCommon;
-    private $selectCols;
     /**
      * Creates new instance of the class.
      * @param MySQLQuery|MySQLTable $leftTable The left table.
@@ -47,7 +46,7 @@ class JoinTable extends MySQLTable{
      * generated from the join. If not given, a name will be generated automatically.
      * @since 1.0
      */
-    public function __construct($leftTable,$rightTable,$tableName=null) {
+    public function __construct($leftTable,$rightTable,$tableName=null,$keysAlias=[]) {
         parent::__construct();
         $this->hasCommon = false;
         if(!$this->setName($tableName)){
@@ -72,8 +71,7 @@ class JoinTable extends MySQLTable{
             $this->rightTable = new MySQLTable('right_table');
         }
         $this->joinType = 'left';
-        $this->selectCols = '';
-        $this->_addAndValidateColmns();
+        $this->_addAndValidateColmns($keysAlias);
     }
     /**
      * Sets the type of the join that will be performed.
@@ -195,7 +193,7 @@ class JoinTable extends MySQLTable{
     /**
      * @since 1.0
      */
-    private function _addAndValidateColmns() {
+    private function _addAndValidateColmns($keysalias=[]) {
         //collect common keys btween the two tables.
         $commonColsKeys = [];
         $leftColsKeys = $this->getLeftTable()->colsKeys();
@@ -239,49 +237,39 @@ class JoinTable extends MySQLTable{
         //rename common columns.
         $index = 0;
         $leftCount = count($leftCols);
-        $totalCount = $leftCount + count($rightCols);
         $hasCommon = false;
         foreach ($colsArr as $colkey => $colObj){
             if($colObj instanceof MySQLColumn){
                 if(in_array($colObj->getName(), $commonCols)){
                     $hasCommon = true;
+                    $isAdded = false;
                     if($index < $leftCount){
-                        if($index + 1 == $totalCount){
-                            $this->selectCols .= $colObj->getName(true).' as left_'.$colObj->getName()."\n";
-                        }
-                        else{
-                            $this->selectCols .= $colObj->getName(true).' as left_'.$colObj->getName().",\n";
-                        }
                         $colObj->setName('left_'.$colObj->getName());
+                        $isAdded = $this->_addWithAlias($colkey, $colObj, $keysalias, 'left');
                     }
                     else{
-                        if($index + 1 == $totalCount){
-                            $this->selectCols .= $colObj->getName(true).' as right_'.$colObj->getName()."\n";
-                        }
-                        else{
-                            $this->selectCols .= $colObj->getName(true).' as right_'.$colObj->getName().",\n";
-                        }
                         $colObj->setName('right_'.$colObj->getName());
-                    }
-                }
-                else{
-                    if($hasCommon){
-                        if($index + 1 == $totalCount){
-                            $this->selectCols .= $colObj->getName(true)."\n";
-                        }
-                        else{
-                            $this->selectCols .= $colObj->getName(true).",\n";
-                        }
+                        $isAdded = $this->_addWithAlias($colkey, $colObj, $keysalias, 'right');
                     }
                 }
             }
-            $this->addColumn($colkey, $colObj);
+            if(!$isAdded){
+                $this->addColumn($colkey, $colObj);
+            }
             $index++;
         }
-        if(!$hasCommon){
-            $this->selectCols = '*';
-        }
         $this->hasCommon = true;
+    }
+    private function _addWithAlias($colkey,$colObj,$aliasArr,$leftOrRight) {
+        $isAdded = false;
+        foreach ($aliasArr as $originalName => $newName){
+            $originalNameC = $leftOrRight.'-'.$originalName;
+            if($originalNameC == $colkey){
+                unset($aliasArr[$originalName]);
+                $isAdded = $this->addColumn($newName, $colObj);
+            }
+        }
+        return $isAdded;
     }
     /**
      * Checks if the two joined tables has common columns between them.
@@ -293,13 +281,5 @@ class JoinTable extends MySQLTable{
      */
     public function hasCommon() {
         return $this->hasCommon;
-    }
-    /**
-     * 
-     * @return type
-     * @since 1.0
-     */
-    public function getSelectStatement() {
-        return $this->selectCols;
     }
 }

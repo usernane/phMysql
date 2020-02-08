@@ -171,6 +171,93 @@ class JoinTest extends TestCase{
                 . 'from a_left_table left join a_right_table'."\n"
                 . 'on a_left_table.id = a_right_table.id and a_left_table.created_on = a_right_table.created_on'
                 . ")\nas JoinTable;",$query->getQuery());
+        return $query;
+    }
+    /**
+     * @depends testJoinSelect02
+     * @param MySQLQuery $query
+     * @test
+     */
+    public function testJoinSelect03($query) {
+        $query->select([
+            'columns'=>[
+                'left'=>[
+                    'id','created-on'=>'cr_date'
+                ],
+                'right'=>[
+                    'last-updated'=>'l_updated'
+                ]
+            ],
+            'where'=>[
+                'left-id'=>44
+            ]
+        ]);
+        $this->assertEquals('select * from ('
+                . 'select '."\n"
+                . 'a_left_table.id as left_id,'."\n"
+                . 'a_left_table.created_on as cr_date,'."\n"
+                . 'a_right_table.last_updated as l_updated'."\n"
+                . 'from a_left_table left join a_right_table'."\n"
+                . 'on a_left_table.id = a_right_table.id and a_left_table.created_on = a_right_table.created_on'
+                . ")\nas JoinTable where JoinTable.left_id = 44;",$query->getQuery());
+    }
+    public function testJoin00() {
+        $query0 = new MySQLQuery('users');
+        $query0->getTable()->addColumns([
+            'user-id'=>[
+                'is-primary'=>true,
+                'size'=>15
+            ],
+            'created-on'=>[
+                'datatype'=>'timestamp',
+                'default'=>'current_timestamp'
+            ],
+            'password'=>[
+                'size'=>64
+            ],
+            'display-name'=>[
+                'size'=>30
+            ],
+            'last-login'=>[
+                'datatype'=>'datetime',
+                'is-null'=>true
+            ],
+            'last-updated'=>[
+                'datatype'=>'datetime',
+                'is-null'=>true
+            ]
+        ]);
+        $query1 = new MySQLQuery('user_articles');
+        $query1->getTable()->addColumns([
+            'article-id'=>[
+                'is-primary'=>true,
+                'size'=>'10'
+            ],
+            'title'=>[
+                'size'=>150
+            ],
+            'content'=>[
+                'size'=>5000
+            ],
+            'created-on'=>[
+                'datatype'=>'timestamp',
+                'default'=>'current_timestamp'
+            ],
+            'last-updated'=>[
+                'datatype'=>'datetime',
+                'is-null'=>true
+            ],
+            'user-id'=>[
+                'is-primary'=>true,
+                'size'=>15
+            ],
+        ]);
+        $joinQuery = $query0->join([
+            'right-table'=>$query1,
+            'join-conditions'=>[
+                
+            ]
+        ]);
     }
 }
 

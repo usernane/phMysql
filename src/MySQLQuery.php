@@ -642,28 +642,24 @@ class MySQLQuery{
      * will be on the left side of the join will be the table which is 
      * linked with current instance and the right table is the one which is 
      * supplied as a parameter to the method.
-     * 
-     * @param MySQLQuery|MySQLTable $right The table or the query that represents 
-     * the table which exist on the right side of the join.
-     * 
-     * @param array $joinCols An associative array of columns. The indices should be 
+     * @param $options array An associative array that contains join information. 
+     * The available options are:
+     * <ul>
+     * <li><b>right-table</b>: This index must be set. It represents the right 
+     * table of the join. It can be an object of type 'MySQLQuery' or an object 
+     * of type 'MySQLTable'.</li>
+     * <li><b>join-cols</b>: An associative array of columns. The indices should be 
      * the names of columns keys taken from left table and the values should be 
-     * columns keys taken from right table.
-     * 
-     * @param string $joinType A string that represents the type of the join. 
-     * It can have a value such as 'left', 'right' or 'cross'. Default is 'join'.
-     * 
-     * @param array $conds An optional array of join conditions. It can have 
-     * values like '=' or '!='.
-     * 
-     * @param array $joinOps An array that contains conditions which are used 
-     * to join the conditions in case of multiple columns joins. It can have 
-     * one of two values, 'and' or 'or'.
-     * 
-     * @param string $alias An optional name for the table that will be created 
+     * columns keys taken from right table.</li>
+     * <li><b>join-conditions</b>: An optional array of join conditions. It can have 
+     * values like '=' or '!='.</li>
+     * <li><b>join-type</b>: A string that represents the type of the join. 
+     * It can have a value such as 'left', 'right' or 'cross'. Default is 'join'.</li>
+     * <li><b>alias</b>: An optional name for the table that will be created 
      * by the join. Default is null which means a name will be generated 
-     * automatically.
-     * 
+     * automatically.</li>
+     * </ul>
+
      * @return MySQLQuery|null If the join is a success, the method will return 
      * an object of type 'MySQLQuery' that can be used to get info from joined 
      * tables. If no join is formed, the method will return null.
@@ -671,7 +667,7 @@ class MySQLQuery{
     public function join($options) {
         $right = isset($options['right-table']) ? $options['right-table'] : null;
         $joinCols = isset($options['join-cols']) && 
-                gettype($options['join-conditions']) == 'array' ? $options['join-conditions'] : [];
+                gettype($options['join-cols']) == 'array' ? $options['join-cols'] : [];
         $joinType = isset($options['join-type']) ? $options['join-type'] : 'join';
         $conds = isset($options['join-conditions']) && 
                 gettype($options['join-conditions']) == 'array' ? $options['join-conditions'] : [];
