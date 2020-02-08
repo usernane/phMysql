@@ -115,8 +115,8 @@ class MySQLLinkTest extends TestCase{
     public function testGetDataTest01($conn) {
         $q = new UsersQuery();
         $q2 = new ArticleQuery();
-        $q3 = $q2->join($q, [
-            'author-id'=>'user-id'
+        $q3 = $q2->join([
+            'right-table'=>$q
         ]);
         $q3->select([
             'where'=>[
