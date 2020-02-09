@@ -263,21 +263,22 @@ class JoinTest extends TestCase{
             'alias'=>'UsersArticles'
         ]);
         $joinQuery->select();
-        print_r($joinQuery->getQuery());
-        $this->assertEquals('select * from ('."\n"
+        print_r($joinQuery->getTable()->getCommonColsNames());
+        print_r("\n".$joinQuery->getQuery()."\n");
+        $this->assertEquals('select * from ('
                 . 'select '."\n"
                 . 'users.user_id as left_user_id,'."\n"
-                . 'users.created_on,'."\n"
+                . 'users.created_on as left_created_on,'."\n"
                 . 'users.password,'."\n"
                 . 'users.display_name,'."\n"
                 . 'users.last_login,'."\n"
-                . 'users.last_updated,'."\n"
+                . 'users.last_updated as left_last_updated,'."\n"
                 . 'user_articles.article_id,'."\n"
                 . 'user_articles.title,'."\n"
                 . 'user_articles.content,'."\n"
                 . 'user_articles.created_on as right_created_on,'."\n"
                 . 'user_articles.last_updated as right_last_updated,'."\n"
-                . 'user_articles.user_id as right_user_id,'."\n"
+                . 'user_articles.user_id as right_user_id'."\n"
                 . 'from users right join user_articles'."\n"
                 . 'on users.user_id = user_articles.user_id)'."\n"
                 . 'as UsersArticles;',$joinQuery->getQuery());

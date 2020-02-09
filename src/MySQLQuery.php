@@ -948,12 +948,22 @@ class MySQLQuery{
             if(count($colsArr) == 0){
                 $comma = " \n";
                 foreach ($table->getLeftTable()->getColumns() as $colObj){
-                    $asPart = $comma.$colObj->getName(true).' as left_'.$colObj->getName();
+                    if($table->isCommon($colObj->getName())){
+                        $asPart = $comma.$colObj->getName(true).' as left_'.$colObj->getName();
+                    }
+                    else{
+                        $asPart = $comma.$colObj->getName(true);
+                    }
                     $retVal .= $asPart;
                     $comma = ",\n";
                 }
                 foreach ($table->getRightTable()->getColumns() as $colObj){
-                    $asPart = $comma.$colObj->getName(true).' as right_'.$colObj->getName();
+                    if($table->isCommon($colObj->getName())){
+                        $asPart = $comma.$colObj->getName(true).' as right_'.$colObj->getName();
+                    }
+                    else{
+                        $asPart = $comma.$colObj->getName(true);
+                    }
                     $retVal .= $asPart;
                 }
             }
@@ -1032,11 +1042,16 @@ class MySQLQuery{
                 $asPart = $colObj->getName(true).' as '.$alias;
             }
             else{
-                if($left === true){
-                    $asPart = $colObj->getName(true).' as left_'.$colObj->getName();
+                if($this->getTable()->isCommon($colObj->getName())){
+                    if($left === true){
+                        $asPart = $colObj->getName(true).' as left_'.$colObj->getName();
+                    }
+                    else{
+                        $asPart = $colObj->getName(true).' as right_'.$colObj->getName();
+                    }
                 }
                 else{
-                    $asPart = $colObj->getName(true).' as right_'.$colObj->getName();
+                    $asPart = $colObj->getName(true);
                 }
             }
         }

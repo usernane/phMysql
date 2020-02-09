@@ -38,6 +38,12 @@ class JoinTable extends MySQLTable{
     private $joinType;
     private $joinCond;
     private $hasCommon;
+    /**
+     * An array that contains the names of the columns which are shared between 
+     * joined tables.
+     * @var array
+     * @since 1.0 
+     */
     private $commonCols;
     /**
      * Creates new instance of the class.
@@ -79,11 +85,16 @@ class JoinTable extends MySQLTable{
      * Checks if a column has the same name in the left and the right table.
      * @param string $colName The name of the column as it appears in the 
      * database.
-     * @return type
+     * @return boolean If the column is common between the two tables, the 
+     * method will return true. Other than that, the method will return false.
+     * @since 1.0
      */
     public function isCommon($colName) {
         $trimmed = trim($colName);
-        return in_array($trimmed, $this->commonCols);
+        return in_array($trimmed, $this->getCommonColsNames());
+    }
+    public function getCommonColsNames() {
+        return $this->commonCols;
     }
     /**
      * Sets the type of the join that will be performed.
@@ -252,7 +263,7 @@ class JoinTable extends MySQLTable{
         foreach ($colsArr as $colkey => $colObj){
             $isAdded = false;
             if($colObj instanceof MySQLColumn){
-                if(in_array($colObj->getName(), $this->commonCols)){
+                if(in_array($colObj->getName(), $this->getCommonColsNames())){
                     $hasCommon = true;
                     $isAdded = false;
                     if($index < $leftCount){
