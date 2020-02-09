@@ -263,7 +263,7 @@ class JoinTest extends TestCase{
             'alias'=>'UsersArticles'
         ]);
         $joinQuery->select();
-        print_message($joinQuery->getQuery());
+        print_r($joinQuery->getQuery());
         $this->assertEquals('select * from ('."\n"
                 . 'select '."\n"
                 . 'users.user_id as left_user_id,'."\n"
