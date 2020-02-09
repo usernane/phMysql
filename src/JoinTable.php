@@ -38,6 +38,7 @@ class JoinTable extends MySQLTable{
     private $joinType;
     private $joinCond;
     private $hasCommon;
+    private $commonCols;
     /**
      * Creates new instance of the class.
      * @param MySQLQuery|MySQLTable $leftTable The left table.
@@ -71,7 +72,18 @@ class JoinTable extends MySQLTable{
             $this->rightTable = new MySQLTable('right_table');
         }
         $this->joinType = 'left';
+        $this->commonCols = [];
         $this->_addAndValidateColmns($keysAlias);
+    }
+    /**
+     * Checks if a column has the same name in the left and the right table.
+     * @param string $colName The name of the column as it appears in the 
+     * database.
+     * @return type
+     */
+    public function isCommon($colName) {
+        $trimmed = trim($colName);
+        return in_array($trimmed, $this->commonCols);
     }
     /**
      * Sets the type of the join that will be performed.
@@ -206,13 +218,12 @@ class JoinTable extends MySQLTable{
             }
         }
         //collect common columns names in the two tables.
-        $commonCols = [];
         $rightCols = $this->getRightTable()->getColsNames();
         $leftCols = $this->getLeftTable()->getColsNames();
         foreach ($rightCols as $col){
             foreach ($leftCols as $col2){
                 if($col == $col2){
-                    $commonCols[] = $col2;
+                    $this->commonCols[] = $col2;
                 }
             }
         }
@@ -241,7 +252,7 @@ class JoinTable extends MySQLTable{
         foreach ($colsArr as $colkey => $colObj){
             $isAdded = false;
             if($colObj instanceof MySQLColumn){
-                if(in_array($colObj->getName(), $commonCols)){
+                if(in_array($colObj->getName(), $this->commonCols)){
                     $hasCommon = true;
                     $isAdded = false;
                     if($index < $leftCount){
