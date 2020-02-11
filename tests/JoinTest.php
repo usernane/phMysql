@@ -263,8 +263,6 @@ class JoinTest extends TestCase{
             'alias'=>'UsersArticles'
         ]);
         $joinQuery->select();
-        print_r($joinQuery->getTable()->getCommonColsNames());
-        print_r("\n".$joinQuery->getQuery()."\n");
         $this->assertEquals('select * from ('
                 . 'select '."\n"
                 . 'users.user_id as left_user_id,'."\n"
@@ -282,6 +280,82 @@ class JoinTest extends TestCase{
                 . 'from users right join user_articles'."\n"
                 . 'on users.user_id = user_articles.user_id)'."\n"
                 . 'as UsersArticles;',$joinQuery->getQuery());
+        $joinQuery->select([
+            'columns'=>[
+                'user-id'
+            ]
+        ]);
+        $this->assertEquals('select * from ('
+                . 'select '."\n"
+                . 'users.user_id as left_user_id'."\n"
+                . 'from users right join user_articles'."\n"
+                . 'on users.user_id = user_articles.user_id)'."\n"
+                . 'as UsersArticles;',$joinQuery->getQuery());
+        $joinQuery->select([
+            'columns'=>[
+                'user-id'=>'a_user_id'
+            ]
+        ]);
+        $this->assertEquals('select * from ('
+                . 'select '."\n"
+                . 'users.user_id as a_user_id'."\n"
+                . 'from users right join user_articles'."\n"
+                . 'on users.user_id = user_articles.user_id)'."\n"
+                . 'as UsersArticles;',$joinQuery->getQuery());
+        $joinQuery->select([
+            'columns'=>[
+                'user-id'=>'a_user_id',
+                'right'=>[
+                    'user-id'=>'x_id',
+                    'created-on'
+                ]
+            ]
+        ]);
+        $this->assertEquals('select * from ('
+                . 'select '."\n"
+                . 'user_articles.user_id as x_id,'."\n"
+                . 'user_articles.created_on as right_created_on,'."\n"
+                . 'users.user_id as a_user_id'."\n"
+                . 'from users right join user_articles'."\n"
+                . 'on users.user_id = user_articles.user_id)'."\n"
+                . 'as UsersArticles;',$joinQuery->getQuery());
+        $joinQuery->select([
+            'columns'=>[
+                'user-id'=>'a_user_id',
+                'right'=>[
+                    'user-id'=>'x_id',
+                    'created-on'
+                ]
+            ],
+            'limit'=>6
+        ]);
+        $this->assertEquals('select * from ('
+                . 'select '."\n"
+                . 'user_articles.user_id as x_id,'."\n"
+                . 'user_articles.created_on as right_created_on,'."\n"
+                . 'users.user_id as a_user_id'."\n"
+                . 'from users right join user_articles'."\n"
+                . 'on users.user_id = user_articles.user_id)'."\n"
+                . 'as UsersArticles limit 6;',$joinQuery->getQuery());
+        $joinQuery->select([
+            'columns'=>[
+                'user-id'=>'a_user_id',
+                'right'=>[
+                    'user-id'=>'x_id',
+                    'created-on'
+                ]
+            ],
+            'limit'=>6,
+            'offset'=>770
+        ]);
+        $this->assertEquals('select * from ('
+                . 'select '."\n"
+                . 'user_articles.user_id as x_id,'."\n"
+                . 'user_articles.created_on as right_created_on,'."\n"
+                . 'users.user_id as a_user_id'."\n"
+                . 'from users right join user_articles'."\n"
+                . 'on users.user_id = user_articles.user_id)'."\n"
+                . 'as UsersArticles limit 6 offset 770;',$joinQuery->getQuery());
     }
 }
 

@@ -692,7 +692,10 @@ class MySQLQuery{
      * entity class is in a namespace, then this value must have the name of the 
      * namespace.</li>
      * <li><b>colums</b>: An optional array which can have the keys of columns that 
-     * will be select.</li>
+     * will be select. Also, this array can be an associative array. The indices are columns 
+     * keys and the values are aliases for the columns. In case of joins, the array can have 
+     * two sub arrays for selecting columns from left or right table. the first 
+     * can exist in the index 'left' and the second one in the index 'right'.</li>
      * <li><b>limit</b>: The 'limit' attribute of the query.</li>
      * <li><b>offset</b>: The 'offset' attribute of the query. Ignored if the 
      * option 'limit' is not set.</li>
