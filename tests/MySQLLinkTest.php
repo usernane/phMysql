@@ -116,13 +116,17 @@ class MySQLLinkTest extends TestCase{
         $q = new UsersQuery();
         $q2 = new ArticleQuery();
         $q3 = $q2->join([
-            'right-table'=>$q
+            'right-table'=>$q,
+            'join-cols'=>[
+                'author-id'=>'user-id'
+            ]
         ]);
         $q3->select([
             'where'=>[
                 'author-id'=>1
             ]
         ]);
+        print_r($q3->getQuery());
         $r = $conn->executeQuery($q3);
         if($r === false){
             print_r("\n".$conn->getErrorCode().': '.$conn->getErrorMessage()."\n");
