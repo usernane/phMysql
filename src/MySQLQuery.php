@@ -658,6 +658,13 @@ class MySQLQuery{
      * <li><b>alias</b>: An optional name for the table that will be created 
      * by the join. Default is null which means a name will be generated 
      * automatically.</li>
+     * <li><b>keys-map</b>: An optional array that can have two associative 
+     * arrays. One with key 'left' and the other is with key 'right'. Each one 
+     * of the two arrays can have new names for table columns keys. The indices 
+     * in each array are the original keys names taken from joined tables and 
+     * the values are the new keys which will exist in the joined table. It is 
+     * simply used to map joined keys with new keys which will exist in the new 
+     * joined table.</li>
      * </ul>
 
      * @return MySQLQuery|null If the join is a success, the method will return 
@@ -673,9 +680,11 @@ class MySQLQuery{
                 gettype($options['join-conditions']) == 'array' ? $options['join-conditions'] : [];
         $joinOps = [];
         $alias = isset($options['alias']) ? $options['alias'] : null;
+        $keysAliases = isset($options['keys-map']) && 
+                gettype($options['keys-map']) == 'array' ? $options['keys-map'] : [];
         if($right instanceof MySQLQuery || $right instanceof MySQLTable){
             $joinQuery = new MySQLQuery();
-            $joinTable = new JoinTable($this, $right, $alias);
+            $joinTable = new JoinTable($this, $right, $alias, $keysAliases);
             $joinTable->setJoinType($joinType);
             $joinTable->setJoinCondition($joinCols, $conds, $joinOps);
             $joinQuery->setTable($joinTable);
@@ -691,7 +700,7 @@ class MySQLQuery{
      * of the entity class at which query result will be mapped to. If the 
      * entity class is in a namespace, then this value must have the name of the 
      * namespace.</li>
-     * <li><b>colums</b>: An optional array which can have the keys of columns that 
+     * <li><b>columns</b>: An optional array which can have the keys of columns that 
      * will be select. Also, this array can be an associative array. The indices are columns 
      * keys and the values are aliases for the columns. In case of joins, the array can have 
      * two sub arrays for selecting columns from left or right table. the first 
@@ -745,7 +754,7 @@ class MySQLQuery{
      * @since 1.8.3
      */
     public function select($selectOptions=array(
-        'colums'=>[],
+        'columns'=>[],
         'condition-cols-and-vals'=>[],
         'conditions'=>[],
         'join-operators'=>[],
@@ -867,10 +876,15 @@ class MySQLQuery{
                     }
                     else{
                         if(gettype($valOrColIndex) == 'integer'){
-                            $testCol = $this->getTable()->getColByIndex($valOrColIndex);
+                            $testCol = $table->getColByIndex($valOrColIndex);
                         }
                         else{
-                            $testCol = $this->getTable()->getCol($valOrColIndex);
+                            if($table instanceof JoinTable){
+                                $testCol = $table->getJoinCol($valOrColIndex);
+                            }
+                            else{
+                                $testCol = $table->getCol($valOrColIndex);
+                            }
                         }
                         $cols[] = $testCol;
                         $vals[] = $colOrVal;
@@ -888,7 +902,7 @@ class MySQLQuery{
             }
             if($table instanceof JoinTable){
                 if(isset($selectOptions['without-select']) && $selectOptions['without-select'] === true){
-                    $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
+                    $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart, 'select');
                 }
                 else{
                     $this->setQuery('select * from ('.$selectQuery.")\nas ".$table->getName().$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
@@ -1026,6 +1040,7 @@ class MySQLQuery{
         $table = $this->getTable();
         $left = true;
         $asPart = null;
+        $updateName = false;
         if($leftOrRight == 'left'){
             $colObj = $table->getLeftTable()->getCol($colKey);
         }
@@ -1038,11 +1053,18 @@ class MySQLQuery{
             if(!($colObj instanceof MySQLColumn)){
                 $left = false;
                 $colObj = $table->getRightTable()->getCol($colKey);
+                if(!($colObj instanceof MySQLColumn) && $alias !== null){
+                    $colObj = $table->getCol($colKey);
+                    $updateName = true;
+                }
             }
         }
         if($colObj instanceof MySQLColumn){
             if($alias !== null){
                 $asPart = $colObj->getName(true).' as '.$alias;
+                if($updateName){
+                    $colObj->setName($alias);
+                }
             }
             else{
                 if($this->getTable()->isCommon($colObj->getName())){
@@ -1080,7 +1102,12 @@ class MySQLQuery{
                 
             }
             else{
-                
+                $tempQuery = new MySQLQuery();
+                $tempQuery->setTable($lt);
+                $tempQuery->select([
+                    'without-select'=>true
+                ]);
+                $selectQuery = '('.$tempQuery->getQuery().') as '.$lt->getName().' '.$joinStm.' '.$rt->getName()."\n".$joinCond;
             }
         }
         else if($rt instanceof JoinTable){

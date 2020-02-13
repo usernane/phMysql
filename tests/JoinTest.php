@@ -357,6 +357,102 @@ class JoinTest extends TestCase{
                 . 'on users.user_id = user_articles.user_id)'."\n"
                 . 'as UsersArticles limit 6 offset 770;',$joinQuery->getQuery());
     }
+    public function testJoinNewKeys00() {
+        $query0 = new MySQLQuery('users');
+        $query0->getTable()->addColumns([
+            'user-id'=>[
+                'is-primary'=>true,
+                'size'=>15
+            ],
+            'created-on'=>[
+                'datatype'=>'timestamp',
+                'default'=>'current_timestamp'
+            ]
+        ]);
+        $query1 = new MySQLQuery('user_articles');
+        $query1->getTable()->addColumns([
+            'article-id'=>[
+                'is-primary'=>true,
+                'size'=>'10'
+            ],
+            'user-id'=>[
+                'is-primary'=>true,
+                'size'=>15
+            ],
+        ]);
+        $joinQuery = $query0->join([
+            'right-table'=>$query1,
+            'join-cols'=>[
+                'user-id'=>'user-id'
+            ],
+            'join-type'=>'right',
+            'alias'=>'UsersArticles',
+            'keys-map'=>[
+                'left'=>[
+                    'user-id'=>'main-user-id'
+                ]
+            ]
+        ]);
+        $this->assertTrue($joinQuery->getTable()->hasColumn('main-user-id'));
+        $joinQuery->select([
+            'where'=>[
+                'main-user-id'=>77
+            ]
+        ]);
+        $this->assertEquals('select * from ('
+                . 'select '."\n"
+                . 'users.user_id as left_user_id,'."\n"
+                . 'users.created_on,'."\n"
+                . 'user_articles.article_id,'."\n"
+                . 'user_articles.user_id as right_user_id'."\n"
+                . 'from users right join user_articles'."\n"
+                . 'on users.user_id = user_articles.user_id)'."\n"
+                . 'as UsersArticles where UsersArticles.left_user_id = \'77\';',$joinQuery->getQuery());
+        $joinQuery->select([
+            'where'=>[
+                'main-user-id'=>77
+            ],
+            'columns'=>[
+                'main-user-id'=>'u_id'
+            ]
+        ]);
+        $this->assertEquals('select * from ('
+                . 'select '."\n"
+                . 'users.user_id as u_id'."\n"
+                . 'from users right join user_articles'."\n"
+                . 'on users.user_id = user_articles.user_id)'."\n"
+                . 'as UsersArticles where UsersArticles.left_user_id = \'77\';',$joinQuery->getQuery());
+        $joinQuery2 = $joinQuery->join([
+            'right-table'=>$query0,
+            'join-cols'=>[
+                'main-user-id'=>'user-id'
+            ],
+            'alias'=>'SubJoin',
+            'join-type'=>'left',
+            'keys-map'=>[
+                'left'=>[
+                    'main-user-id'=>'l-user',
+                    'created-on'=>'l-created-on',
+                    'article-id'=>'article-id',
+                    'right-user-id'=>'l-user-2'
+                ],
+                'right'=>[
+                    'user-id'=>'r-user',
+                    'created-on'=>'r-created-on'
+                ]
+            ]
+        ]);
+        $this->assertEquals(6,count($joinQuery2->getTable()->getColsNames()));
+        $this->assertTrue($joinQuery2->getTable()->hasColumn('l-user'));
+        $this->assertTrue($joinQuery2->getTable()->hasColumn('l-created-on'));
+        $this->assertTrue($joinQuery2->getTable()->hasColumn('article-id'));
+        $this->assertTrue($joinQuery2->getTable()->hasColumn('l-user-2'));
+        $this->assertTrue($joinQuery2->getTable()->hasColumn('r-user'));
+        $this->assertTrue($joinQuery2->getTable()->hasColumn('r-created-on'));
+        $joinQuery2->select();
+        //print_r($joinQuery2->getQuery());
+        //$this->assertEquals('',$joinQuery2->getQuery());
+    }
 }
 
 

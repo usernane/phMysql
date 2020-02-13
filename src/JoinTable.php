@@ -38,6 +38,7 @@ class JoinTable extends MySQLTable{
     private $joinType;
     private $joinCond;
     private $hasCommon;
+    private $keysMap;
     /**
      * An array that contains the names of the columns which are shared between 
      * joined tables.
@@ -47,13 +48,22 @@ class JoinTable extends MySQLTable{
     private $commonCols;
     /**
      * Creates new instance of the class.
-     * @param MySQLQuery|MySQLTable $leftTable The left table.
-     * @param MySQLQuery|MySQLTable $rightTable The right table.
+     * @param MySQLQuery|MySQLTable $leftTable The left table. It can be an 
+     * instance of the class 'MySQLQuery' or 'MySQLTable'.
+     * @param MySQLQuery|MySQLTable $rightTable The right table. It can be an 
+     * instance of the class 'MySQLQuery' or 'MySQLTable'.
      * @param string $tableName An optional name for the table which will be 
-     * generated from the join. If not given, a name will be generated automatically.
+     * be given to the joined table. If not given, a name will be generated automatically.
+     * @param array $keysMap An optional array that can have two associative 
+     * arrays. One with key 'left' and the other is with key 'right'. Each one 
+     * of the two arrays can have new names for table columns keys. The indices 
+     * in each array are the original keys names taken from joined tables and 
+     * the values are the new keys which will exist in the joined table. It is 
+     * simply used to map joined keys with new keys which will exist in the new 
+     * joined table.
      * @since 1.0
      */
-    public function __construct($leftTable,$rightTable,$tableName=null,$keysAlias=[]) {
+    public function __construct($leftTable,$rightTable,$tableName=null,$keysMap=[]) {
         parent::__construct();
         $this->hasCommon = false;
         if(!$this->setName($tableName)){
@@ -79,7 +89,44 @@ class JoinTable extends MySQLTable{
         }
         $this->joinType = 'left';
         $this->commonCols = [];
-        $this->_addAndValidateColmns($keysAlias);
+        $this->keysMap = [
+            'left'=>[],
+            'right'=>[]
+        ];
+        $this->_addAndValidateColmns($keysMap);
+    }
+    /**
+     * Returns the column object given the key that it was stored in.
+     * The method will first check if the given key is mapped to one of the 
+     * joined tables. If it was mapped, the method will return the column 
+     * taken from the joined table.
+     * @param string $key The name of the column key.
+     * @return MySQLColumn|null An object of type Column is returned if the given 
+     * column was found. null in case of no column was found.
+     * @since 1.0
+     */
+    public function getCol($key) {
+        if(isset($this->keysMap['left'][$key])){
+            $tmpCol = $this->getLeftTable()->getCol($this->keysMap['left'][$key]);
+            return $tmpCol;
+        }
+        else if(isset($this->keysMap['right'][$key])){
+            $tmpCol = $this->getLeftTable()->getCol($this->keysMap['right'][$key]);
+            return $tmpCol;
+        }
+        return $this->getJoinCol($key);
+    }
+    /**
+     * Returns the column object given the key that it was stored in.
+     * This method is used to skip mapping check which is used by the 
+     * method Table::getCol().
+     * @param string $key The name of the column key.
+     * @return MySQLColumn|null An object of type Column is returned if the given 
+     * column was found. null in case of no column was found.
+     * @since 1.0
+     */
+    public function getJoinCol($key) {
+        return parent::getCol($key);
     }
     /**
      * Checks if a column has the same name in the left and the right table.
@@ -216,7 +263,7 @@ class JoinTable extends MySQLTable{
     /**
      * @since 1.0
      */
-    private function _addAndValidateColmns($keysalias=[]) {
+    private function _addAndValidateColmns($keysMap=[]) {
         //collect common keys btween the two tables.
         $commonColsKeys = [];
         $leftColsKeys = $this->getLeftTable()->colsKeys();
@@ -242,54 +289,88 @@ class JoinTable extends MySQLTable{
         $colsArr = [];
         foreach ($leftColsKeys as $col){
             if(in_array($col, $commonColsKeys)){
-                $colsArr['left-'.$col] = clone $this->getLeftTable()->getCol($col);
+                if($this->getLeftTable() instanceof JoinTable){
+                    $colsArr['left-'.$col] = clone $this->getLeftTable()->getJoinCol($col);
+                }
+                else{
+                    $colsArr['left-'.$col] = clone $this->getLeftTable()->getCol($col);
+                }
             }
             else{
-                $colsArr[$col] = clone $this->getLeftTable()->getCol($col);
+                if($this->getLeftTable() instanceof JoinTable){
+                    $colsArr[$col] = clone $this->getLeftTable()->getJoinCol($col);
+                }
+                else{
+                    $colsArr[$col] = clone $this->getLeftTable()->getCol($col);
+                }
             }
         }
         foreach ($rightColsKeys as $col){
             if(in_array($col, $commonColsKeys)){
-                $colsArr['right-'.$col] = clone $this->getRightTable()->getCol($col);
+                if($this->getRightTable() instanceof JoinTable){
+                    $colsArr['right-'.$col] = clone $this->getRightTable()->getJoinCol($col);
+                }
+                else{
+                    $colsArr['right-'.$col] = clone $this->getRightTable()->getCol($col);
+                }
             }
             else{
-                $colsArr[$col] = clone $this->getRightTable()->getCol($col);
+                if($this->getRightTable() instanceof JoinTable){
+                    $colsArr[$col] = clone $this->getRightTable()->getJoinCol($col);
+                }
+                else{
+                    $colsArr[$col] = clone $this->getRightTable()->getCol($col);
+                }
             }
         }
         //rename common columns.
         $index = 0;
         $leftCount = count($leftCols);
         $hasCommon = false;
+        $commonNamesArr = $this->getCommonColsNames();
         foreach ($colsArr as $colkey => $colObj){
             $isAdded = false;
-            if($colObj instanceof MySQLColumn){
-                if(in_array($colObj->getName(), $this->getCommonColsNames())){
-                    $hasCommon = true;
-                    $isAdded = false;
-                    if($index < $leftCount){
-                        $colObj->setName('left_'.$colObj->getName());
-                        $isAdded = $this->_addWithAlias($colkey, $colObj, $keysalias, 'left');
-                    }
-                    else{
-                        $colObj->setName('right_'.$colObj->getName());
-                        $isAdded = $this->_addWithAlias($colkey, $colObj, $keysalias, 'right');
-                    }
+            $colName = $colObj->getName();
+            if(in_array($colName, $commonNamesArr)){
+                $hasCommon = true;
+                $isAdded = false;
+                if($index < $leftCount){
+                    $colObj->setName('left_'.$colName);
+                    $isAdded = $this->_addWithAlias($colkey, $colObj, $keysMap, 'left');
+                }
+                else{
+                    $colObj->setName('right_'.$colName);
+                    $isAdded = $this->_addWithAlias($colkey, $colObj, $keysMap, 'right');
                 }
             }
             if(!$isAdded){
-                $this->addColumn($colkey, $colObj);
+                if($index < $leftCount){
+                    $isAdded = $this->_addWithAlias($colkey, $colObj, $keysMap, 'left');
+                }
+                else{
+                    $isAdded = $this->_addWithAlias($colkey, $colObj, $keysMap, 'right');
+                }
+                if(!$isAdded){
+                    $this->addColumn($colkey, $colObj);
+                }
             }
             $index++;
         }
         $this->hasCommon = true;
     }
-    private function _addWithAlias($colkey,$colObj,$aliasArr,$leftOrRight) {
+    private function _addWithAlias($colkey,$colObj,&$aliasArr,$leftOrRight) {
         $isAdded = false;
-        foreach ($aliasArr as $originalName => $newName){
+        $colsNames = isset($aliasArr[$leftOrRight]) && gettype($aliasArr[$leftOrRight]) == 'array' ? 
+                $aliasArr[$leftOrRight] : [];
+        foreach ($colsNames as $originalName => $newName){
             $originalNameC = $leftOrRight.'-'.$originalName;
-            if($originalNameC == $colkey){
-                unset($aliasArr[$originalName]);
+            if($originalNameC == $colkey || $originalName == $colkey){
+                unset($aliasArr[$leftOrRight][$originalName]);
                 $isAdded = $this->addColumn($newName, $colObj);
+                if($isAdded){
+                    $this->keysMap[$leftOrRight][$newName] = $originalName;
+                }
+                break;
             }
         }
         return $isAdded;

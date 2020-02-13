@@ -992,7 +992,7 @@ class MySQLTable {
     /**
      * Returns the column object given the key that it was stored in.
      * @param string $key The name of the column key.
-     * @return MySQLColumn|null A reference to an object of type Column if the given 
+     * @return MySQLColumn|null MySQLColumn|null An object of type Column is returned if the given 
      * column was found. null in case of no column was found.
      * @since 1.0
      */
