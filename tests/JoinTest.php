@@ -94,7 +94,7 @@ class JoinTest extends TestCase{
                 . 'a_right_table.last_updated as right_last_updated'."\n"
                 . 'from a_left_table left join a_right_table'."\n"
                 . 'on a_left_table.id = a_right_table.id and a_left_table.created_on = a_right_table.created_on'
-                . ';',$query->getQuery());
+                . '',$query->getQuery());
         return $query;
     }
     /**
@@ -450,8 +450,24 @@ class JoinTest extends TestCase{
         $this->assertTrue($joinQuery2->getTable()->hasColumn('r-user'));
         $this->assertTrue($joinQuery2->getTable()->hasColumn('r-created-on'));
         $joinQuery2->select();
-        //print_r($joinQuery2->getQuery());
-        //$this->assertEquals('',$joinQuery2->getQuery());
+        print_r($joinQuery2->getQuery());
+        $this->assertEquals('select * from (select '."\n"
+                . 'UsersArticles.left_user_id,'."\n"
+                . 'UsersArticles.created_on as left_created_on,'."\n"
+                . 'UsersArticles.article_id,'."\n"
+                . 'UsersArticles.right_user_id,'."\n"
+                . 'users.user_id,'."\n"
+                . 'users.created_on as right_created_on'."\n"
+                . 'from (select'."\n"
+                . 'users.user_id as left_user_id,'."\n"
+                . 'users.created_on,'."\n"
+                . 'user_articles.article_id,'."\n"
+                . 'user_articles.user_id as right_user_id'."\n"
+                . 'from users right join user_articles'."\n"
+                . 'on users.user_id = user_articles.user_id) as UsersArticles left join users'."\n"
+                . 'on UsersArticles.left_user_id = users.user_id)'."\n"
+                . 'as SubJoin;'
+                . '',$joinQuery2->getQuery());
     }
 }
 

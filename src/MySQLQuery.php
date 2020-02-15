@@ -100,6 +100,7 @@ class MySQLQuery{
      * @since 1.0
      */
     private $query;
+    private $origColsNames;
     /**
      * A string that represents the type of the query such as 'select' or 'update'.
      * @var string 
@@ -277,6 +278,7 @@ class MySQLQuery{
         $this->query = self::SELECT.$this->getTableName();
         $this->queryType = 'select';
         $this->setIsBlobInsertOrUpdate(false);
+        $this->origColsNames = [];
     }
     /**
      * Links a table to the query.
@@ -933,6 +935,9 @@ class MySQLQuery{
             else{
                 $this->resultMap = null;
             }
+            foreach ($this->origColsNames as $key => $origName){
+                $this->getCol($key)->setName($origName);
+            }
             return true;
         }
         return false;
@@ -1063,6 +1068,7 @@ class MySQLQuery{
             if($alias !== null){
                 $asPart = $colObj->getName(true).' as '.$alias;
                 if($updateName){
+                    $this->origColsNames[$colKey] = $colObj->getName();
                     $colObj->setName($alias);
                 }
             }
