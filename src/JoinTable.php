@@ -195,10 +195,22 @@ class JoinTable extends MySQLTable{
             }
             $index = 0;
             $this->joinCond = null;
+            $leftTable = $this->getLeftTable();
+            $rightTable = $this->getRightTable();
             foreach ($cols as $leftCol => $rightCol){
-                $leftColObj = $this->getLeftTable()->getCol($leftCol);
+                if($leftTable instanceof JoinTable){
+                    $leftColObj = $leftTable->getJoinCol($leftCol);
+                }
+                else{
+                    $leftColObj = $leftTable->getCol($leftCol);
+                }
                 if($leftColObj instanceof MySQLColumn){
-                    $rightColObj = $this->getRightTable()->getCol($rightCol);
+                    if($rightTable instanceof JoinTable){
+                        $rightColObj = $rightTable->getJoinCol($rightCol);
+                    }
+                    else{
+                        $rightColObj = $rightTable->getCol($rightCol);
+                    }
                     if($rightColObj instanceof MySQLColumn){
                         if($rightColObj->getType() == $leftColObj->getType()){
                             $cond = $conds[$index];
@@ -208,16 +220,16 @@ class JoinTable extends MySQLTable{
                                     $joinOp = 'and';
                                 }
                                 $this->joinCond .= 
-                                   ' '.$joinOp.' '.$this->getLeftTable()->getName().'.'
+                                   ' '.$joinOp.' '.$leftTable->getName().'.'
                                    . $leftColObj->getName().' '.$cond.' '
-                                   . $this->getRightTable()->getName().'.'
+                                   . $rightTable->getName().'.'
                                    . $rightColObj->getName();
                             }
                             else{
                                 $this->joinCond = 
-                                   'on '.$this->getLeftTable()->getName().'.'
+                                   'on '.$leftTable->getName().'.'
                                    . $leftColObj->getName().' '.$cond.' '
-                                   . $this->getRightTable()->getName().'.'
+                                   . $rightTable->getName().'.'
                                    . $rightColObj->getName();
                             }
                         }

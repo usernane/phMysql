@@ -120,6 +120,7 @@ class JoinTest extends TestCase{
                 'id'=>'user_id','created-on'=>'insert_date'
             ]
         ]);
+        print_r("\n\n".$query->getQuery());
         $this->assertEquals('select * from ('
                 . 'select '."\n"
                 . 'a_left_table.id as user_id,'."\n"
@@ -416,12 +417,13 @@ class JoinTest extends TestCase{
                 'main-user-id'=>'u_id'
             ]
         ]);
+        print_r($joinQuery->getQuery());
         $this->assertEquals('select * from ('
                 . 'select '."\n"
                 . 'users.user_id as u_id'."\n"
                 . 'from users right join user_articles'."\n"
                 . 'on users.user_id = user_articles.user_id)'."\n"
-                . 'as UsersArticles where UsersArticles.left_user_id = \'77\';',$joinQuery->getQuery());
+                . 'as UsersArticles where UsersArticles.u_id = \'77\';',$joinQuery->getQuery());
         $joinQuery2 = $joinQuery->join([
             'right-table'=>$query0,
             'join-cols'=>[
@@ -450,7 +452,6 @@ class JoinTest extends TestCase{
         $this->assertTrue($joinQuery2->getTable()->hasColumn('r-user'));
         $this->assertTrue($joinQuery2->getTable()->hasColumn('r-created-on'));
         $joinQuery2->select();
-        print_r($joinQuery2->getQuery());
         $this->assertEquals('select * from (select '."\n"
                 . 'UsersArticles.left_user_id,'."\n"
                 . 'UsersArticles.created_on as left_created_on,'."\n"
@@ -458,7 +459,35 @@ class JoinTest extends TestCase{
                 . 'UsersArticles.right_user_id,'."\n"
                 . 'users.user_id,'."\n"
                 . 'users.created_on as right_created_on'."\n"
-                . 'from (select'."\n"
+                . 'from (select '."\n"
+                . 'users.user_id as left_user_id,'."\n"
+                . 'users.created_on,'."\n"
+                . 'user_articles.article_id,'."\n"
+                . 'user_articles.user_id as right_user_id'."\n"
+                . 'from users right join user_articles'."\n"
+                . 'on users.user_id = user_articles.user_id) as UsersArticles left join users'."\n"
+                . 'on UsersArticles.left_user_id = users.user_id)'."\n"
+                . 'as SubJoin;'
+                . '',$joinQuery2->getQuery());
+        $joinQuery2->select([
+            'columns'=>[
+                'left'=>[
+                    'l-user'=>'user_id_1'
+                ],
+                'right'=>[
+                    'r-user'=>'user_id_2'
+                ]
+            ]
+        ]);
+        print_r($joinQuery2->getQuery());
+        $this->assertEquals('select user_id_1,user_id_2 from (select '."\n"
+                . 'UsersArticles.left_user_id,'."\n"
+                . 'UsersArticles.created_on as left_created_on,'."\n"
+                . 'UsersArticles.article_id,'."\n"
+                . 'UsersArticles.right_user_id,'."\n"
+                . 'users.user_id,'."\n"
+                . 'users.created_on as right_created_on'."\n"
+                . 'from (select '."\n"
                 . 'users.user_id as left_user_id,'."\n"
                 . 'users.created_on,'."\n"
                 . 'user_articles.article_id,'."\n"

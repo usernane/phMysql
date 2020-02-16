@@ -881,12 +881,12 @@ class MySQLQuery{
                             $testCol = $table->getColByIndex($valOrColIndex);
                         }
                         else{
-                            if($table instanceof JoinTable){
-                                $testCol = $table->getJoinCol($valOrColIndex);
-                            }
-                            else{
+//                            if($table instanceof JoinTable){
+//                                $testCol = $table->getJoinCol($valOrColIndex);
+//                            }
+//                            else{
                                 $testCol = $table->getCol($valOrColIndex);
-                            }
+                            //}
                         }
                         $cols[] = $testCol;
                         $vals[] = $colOrVal;
@@ -971,7 +971,9 @@ class MySQLQuery{
                 $comma = " \n";
                 foreach ($table->getLeftTable()->getColumns() as $colObj){
                     if($table->isCommon($colObj->getName())){
-                        $asPart = $comma.$colObj->getName(true).' as left_'.$colObj->getName();
+                        $alias = 'left_'.$colObj->getName();
+                        $colObj->setAlias($alias);
+                        $asPart = $comma.$colObj->getName(true).' as '.$alias;
                     }
                     else{
                         $asPart = $comma.$colObj->getName(true);
@@ -981,7 +983,9 @@ class MySQLQuery{
                 }
                 foreach ($table->getRightTable()->getColumns() as $colObj){
                     if($table->isCommon($colObj->getName())){
-                        $asPart = $comma.$colObj->getName(true).' as right_'.$colObj->getName();
+                        $alias = 'right_'.$colObj->getName();
+                        $colObj->setAlias($alias);
+                        $asPart = $comma.$colObj->getName(true).' as '.$alias;
                     }
                     else{
                         $asPart = $comma.$colObj->getName(true);
@@ -1009,6 +1013,7 @@ class MySQLQuery{
                 foreach ($colsArr as $index => $colName){
                     if(gettype($index) == 'string'){
                         $colObj = $this->getCol($index);
+                        $colObj->setAlias($colName);
                         $asPart = ' as '.$colName;
                     }
                     else{
@@ -1041,23 +1046,52 @@ class MySQLQuery{
         }
         return $retVal;
     }
+    /**
+     * 
+     * @param type $colKey
+     * @param type $alias
+     * @param type $leftOrRight
+     * @return type
+     */
     private function _createColToSelectH2($colKey,$alias=null,$leftOrRight='both') {
         $table = $this->getTable();
         $left = true;
         $asPart = null;
         $updateName = false;
+        $leftTable = $table->getLeftTable();
+        $rightTable = $table->getRightTable();
         if($leftOrRight == 'left'){
-            $colObj = $table->getLeftTable()->getCol($colKey);
+            if($leftTable instanceof JoinTable){
+                $colObj = $leftTable->getJoinCol($colKey);
+            }
+            else{
+                $colObj = $leftTable->getCol($colKey);
+            }
         }
         else if($leftOrRight == 'right'){
             $left = false;
-            $colObj = $table->getRightTable()->getCol($colKey);
+            if($rightTable instanceof JoinTable){
+                $colObj = $rightTable->getJoinCol($colKey);
+            }
+            else{
+                $colObj = $rightTable->getCol($colKey);
+            }
         }
         else{
-            $colObj = $table->getLeftTable()->getCol($colKey);
+            if($leftTable instanceof JoinTable){
+                $colObj = $leftTable->getJoinCol($colKey);
+            }
+            else{
+                $colObj = $leftTable->getCol($colKey);
+            }
             if(!($colObj instanceof MySQLColumn)){
                 $left = false;
-                $colObj = $table->getRightTable()->getCol($colKey);
+                if($rightTable instanceof JoinTable){
+                    $colObj = $rightTable->getJoinCol($colKey);
+                }
+                else{
+                    $colObj = $rightTable->getCol($colKey);
+                }
                 if(!($colObj instanceof MySQLColumn) && $alias !== null){
                     $colObj = $table->getCol($colKey);
                     $updateName = true;
@@ -1066,7 +1100,15 @@ class MySQLQuery{
         }
         if($colObj instanceof MySQLColumn){
             if($alias !== null){
-                $asPart = $colObj->getName(true).' as '.$alias;
+                if($colObj->getAlias() !== null){
+                    $asPart = $colObj->getAlias(true).' as '.$alias;
+                    $colObj->setName($colObj->getAlias());
+                    $colObj->setAlias($alias);
+                }
+                else{
+                    $asPart = $colObj->getName(true).' as '.$alias;
+                    $colObj->setAlias($alias);
+                }
                 if($updateName){
                     $this->origColsNames[$colKey] = $colObj->getName();
                     $colObj->setName($alias);
@@ -1075,10 +1117,14 @@ class MySQLQuery{
             else{
                 if($this->getTable()->isCommon($colObj->getName())){
                     if($left === true){
-                        $asPart = $colObj->getName(true).' as left_'.$colObj->getName();
+                        $alias = 'left_'.$colObj->getName();
+                        $colObj->setAlias($alias);
+                        $asPart = $colObj->getName(true).' as '.$alias;
                     }
                     else{
-                        $asPart = $colObj->getName(true).' as right_'.$colObj->getName();
+                        $alias = 'right_'.$colObj->getName();
+                        $colObj->setAlias($alias);
+                        $asPart = $colObj->getName(true).' as '.$alias;
                     }
                 }
                 else{

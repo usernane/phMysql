@@ -26,9 +26,15 @@ namespace phMysql;
 /**
  * A class that represents a column in MySQL table.
  * @author Ibrahim
- * @version 1.6.5
+ * @version 1.6.6
  */
 class MySQLColumn{
+    /**
+     *
+     * @var type 
+     * @since 1.6.6
+     */
+    private $alias;
     /**
      * A boolean which can be set to true in order to update column timestamp.
      * @var boolean 
@@ -225,6 +231,33 @@ class MySQLColumn{
         
         $this->setIsNull(false);
         $this->setIsUnique(false);
+    }
+    /**
+     * 
+     * @return type
+     * @since 1.6.6
+     */
+    public function getAlias($tablePrefix=false){
+        if($tablePrefix === true && $this->getOwner() !== null){
+            return $this->getOwner()->getName().'.'.$this->alias;
+        }
+        return $this->alias;
+    }
+    /**
+     * 
+     * @param type $name
+     * @return boolean
+     * @since 1.6.6
+     */
+    public function setAlias($name) {
+        $trimmed = trim($name);
+        if(strlen($trimmed) != 0){
+            if($this->_validateName($trimmed)){
+                $this->alias = $trimmed;
+                return true;
+            }
+        }
+        return false;
     }
     /**
      * Clean and validates a value against the datatype of the column.
@@ -533,22 +566,34 @@ class MySQLColumn{
     public function setName($name){
         $trimmed = trim($name);
         if(strlen($trimmed) != 0){
-            if(strpos($trimmed, ' ') === false){
-                for ($x = 0 ; $x < strlen($trimmed) ; $x++){
-                    $ch = $trimmed[$x];
-                    if($x == 0 && ($ch >= '0' && $ch <= '9')){
-                        return false;
-                    }
-                    if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
-
-                    }
-                    else{
-                        return false;
-                    }
-                }
+            if($this->_validateName($trimmed)){
                 $this->name = $trimmed;
                 return true;
             }
+        }
+        return false;
+    }
+    /**
+     * 
+     * @param type $name
+     * @return boolean
+     * @since 1.6.6
+     */
+    private function _validateName($name) {
+        if(strpos($name, ' ') === false){
+            for ($x = 0 ; $x < strlen($name) ; $x++){
+                $ch = $name[$x];
+                if($x == 0 && ($ch >= '0' && $ch <= '9')){
+                    return false;
+                }
+                if($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')){
+
+                }
+                else{
+                    return false;
+                }
+            }
+            return true;
         }
         return false;
     }
