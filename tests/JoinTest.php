@@ -117,10 +117,10 @@ class JoinTest extends TestCase{
                 . ")\nas JoinTable;",$query->getQuery());
         $query->select([
             'columns'=>[
-                'id'=>'user_id','created-on'=>'insert_date'
+                'id'=>'user_id',
+                'created-on'=>'insert_date'
             ]
         ]);
-        print_r("\n\n".$query->getQuery());
         $this->assertEquals('select * from ('
                 . 'select '."\n"
                 . 'a_left_table.id as user_id,'."\n"
@@ -417,7 +417,6 @@ class JoinTest extends TestCase{
                 'main-user-id'=>'u_id'
             ]
         ]);
-        print_r($joinQuery->getQuery());
         $this->assertEquals('select * from ('
                 . 'select '."\n"
                 . 'users.user_id as u_id'."\n"
@@ -479,14 +478,10 @@ class JoinTest extends TestCase{
                 ]
             ]
         ]);
-        print_r($joinQuery2->getQuery());
-        $this->assertEquals('select user_id_1,user_id_2 from (select '."\n"
-                . 'UsersArticles.left_user_id,'."\n"
-                . 'UsersArticles.created_on as left_created_on,'."\n"
-                . 'UsersArticles.article_id,'."\n"
-                . 'UsersArticles.right_user_id,'."\n"
-                . 'users.user_id,'."\n"
-                . 'users.created_on as right_created_on'."\n"
+        print_r("\n\n".$joinQuery2->getQuery());
+        $this->assertEquals('select * from (select '."\n"
+                . 'UsersArticles.left_user_id as user_id_1,'."\n"
+                . 'users.user_id as user_id_2,'."\n"
                 . 'from (select '."\n"
                 . 'users.user_id as left_user_id,'."\n"
                 . 'users.created_on,'."\n"

@@ -111,7 +111,7 @@ class JoinTable extends MySQLTable{
             return $tmpCol;
         }
         else if(isset($this->keysMap['right'][$key])){
-            $tmpCol = $this->getLeftTable()->getCol($this->keysMap['right'][$key]);
+            $tmpCol = $this->getRightTable()->getCol($this->keysMap['right'][$key]);
             return $tmpCol;
         }
         return $this->getJoinCol($key);

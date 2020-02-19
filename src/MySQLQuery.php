@@ -1061,37 +1061,23 @@ class MySQLQuery{
         $leftTable = $table->getLeftTable();
         $rightTable = $table->getRightTable();
         if($leftOrRight == 'left'){
-            if($leftTable instanceof JoinTable){
-                $colObj = $leftTable->getJoinCol($colKey);
-            }
-            else{
-                $colObj = $leftTable->getCol($colKey);
+            $colObj = $leftTable->getCol($colKey);
+            if(!($colObj instanceof MySQLColumn)){
+                $colObj = $table->getCol($colKey);
             }
         }
         else if($leftOrRight == 'right'){
             $left = false;
-            if($rightTable instanceof JoinTable){
-                $colObj = $rightTable->getJoinCol($colKey);
-            }
-            else{
-                $colObj = $rightTable->getCol($colKey);
+            $colObj = $rightTable->getCol($colKey);
+            if(!($colObj instanceof MySQLColumn)){
+                $colObj = $table->getCol($colKey);
             }
         }
         else{
-            if($leftTable instanceof JoinTable){
-                $colObj = $leftTable->getJoinCol($colKey);
-            }
-            else{
-                $colObj = $leftTable->getCol($colKey);
-            }
+            $colObj = $leftTable->getCol($colKey);
             if(!($colObj instanceof MySQLColumn)){
                 $left = false;
-                if($rightTable instanceof JoinTable){
-                    $colObj = $rightTable->getJoinCol($colKey);
-                }
-                else{
-                    $colObj = $rightTable->getCol($colKey);
-                }
+                $colObj = $rightTable->getCol($colKey);
                 if(!($colObj instanceof MySQLColumn) && $alias !== null){
                     $colObj = $table->getCol($colKey);
                     $updateName = true;
@@ -1100,15 +1086,15 @@ class MySQLQuery{
         }
         if($colObj instanceof MySQLColumn){
             if($alias !== null){
-                if($colObj->getAlias() !== null){
-                    $asPart = $colObj->getAlias(true).' as '.$alias;
-                    $colObj->setName($colObj->getAlias());
-                    $colObj->setAlias($alias);
-                }
-                else{
+//                if($colObj->getAlias() !== null){
+//                    $asPart = $colObj->getAlias(true).' as '.$alias;
+//                    $colObj->setName($colObj->getAlias());
+//                    $colObj->setAlias($alias);
+//                }
+//                else{
                     $asPart = $colObj->getName(true).' as '.$alias;
                     $colObj->setAlias($alias);
-                }
+                //}
                 if($updateName){
                     $this->origColsNames[$colKey] = $colObj->getName();
                     $colObj->setName($alias);
@@ -1577,43 +1563,49 @@ class MySQLQuery{
                         continue;
                     }
                 }
+                if($col->getAlias() != null){
+                    $colName = $tablePrefix.$col->getAlias();
+                }
+                else{
+                    $colName = $tablePrefix.$col->getName();
+                }
                 if($valLower == 'is null' || $valLower == 'is not null'){
-                    $where .= $tablePrefix.$col->getName().' '.$valLower.' ';
+                    $where .= $colName.' '.$valLower.' ';
                 }
                 else if($cleanVal === null){
                     if($equalityCond == '='){
-                        $where .= $tablePrefix.$col->getName().' is null ';
+                        $where .= $colName.' is null ';
                     }
                     else{
-                        $where .= $tablePrefix.$col->getName().' is not null ';
+                        $where .= $colName.' is not null ';
                     }
                 }
                 else{
                     if($col->getType() == 'datetime' || $col->getType() == 'timestamp'){
                         if($equalityCond == '='){
-                            $where .= $tablePrefix.$col->getName().' >= '.$cleanVal.' ';
+                            $where .= $colName.' >= '.$cleanVal.' ';
                             $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= 'and '.$tablePrefix.$col->getName().' <= '.$cleanVal.' ';
+                            $where .= 'and '.$colName.' <= '.$cleanVal.' ';
                         }
                         else if($equalityCond == '!='){
-                            $where .= $tablePrefix.$col->getName().' < '.$cleanVal.' ';
+                            $where .= $colName.' < '.$cleanVal.' ';
                             $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= 'and '.$tablePrefix.$col->getName().' > '.$cleanVal.' ';
+                            $where .= 'and '.$colName.' > '.$cleanVal.' ';
                         }
                         else if($equalityCond == '>='){
-                            $where .= $tablePrefix.$col->getName().' >= '.$cleanVal.' ';
+                            $where .= $colName.' >= '.$cleanVal.' ';
                             $cleanVal = $col->cleanValue($vals[$index],true);
                         }
                         else if($equalityCond == '<='){
                             $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= $tablePrefix.$col->getName().' <= '.$cleanVal.' ';
+                            $where .= $colName.' <= '.$cleanVal.' ';
                         }
                         else if($equalityCond == '>'){
                             $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= $tablePrefix.$col->getName().' > '.$cleanVal.' ';
+                            $where .= $colName.' > '.$cleanVal.' ';
                         }
                         else if($equalityCond == '<'){
-                            $where .= $tablePrefix.$col->getName().' < '.$cleanVal.' ';
+                            $where .= $colName.' < '.$cleanVal.' ';
                         }
                     }
                     else if(gettype($vals[$index]) == 'array'){
@@ -1641,10 +1633,10 @@ class MySQLQuery{
                                     else{
                                         $joinCond = 'and';
                                     }
-                                    $where .= $joinCond.' '.$tablePrefix.$col->getName().' '.$cond.' '.$singleVal.' ';
+                                    $where .= $joinCond.' '.$colName.' '.$cond.' '.$singleVal.' ';
                                 }
                                 else{
-                                    $where .= $tablePrefix.$col->getName().' '.$cond.' '.$singleVal.' ';
+                                    $where .= $colName.' '.$cond.' '.$singleVal.' ';
                                 }
                                 $condIndex++;
                             }
@@ -1662,7 +1654,7 @@ class MySQLQuery{
                                         $inCond .= $cleanVal[$x].',';
                                     }
                                 }
-                                $where .= $tablePrefix.$col->getName().' '.$inCond.')';
+                                $where .= $colName.' '.$inCond.')';
                             }
                             else{
                                 
@@ -1671,7 +1663,7 @@ class MySQLQuery{
                         $where = trim($where).')';
                     }
                     else{
-                        $where .= $tablePrefix.$col->getName().' '.$equalityCond.' '.$cleanVal.' ';
+                        $where .= $colName.' '.$equalityCond.' '.$cleanVal.' ';
                     }
                 }
                 if($index + 1 != $colsCount){
