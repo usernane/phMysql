@@ -358,6 +358,65 @@ class JoinTest extends TestCase{
                 . 'on users.user_id = user_articles.user_id)'."\n"
                 . 'as UsersArticles limit 6 offset 770;',$joinQuery->getQuery());
     }
+    /**
+     * @test
+     */
+    public function testJoinNewKeys01() {
+        $query0 = new MySQLQuery('users');
+        $query0->getTable()->addColumns([
+            'user-id'=>[
+                'is-primary'=>true,
+                'size'=>15
+            ]
+        ]);
+        $query1 = new MySQLQuery('user_articles');
+        $query1->getTable()->addColumns([
+            'user-id'=>[
+                'is-primary'=>true,
+                'size'=>'10'
+            ],
+            'article-title'=>[
+                'size'=>150
+            ]
+        ]);
+        $joinQuery = $query0->join([
+            'right-table'=>$query1,
+            'join-cols'=>[
+                'user-id'=>'user-id'
+            ],
+            'join-type'=>'right',
+            'alias'=>'NewTable',
+            'keys-map'=>[
+                'left'=>[
+                    'user-id'=>'main-user-id'
+                ],
+                'right'=>[
+                    'user-id'=>'sub-user-id',
+                    'article-title'=>'title'
+                ]
+            ]
+        ]);
+        $this->assertTrue($joinQuery->getTable()->hasColumn('main-user-id'));
+        $this->assertTrue($joinQuery->getTable()->hasColumn('sub-user-id'));
+        $this->assertTrue($joinQuery->getTable()->hasColumn('title'));
+        $this->assertFalse($joinQuery->getTable()->hasColumn('user-id'));
+        $this->assertFalse($joinQuery->getTable()->hasColumn('article-title'));
+        $this->assertTrue($joinQuery->getTable()->getLeftTable()->hasColumn('user-id'));
+        $this->assertTrue($joinQuery->getTable()->getRightTable()->hasColumn('user-id'));
+        $this->assertTrue($joinQuery->getTable()->getRightTable()->hasColumn('article-title'));
+        return $joinQuery;
+    }
+    /**
+     * 
+     * @param MySQLQuery $query
+     * @depends testJoinNewKeys01
+     */
+    public function testSelect00($query) {
+        $query->select([
+            
+        ]);
+        $this->assertEquals('',$query->getQuery());
+    }
     public function testJoinNewKeys00() {
         $query0 = new MySQLQuery('users');
         $query0->getTable()->addColumns([
