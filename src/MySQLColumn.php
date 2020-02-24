@@ -244,12 +244,18 @@ class MySQLColumn{
         return $this->alias;
     }
     /**
-     * 
-     * @param type $name
-     * @return boolean
+     * Sets an optional alias name for the column.
+     * @param string|null $name A string that represents the alias. If null 
+     * is given, it means the alias will be unset.
+     * @return boolean If the property value is updated, the method will return 
+     * true. Other than that, the method will return false.
      * @since 1.6.6
      */
     public function setAlias($name) {
+        if($name === null){
+            $this->alias = null;
+            return true;
+        }
         $trimmed = trim($name);
         if(strlen($trimmed) != 0){
             if($this->_validateName($trimmed)){
@@ -481,7 +487,7 @@ class MySQLColumn{
      * The owner will be unset.
      * @since 1.5
      */
-    public function setOwner(&$table) {
+    public function setOwner($table) {
         if($table instanceof MySQLTable){
             $this->ownerTable = $table;
             $colsCount = count($table->columns());

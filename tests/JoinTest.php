@@ -415,7 +415,125 @@ class JoinTest extends TestCase{
         $query->select([
             
         ]);
-        $this->assertEquals('',$query->getQuery());
+        $this->assertEquals("select * from (select \n"
+                . "users.user_id as left_user_id,\n"
+                . "user_articles.user_id as right_user_id,\n"
+                . "user_articles.article_title\n"
+                . "from users right join user_articles\n"
+                . "on users.user_id = user_articles.user_id)\n"
+                . "as NewTable;",$query->getQuery());
+        $query->select([
+            'columns'=>[
+                'main-user-id'
+            ]
+        ]);
+        $this->assertEquals("select * from (select \n"
+                . "users.user_id as left_user_id\n"
+                . "from users right join user_articles\n"
+                . "on users.user_id = user_articles.user_id)\n"
+                . "as NewTable;",$query->getQuery());
+        $query->select([
+            'columns'=>[
+                'sub-user-id'
+            ]
+        ]);
+        $this->assertEquals("select * from (select \n"
+                . "user_articles.user_id as right_user_id\n"
+                . "from users right join user_articles\n"
+                . "on users.user_id = user_articles.user_id)\n"
+                . "as NewTable;",$query->getQuery());
+        $query->select([
+            'columns'=>[
+                'title'
+            ]
+        ]);
+        $this->assertEquals("select * from (select \n"
+                . "user_articles.article_title\n"
+                . "from users right join user_articles\n"
+                . "on users.user_id = user_articles.user_id)\n"
+                . "as NewTable;",$query->getQuery());
+        return $query;
+    }
+    /**
+     * @depends testSelect00
+     * @param MySQLQuery $query
+     */
+    public function testSelect01($query) {
+        $query->select([
+            'columns'=>[
+                'main-user-id'=>'l_uid',
+                'sub-user-id'=>'r_uid',
+                'title'=>'art_title'
+            ]
+        ]);
+        $this->assertEquals("select * from (select \n"
+                . "users.user_id as l_uid,\n"
+                . "user_articles.user_id as r_uid,\n"
+                . "user_articles.article_title as art_title\n"
+                . "from users right join user_articles\n"
+                . "on users.user_id = user_articles.user_id)\n"
+                . "as NewTable;",$query->getQuery());
+        $query->select([
+            'columns'=>[
+                'main-user-id'=>'x_user_id'
+            ]
+        ]);
+        $this->assertEquals("select * from (select \n"
+                . "users.user_id as x_user_id\n"
+                . "from users right join user_articles\n"
+                . "on users.user_id = user_articles.user_id)\n"
+                . "as NewTable;",$query->getQuery());
+        $query->select([
+            'columns'=>[
+                'sub-user-id'=>'oiy_id'
+            ]
+        ]);
+        $this->assertEquals("select * from (select \n"
+                . "user_articles.user_id as oiy_id\n"
+                . "from users right join user_articles\n"
+                . "on users.user_id = user_articles.user_id)\n"
+                . "as NewTable;",$query->getQuery());
+        $query->select([
+            'columns'=>[
+                'title'=>'article_title_super'
+            ]
+        ]);
+        $this->assertEquals("select * from (select \n"
+                . "user_articles.article_title as article_title_super\n"
+                . "from users right join user_articles\n"
+                . "on users.user_id = user_articles.user_id)\n"
+                . "as NewTable;",$query->getQuery());
+        return $query;
+    }
+    /**
+     * 
+     * @param MySQLQuery $query
+     * @depends testSelect01
+     */
+    public function testJoinLevel2($query) {
+        $anotherJoin = $query->join([
+            'right-table'=>$query->getTable()->getRightTable(),
+            'join-cols'=>[
+                'main-user-id'=>'user-id'
+            ],
+            'join-type'=>'join',
+            'alias'=>'MoreJoins'
+        ]);
+        $anotherJoin->select();
+        $this->assertEquals("select * from (select \n"
+                . "NewTable.left_user_id,\n"
+                . "NewTable.right_user_id,\n"
+                . "NewTable.article_title as left_article_title,\n"
+                . "user_articles.user_id,\n"
+                . "user_articles.article_title as right_article_title\n"
+                . "from (select \n"
+                . "users.user_id as left_user_id,\n"
+                . "user_articles.user_id as right_user_id,\n"
+                . "user_articles.article_title\n"
+                . "from users right join user_articles\n"
+                . "on users.user_id = user_articles.user_id) as NewTable join user_articles\n"
+                . "on NewTable.left_user_id = user_articles.user_id)\n"
+                . "as MoreJoins;",$anotherJoin->getQuery());
     }
     public function testJoinNewKeys00() {
         $query0 = new MySQLQuery('users');

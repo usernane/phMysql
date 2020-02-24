@@ -799,7 +799,6 @@ class MySQLQuery{
             }
             if(isset($selectOptions['columns']) && gettype($selectOptions['columns']) == 'array'){
                 $withTablePrefix = isset($selectOptions['table-prefix']) ? $selectOptions['table-prefix'] === true : false;
-                $columnsStr = $this->createColsToSelect($selectOptions['columns'], $withTablePrefix);
                 if($table instanceof JoinTable){
                     if($table->getJoinType() == 'join'){
                         $joinStm = 'join';
@@ -808,9 +807,11 @@ class MySQLQuery{
                         $joinStm = $table->getJoinType().' join';
                     }
                     $completeJoin = $this->_getJoinStm($table, $joinStm);
+                    $columnsStr = $this->createColsToSelect($selectOptions['columns'], $withTablePrefix);
                     $selectQuery .= trim($columnsStr,' ').'from '.$completeJoin;
                 }
                 else{
+                    $columnsStr = $this->createColsToSelect($selectOptions['columns'], $withTablePrefix);
                     $selectQuery .= trim($columnsStr).' from '.$this->getTableName();
                 }
             }
@@ -1078,8 +1079,11 @@ class MySQLQuery{
             if(!($colObj instanceof MySQLColumn)){
                 $left = false;
                 $colObj = $rightTable->getCol($colKey);
-                if(!($colObj instanceof MySQLColumn) && $alias !== null){
+                if(!($colObj instanceof MySQLColumn) /*&& $alias !== null*/){
                     $colObj = $table->getCol($colKey);
+                    if($colObj instanceof MySQLColumn && $colObj->getOwner()->getName() == $leftTable->getName()){
+                        $left = true;
+                    }
                     $updateName = true;
                 }
             }

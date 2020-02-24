@@ -302,7 +302,8 @@ class JoinTable extends MySQLTable{
         foreach ($leftColsKeys as $col){
             if(in_array($col, $commonColsKeys)){
                 if($this->getLeftTable() instanceof JoinTable){
-                    $colsArr['left-'.$col] = clone $this->getLeftTable()->getJoinCol($col);
+                    $newCol = clone $this->getLeftTable()->getJoinCol($col);
+                    $colsArr['left-'.$col] = $newCol;
                 }
                 else{
                     $colsArr['left-'.$col] = clone $this->getLeftTable()->getCol($col);
@@ -310,7 +311,8 @@ class JoinTable extends MySQLTable{
             }
             else{
                 if($this->getLeftTable() instanceof JoinTable){
-                    $colsArr[$col] = clone $this->getLeftTable()->getJoinCol($col);
+                    $newCol = clone $this->getLeftTable()->getJoinCol($col);
+                    $colsArr[$col] = $newCol;
                 }
                 else{
                     $colsArr[$col] = clone $this->getLeftTable()->getCol($col);
@@ -320,7 +322,8 @@ class JoinTable extends MySQLTable{
         foreach ($rightColsKeys as $col){
             if(in_array($col, $commonColsKeys)){
                 if($this->getRightTable() instanceof JoinTable){
-                    $colsArr['right-'.$col] = clone $this->getRightTable()->getJoinCol($col);
+                    $newCol = clone $this->getRightTable()->getJoinCol($col);
+                    $colsArr['right-'.$col] = $newCol;
                 }
                 else{
                     $colsArr['right-'.$col] = clone $this->getRightTable()->getCol($col);
@@ -328,7 +331,8 @@ class JoinTable extends MySQLTable{
             }
             else{
                 if($this->getRightTable() instanceof JoinTable){
-                    $colsArr[$col] = clone $this->getRightTable()->getJoinCol($col);
+                    $newCol = clone $this->getRightTable()->getJoinCol($col);
+                    $colsArr[$col] = $newCol;
                 }
                 else{
                     $colsArr[$col] = clone $this->getRightTable()->getCol($col);
