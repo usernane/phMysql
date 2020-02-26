@@ -126,7 +126,6 @@ class MySQLLinkTest extends TestCase{
                 'author-id'=>1
             ]
         ]);
-        print_r($q3->getQuery());
         $r = $conn->executeQuery($q3);
         if($r === false){
             print_r("\n".$conn->getErrorCode().': '.$conn->getErrorMessage()."\n");
