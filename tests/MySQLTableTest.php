@@ -93,6 +93,31 @@ class MySQLTableTest extends TestCase{
         $this->assertFalse($table->addColumn('new-col-2', new MySQLColumn('col_3', 'varchar')));
         return $table;
     }
+    /**
+     * 
+     * @param MySQLTable $table
+     * @depends testAddColumn00
+     */
+    public function testAttributesMap01($table) {
+        $map = $table->getAttribitesNames();
+        $this->assertEquals([
+            'newCol',
+            'newCol2'
+        ],$map);
+    }
+    /**
+     * 
+     * @param MySQLTable $table
+     * @depends testGetColsNames
+     */
+    public function testAttributesMap02($table) {
+        $map = $table->getAttribitesNames();
+        $this->assertEquals([
+            'id',
+            'createdOn',
+            'lastUpdated'
+        ],$map);
+    }
     public function testGetColsNames() {
         $t = new MySQLTable();
         $t->addDefaultCols([
@@ -104,6 +129,7 @@ class MySQLTableTest extends TestCase{
         $this->assertEquals('id',$colsNamesInDb[0]);
         $this->assertEquals('created_on',$colsNamesInDb[1]);
         $this->assertEquals('last_updated',$colsNamesInDb[2]);
+        return $t;
     }
     /**
      * @test
@@ -164,6 +190,19 @@ class MySQLTableTest extends TestCase{
             'setPASS'=>'user_pass',
             'setCIn'=>'created_on'
         ],$table->getSettersMap());
+    }
+    /**
+     * 
+     * @param MySQLTable $table
+     * @depends testGetEntityMethodsTest01
+     */
+    public function testAttributesMap00($table) {
+        $map = $table->getAttribitesNames();
+        $this->assertEquals([
+            'userId',
+            'pass',
+            'cIn'
+        ],$map);
     }
     /**
      * 
@@ -289,6 +328,15 @@ class MySQLTableTest extends TestCase{
         $this->assertTrue($table->hasColumn('user-id'));
         $this->assertFalse($table->hasColumn('created-on'));
         $this->assertFalse($table->hasColumn('last-updated'));
+        return $table;
+    }
+    /**
+     * 
+     * @param MySQLTable $table
+     * @depends testAddDefaultCols02
+     */
+    public function testAttributesMap04($table) {
+        $this->assertEquals(['userId'],$table->getAttribitesNames());
     }
     /**
      * @test
@@ -540,5 +588,19 @@ class MySQLTableTest extends TestCase{
         
         $col02 = $table->getColByIndex(6);
         $this->assertNull($col02);
+    }
+    /**
+     * @test
+     */
+    public function testCreateEntity00() {
+        $table = new MySQLTable('users');
+        $table->addDefaultCols();
+        $this->assertTrue($table->createEntityClass([
+            'store-path'=>__DIR__,
+            'class-name'=>'User'
+        ]));
+        $this->assertTrue(file_exists($table->getEntityPath()));
+        require_once $table->getEntityPath();
+        $this->assertTrue(class_exists($table->getEntityNamespace()));
     }
 }
