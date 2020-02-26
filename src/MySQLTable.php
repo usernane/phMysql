@@ -33,6 +33,18 @@ use phMysql\MySQLColumn;
  */
 class MySQLTable {
     /**
+     * The namespace of the auto-generated entity.
+     * @var string|null
+     * @since 1.6.5 
+     */
+    private $entityNamespace;
+    /**
+     * The location of the auto-generated entity.
+     * @var string|null
+     * @since 1.6.5 
+     */
+    private $entityPath;
+    /**
      * The instance of type MySQLQuery at which this table is linked to.
      * @var MySQLQuery 
      * @since 1.6.4
@@ -149,6 +161,28 @@ class MySQLTable {
      */
     public function getOwnerQuery() {
         return $this->ownerQuery;
+    }
+    /**
+     * Returns the namespace at which the auto-generated entity class belongs to.
+     * @return string|null If no entity class is generated, the method will return 
+     * null. Other than that, the method will return a string that represents 
+     * the namespace that the entity class belongs to.
+     * @since 1.6.5
+     */
+    public function getEntityNamespace() {
+        return $this->entityNamespace;
+    }
+    /**
+     * Returns the name of the directory at which the auto-generated entity class 
+     * was created on.
+     * @return string|null If no entity class is generated, the method will return 
+     * null. Other than that, the method will return a string that represents 
+     * the name of the directory at which the auto-generated entity class 
+     * was created on.
+     * @since 1.6.5
+     */
+    public function getEntityPath() {
+        return $this->entityPath;
     }
     /**
      * Sets the query object at which the table is belonging to.
@@ -408,6 +442,43 @@ class MySQLTable {
         return $retVal;
     }
     /**
+     * Returns an array that contains the names of attributes mapped from columns 
+     * names.
+     * Attributes names are generated based on the names of keys. For example, 
+     * if we have two columns one with key 'user-id' and the second one with 
+     * name 'user-PASS', then the two attributes which represents the two columns 
+     * will have the names 'userId' and 'userPASS'.
+     * @return array An indexed array that contains attributes names. 
+     * @since 1.6.5
+     */
+    public function getAttribitesNames() {
+        $keys = array_keys($this->getColumns());
+        $retVal = [];
+        foreach ($keys as $keyName){
+            $split = explode('-', $keyName);
+            $attrName = '';
+            $index = 0;
+            foreach ($split as $namePart){
+                if(strlen($namePart) == 1){
+                    $attrName .= strtolower($namePart);
+                    $index++;
+                }
+                else{
+                    if($index != 0){
+                        $firstChar = $namePart[0];
+                        $attrName .= strtoupper($firstChar).substr($namePart, 1);
+                    }
+                    else{
+                        $index++;
+                        $attrName .= strtolower($namePart);
+                    }
+                }
+            }
+            $retVal[] = $attrName;
+        }
+        return $retVal;
+    }
+    /**
      * Returns an associative array that contains the possible names 
      * of the methods which exist in the entity class that the result 
      * of a select query on the table will be mapped to.
@@ -443,6 +514,114 @@ class MySQLTable {
             $retVal['setters'][] = 'set'.$methodName;
         }
         return $retVal;
+    }
+    /**
+     * Create a new entity class that can be used to store table records
+     * @param array $options An associative array that contains entity class 
+     * options. Available options are:
+     * <ul>
+     * <li>store-path: The directory at which the entity class will be created 
+     * on. It must be provided.</li>
+     * <li>class-name: The name of the entity class that will be created. It 
+     * must be provided.</li>
+     * <li>namespace: An optional namespace at which the entity class can be 
+     * added to. If not given, the namespace <code>phMysql\entity</code> will 
+     * be used as a default namespace.</li>
+     * </ul>
+     * <li>override: A boolean value. If the entity was already created and this 
+     * parameter is set to true, the entity class will be replaced with new one.</li>
+     * </ul>
+     * @return boolean If the entity class is created, the method will return 
+     * true. If not created, it will return false.
+     */
+    public function createEntityClass($options) {
+        $retVal = false;
+        $path = isset($options['store-path']) ? $options['store-path'] : '';
+        $entityName = isset($options['class-name']) ? trim($options['class-name']) : '';
+        if(strlen($entityName) != 0 && !strpos($entityName, ' ')){
+            $namespace = isset($options['namespace']) && strlen($options['namespace']) != 0 
+                    ? trim($options['namespace']) : __NAMESPACE__.'\\entity';
+            $override = isset($options['override']) ? $options['override'] === true : false;
+            if(is_dir($path.DIRECTORY_SEPARATOR.$entityName) && class_exists($namespace.'\\'.$entityName) && !$override){
+                $this->entityNamespace = $namespace.'\\'.$entityName;
+                $this->entityPath = $path.DIRECTORY_SEPARATOR.$entityName.'.php';
+                $retVal = true;
+            }
+            else{
+                $file = fopen($path.DIRECTORY_SEPARATOR.$entityName.'.php', 'w+');
+                if(is_resource($file)){
+                    $entityAttrs = $this->getAttribitesNames();
+                    $attrsCount = count($entityAttrs);
+                    $settersGettersMap = $this->getEntityMethods();
+                    fwrite($file, "<?php\nnamespace ".$namespace.";\n");
+                    fwrite($file, "/**\n"
+                            . " * An auto-generated entity class which maps to a record in the\n"
+                            . " * table '".$this->getName()."'\n"
+                            . " **/\n");
+                    fwrite($file, "class ".$entityName."{\n");
+                    $colsNames = $this->getColsNames();
+                    $index = 0;
+                    foreach ($entityAttrs as $attrName){
+                        $colName = $colsNames[$index];
+                        fwrite($file, "    /**\n"
+                                    . "     * The attribute which is mapped to the column '".$colName."'.\n"
+                                    . "     * @var ".$this->_getPHPType($index)."\n"
+                                    . "     **/\n");
+                        fwrite($file, '    private $'.$attrName.";\n");
+                        $index++;
+                    }
+                    for($x = 0 ; $x < $attrsCount ; $x++){
+                        $colName = $colsNames[$x];
+                        $setterName = $settersGettersMap['setters'][$x];
+                        fwrite($file, "    /**\n"
+                                    . "     * Sets the value of the attribute '".$attrName."'.\n"
+                                    . "     * The value of the attribute is mapped to the column which has\n"
+                                    . "     * the name '$colName'.\n"
+                                    . "     * @param \$$entityAttrs[$x] ".$this->_getPHPType($x)." The new value of the attribute.\n"
+                                    . "     **/\n");
+                        fwrite($file, '    public function '.$setterName.'($'.$entityAttrs[$x]."){\n");
+                        fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n");
+                        fwrite($file, "    }\n");
+                        $getterName = $settersGettersMap['getters'][$x];
+                        fwrite($file, "    /**\n"
+                                    . "     * Returns the value of the attribute '".$attrName."'.\n"
+                                    . "     * The value of the attribute is mapped to the column which has\n"
+                                    . "     * the name '$colName'.\n"
+                                    . "     * @return ".$this->_getPHPType($x)." The value of the attribute.\n"
+                                    . "     **/\n");
+                        fwrite($file, '    public function '.$getterName."(){\n");
+                        fwrite($file, '        return $this->'.$entityAttrs[$x].";\n");
+                        fwrite($file, "    }\n");
+                    }
+                    fwrite($file, "}\n");
+                    fclose($file);
+                    $this->entityNamespace = $namespace.'\\'.$entityName;
+                    $this->entityPath = $path.DIRECTORY_SEPARATOR.$entityName.'.php';
+                    $retVal = true;
+                }
+                else{
+                    $retVal = false;
+                }
+            }
+        }
+        return $retVal;
+    }
+    private function _getPHPType($colIndex){
+        $colObj = array_values($this->getColumns())[$colIndex];
+        $isNull = $colObj->isNull() ? '|null' : '';
+        $type = $colObj->getType();
+        if($type == 'int'){
+            return 'int'.$isNull;
+        }
+        else if($type == 'decimal' || $type == 'double' || $type == 'float'){
+            return 'double'.$isNull;
+        }
+        else if($type == 'boolean'){
+            return 'boolean'.$isNull;
+        }
+        else{
+            return 'string'.$isNull;
+        }
     }
     /**
      * Returns version number of MySQL server.
