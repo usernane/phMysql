@@ -36,8 +36,45 @@ The overall idea of the library is as follows, every table in the database is re
 
 The class '<a href="https://github.com/usernane/phMysql/blob/master/src/MySQLLink.php">MySQLink</a>' is used to connect to MySQL database and execute any instance of the class 'MySQLQuery'. In addition to that, it is used to access the data which can be the result of executing a 'select' query.
 
-## Basic Usage
 ### Creating Database Tables
+The first step in using the library is to create your database tables. As we have said before, every table is represented as an instance of the class <a href="https://programmingacademia.com/webfiori/docs/phMysql/MySQLTable">MySQLTable</a>. Also, we have said that an instance of this class is linked to the class <a href="https://programmingacademia.com/webfiori/docs/phMysql/MySQLQuery">MySQLQuery</a>. 
+
+Let's assume that we want to create a database table with following structure:
+* Table name: `users_information`
+* Table columns:
+ * Column name: `user_id`. Type: `int`. Size: `4`. Primary key.
+ * Column name: `username`. Type: `varchar`. Size `25`.
+ * Column name: `password`. Type: `varchar`. Size: `64`.
+ * Column name: `created_on`. Type: `timestamp` Default to `current_timestamp`.
+ * Column name: `last_updated`. Type: `datetime`. Can be `null`.
+ 
+ Such table can be created as follows:
+ ``` php
+ $query = new MySQLQuery('users_information');
+ $query->getTable()->addColumns([
+    'user-id'=>[
+        'datatype'=>'int',
+        'size'=>4,
+        'is-primary'=>true
+    ],
+    'username'=>[
+        'datatype'=>'varchar',
+        'size'=>25
+    ],
+    'password'=>[
+        'datatype'=>'varchar',
+        'size'=>64
+    ],
+    'created-on'=>[
+        'datatype'=>'timestamp',
+        'default'=>'current_timestamp'
+    ],
+    'last-updated'=>[
+        'datatype'=>'datetime',
+        'is-null'=>true
+    ]
+ ]);
+ ```
 ### Building Queries
 ### Connecting to MySQL Database
 ### Executing MySQL Query
