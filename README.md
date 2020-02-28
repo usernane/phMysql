@@ -105,16 +105,15 @@ $query->updateRecord([
   'username'=>'MySuperHeroIsYou',
   'password'=>'f5d44b6d4a7d91821d602d03c096280e86888fa16cf9c27c540bbc2fd4e73932',
 ],
-['user-id'=>99,]);
+[
+  'user-id'=>99
+]);
 ```
 #### Delete
-The method `MySQLQuery::insertRecord()` is used to create an `insert` query. The method accepts an associative array. The keys of the array are columns keys and the values of the keys are the values that will be inserted. 
+The method `MySQLQuery::deleteRecord()` is used to create a `delete` query. The method accepts an associative array that has delete condition columns (the `where` part of the delete query). 
 ``` php
-$query->insertRecord([
-  'user-id'=>99,
-  'username'=>'MySuperHeroIsYou',
-  'password'=>'f5d44b6d4a7d91821d602d03c096280e86888fa16cf9c27c540bbc2fd4e73932',
-  'created-on'=>date('Y-m-d H:i:s')
+$query->deleteRecord([
+  'user-id'=>99
 ]);
 ```
 ### Connecting to MySQL Database

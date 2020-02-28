@@ -2027,6 +2027,6 @@ class MySQLQuery{
         return $this->table;
     }
     public function __toString() {
-        return 'Query: '.$this->getQuery().'<br/>'.'Query Type: '.$this->getType().'<br/>';
+        return $this->getQuery();
     }
 }
