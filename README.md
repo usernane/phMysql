@@ -75,7 +75,48 @@ Let's assume that we want to create a database table with following structure:
     ]
  ]);
  ```
+ This will build the basic structure of the table. To get SQL query which can be used to create the table, we simply do as follows:
+ ``` php
+ $query->createTable();
+ // display the constructed query.
+ print_r('<pre>'.$query.'</pre>);
+ ```
 ### Building Queries
+The main aim of the class `MySQLQuery` is to build SQL queries. The class has many pre-made methods which can be used to construct diffrent types of queries to perform diffrent operations on the database. The most important operations are:
+* Insert.
+* Update.
+* Delete.
+* Read (or select).
+For each operation, there exist a method in the class that corresponds to it.
+#### Insert
+The method `MySQLQuery::insertRecord()` is used to create an `insert` query. The method accepts an associative array. The keys of the array are columns keys and the values of the keys are the values that will be inserted. 
+``` php
+$query->insertRecord([
+  'user-id'=>99,
+  'username'=>'MySuperHeroIsYou',
+  'password'=>'f5d44b6d4a7d91821d602d03c096280e86888fa16cf9c27c540bbc2fd4e73932',
+  'created-on'=>date('Y-m-d H:i:s')
+]);
+```
+#### Update
+The method `MySQLQuery::updateRecord()` is used to create an `update` query. The method accepts 4 parameters. Two of them are optional. The first parameter is an associative array. The keys of the array are columns keys and the values of the keys are the new values. The second parameter is also an associative array that has update condition columns (the `where` part).
+``` php
+$query->updateRecord([
+  'username'=>'MySuperHeroIsYou',
+  'password'=>'f5d44b6d4a7d91821d602d03c096280e86888fa16cf9c27c540bbc2fd4e73932',
+],
+['user-id'=>99,]);
+```
+#### Delete
+The method `MySQLQuery::insertRecord()` is used to create an `insert` query. The method accepts an associative array. The keys of the array are columns keys and the values of the keys are the values that will be inserted. 
+``` php
+$query->insertRecord([
+  'user-id'=>99,
+  'username'=>'MySuperHeroIsYou',
+  'password'=>'f5d44b6d4a7d91821d602d03c096280e86888fa16cf9c27c540bbc2fd4e73932',
+  'created-on'=>date('Y-m-d H:i:s')
+]);
+```
 ### Connecting to MySQL Database
 ### Executing MySQL Query
 ### Fetching Raw Data
