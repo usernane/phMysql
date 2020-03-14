@@ -23,64 +23,23 @@
  * SOFTWARE.
  */
 namespace phMysql\tests;
-use phMysql\MySQLTable;
+
 use phMysql\MySQLColumn;
+use phMysql\MySQLTable;
 use PHPUnit\Framework\TestCase;
-use phMysql\tests\ArticleQuery;
 /**
  * A set of test units for testing the class 'MySQLTable'.
  *
  * @author Ibrahim
  */
-class MySQLTableTest extends TestCase{
+class MySQLTableTest extends TestCase {
     /**
      * @test
      */
-    public function testSetDBName00() {
-        $table = new MySQLTable('table');
-        $this->assertFalse($table->setSchemaName(''));
-        $this->assertFalse($table->setSchemaName('0-db'));
-        $this->assertTrue($table->setSchemaName('_db'));
-        $this->assertEquals('_db',$table->getDatabaseName());
-        $this->assertFalse($table->setSchemaName('_db x'));
-        $this->assertEquals('_db',$table->getDatabaseName());
-        $this->assertEquals('_db.table',$table->getName());
-        $this->assertEquals('table',$table->getName(false));
-    }
-    /**
-     * @test
-     */
-    public function testPrimaryKey00() {
-        $table = new MySQLTable('hello');
-        $table->addColumn('id-col', [
-            'is-primary'=>true,
-            'size'=>3
-        ]);
-        $this->assertTrue($table->getCol('id-col')->isUnique());
-        return $table;
-    }
-    /**
-     * @test
-     * @param MySQLTable $table
-     * @depends testPrimaryKey00
-     */
-    public function testPrimaryKey01($table) {
-        $table->addColumn('id-col-2', [
-            'is-primary'=>true
-        ]);
-        $this->assertFalse($table->getCol('id-col')->isUnique());
-        $this->assertFalse($table->getCol('id-col-2')->isUnique());
-        return $table;
-    }
-    /**
-     * @test
-     * @param MySQLTable $table
-     * @depends testPrimaryKey01
-     */
-    public function testPrimaryKey02($table) {
-        $table->removeColumn('id-col');
-        $this->assertTrue($table->getCol('id-col-2')->isUnique());
-        return $table;
+    public function setOwnerQueryTest00() {
+        $table = new MySQLTable();
+        $table->setOwnerQuery(null);
+        $this->assertNull($table->getOwnerQuery());
     }
     /**
      * @test
@@ -91,7 +50,179 @@ class MySQLTableTest extends TestCase{
         $this->assertFalse($table->addColumn('new-col-2', new MySQLColumn()));
         $this->assertTrue($table->addColumn('new-col-2', new MySQLColumn('col_2', 'varchar')));
         $this->assertFalse($table->addColumn('new-col-2', new MySQLColumn('col_3', 'varchar')));
+
         return $table;
+    }
+    /**
+     * @test
+     */
+    public function testAddColumn01() {
+        $table = new MySQLTable();
+        $this->assertTrue($table->addColumn(' new-col ', new MySQLColumn()));
+        $this->assertFalse($table->addColumn('invalid key', new MySQLColumn('col_2')));
+        $this->assertFalse($table->addColumn('-', new MySQLColumn('col_2')));
+        $this->assertFalse($table->addColumn('--', new MySQLColumn('col_2')));
+
+        return $table;
+    }
+    /**
+     * @test
+     */
+    public function testAddColumn02() {
+        $table = new MySQLTable();
+        $table->addDefaultCols();
+        $this->assertFalse($table->addColumn('id', new MySQLColumn('user_id')));
+        $this->assertFalse($table->addColumn('user-id', new MySQLColumn('id')));
+        $this->assertFalse($table->addColumn('c-on', new MySQLColumn('created_on')));
+        $this->assertFalse($table->addColumn('created-on', new MySQLColumn('cr_date')));
+        $this->assertFalse($table->addColumn('last-u', new MySQLColumn('last_updated')));
+        $this->assertFalse($table->addColumn('last-updated', new MySQLColumn('l_updated')));
+
+        return $table;
+    }
+    /**
+     * @test
+     */
+    public function testAddDefaultCols00() {
+        $table = new MySQLTable();
+        $table->addDefaultCols();
+        $this->assertEquals(3,count($table->columns()));
+        $this->assertTrue($table->hasColumn('id'));
+        $this->assertTrue($table->hasColumn('created-on'));
+        $this->assertTrue($table->hasColumn('last-updated'));
+    }
+    /**
+     * @test
+     */
+    public function testAddDefaultCols01() {
+        $table = new MySQLTable();
+        $table->addDefaultCols([]);
+        $this->assertEquals(0,count($table->columns()));
+        $this->assertFalse($table->hasColumn('id'));
+        $this->assertFalse($table->hasColumn('created-on'));
+        $this->assertFalse($table->hasColumn('last-updated'));
+    }
+    /**
+     * @test
+     */
+    public function testAddDefaultCols02() {
+        $table = new MySQLTable();
+        $table->addDefaultCols([
+            'id' => [
+                'key-name' => 'user-id',
+                'db-name' => 'user_id'
+            ]
+        ]);
+        $this->assertEquals(1,count($table->columns()));
+        $this->assertFalse($table->hasColumn('id'));
+        $this->assertTrue($table->hasColumn('user-id'));
+        $this->assertFalse($table->hasColumn('created-on'));
+        $this->assertFalse($table->hasColumn('last-updated'));
+
+        return $table;
+    }
+    /**
+     * @test
+     */
+    public function testAddDefaultCols03() {
+        $table = new MySQLTable();
+        $table->addDefaultCols([
+            'id' => [
+                'key-name' => 'user id',
+                'db-name' => 'user_id'
+            ]
+        ]);
+        $this->assertEquals(1,count($table->columns()));
+        $this->assertFalse($table->hasColumn('user id'));
+        $this->assertTrue($table->hasColumn('id'));
+        $this->assertEquals('user_id',$table->getCol('id')->getName());
+    }
+    /**
+     * @test
+     */
+    public function testAddDefaultCols04() {
+        $table = new MySQLTable();
+        $table->addDefaultCols([
+            'id' => [
+                'key-name' => 'an-id',
+                'db-name' => 'user id'
+            ]
+        ]);
+        $this->assertEquals(1,count($table->columns()));
+        $this->assertEquals('id',$table->getCol('an-id')->getName());
+    }
+    /**
+     * @test
+     */
+    public function testAddDefaultCols05() {
+        $table = new MySQLTable();
+        $table->addDefaultCols([
+            'created-on' => [
+                'key-name' => 'created on',
+                'db-name' => 'cr_date'
+            ]
+        ]);
+        $this->assertEquals(1,count($table->columns()));
+        $this->assertFalse($table->hasColumn('created on'));
+        $this->assertTrue($table->hasColumn('created-on'));
+        $this->assertEquals('cr_date',$table->getCol('created-on')->getName());
+    }
+    /**
+     * @test
+     */
+    public function testAddDefaultCols06() {
+        $table = new MySQLTable();
+        $table->addDefaultCols([
+            'created-on' => [
+                'key-name' => 'a-date',
+                'db-name' => 'created on'
+            ]
+        ]);
+        $this->assertEquals(1,count($table->columns()));
+        $this->assertEquals('created_on',$table->getCol('a-date')->getName());
+    }
+    /**
+     * @test
+     */
+    public function testAddDefaultCols07() {
+        $table = new MySQLTable();
+        $table->addDefaultCols([
+            'last-updated' => [
+                'key-name' => 'updated on',
+                'db-name' => 'u_date'
+            ]
+        ]);
+        $this->assertEquals(1,count($table->columns()));
+        $this->assertFalse($table->hasColumn('updated on'));
+        $this->assertTrue($table->hasColumn('last-updated'));
+        $this->assertEquals('u_date',$table->getCol('last-updated')->getName());
+    }
+    /**
+     * @test
+     */
+    public function testAddDefaultCols08() {
+        $table = new MySQLTable();
+        $table->addDefaultCols([
+            'created-on' => [
+                'key-name' => 'a-date',
+                'db-name' => 'updated_on'
+            ]
+        ]);
+        $this->assertEquals(1,count($table->columns()));
+        $this->assertEquals('updated_on',$table->getCol('a-date')->getName());
+    }
+    /**
+     * 
+     * @param MySQLTable $table
+     * @depends testGetEntityMethodsTest01
+     */
+    public function testAttributesMap00($table) {
+        $map = $table->getAttribitesNames();
+        $this->assertEquals([
+            'userId',
+            'pass',
+            'cIn'
+        ],$map);
     }
     /**
      * 
@@ -118,121 +249,13 @@ class MySQLTableTest extends TestCase{
             'lastUpdated'
         ],$map);
     }
-    public function testGetColsNames() {
-        $t = new MySQLTable();
-        $t->addDefaultCols([
-            'id'=>[],
-            'created-on'=>[],
-            'last-updated'=>[]
-        ]);
-        $colsNamesInDb = $t->getColsNames();
-        $this->assertEquals('id',$colsNamesInDb[0]);
-        $this->assertEquals('created_on',$colsNamesInDb[1]);
-        $this->assertEquals('last_updated',$colsNamesInDb[2]);
-        return $t;
-    }
-    /**
-     * @test
-     */
-    public function testGetEntityMethodsTest00() {
-        $table = new MySQLTable();
-        $table->addColumn('user-id', new MySQLColumn('user_id', 'varchar', 15));
-        $this->assertEquals([
-            'setters'=>[
-                'setUserId'
-            ],
-            'getters'=>[
-                'getUserId'
-            ]
-        ],$table->getEntityMethods());
-        return  $table;
-    }
     /**
      * 
      * @param MySQLTable $table
-     * @depends testGetEntityMethodsTest00
+     * @depends testAddDefaultCols02
      */
-    public function testSettersMap00($table) {
-        $this->assertEquals([
-            'setUserId'=>'user_id'
-        ],$table->getSettersMap());
-    }
-    /**
-     * @test
-     */
-    public function testGetEntityMethodsTest01() {
-        $table = new MySQLTable();
-        $table->addColumn('user-id', new MySQLColumn('user_id', 'varchar', 15));
-        $table->addColumn('PASS', new MySQLColumn('user_pass', 'varchar', 15));
-        $table->addColumn('c-in', new MySQLColumn('created_on', 'datetime'));
-        $this->assertEquals([
-            'setters'=>[
-                'setUserId',
-                'setPASS',
-                'setCIn'
-            ],
-            'getters'=>[
-                'getUserId',
-                'getPASS',
-                'getCIn'
-            ]
-        ],$table->getEntityMethods());
-        return  $table;
-    }
-    /**
-     * 
-     * @param MySQLTable $table
-     * @depends testGetEntityMethodsTest01
-     */
-    public function testSettersMap01($table) {
-        $this->assertEquals([
-            'setUserId'=>'user_id',
-            'setPASS'=>'user_pass',
-            'setCIn'=>'created_on'
-        ],$table->getSettersMap());
-    }
-    /**
-     * 
-     * @param MySQLTable $table
-     * @depends testGetEntityMethodsTest01
-     */
-    public function testAttributesMap00($table) {
-        $map = $table->getAttribitesNames();
-        $this->assertEquals([
-            'userId',
-            'pass',
-            'cIn'
-        ],$map);
-    }
-    /**
-     * 
-     * @param MySQLTable $table
-     * @depends testAddColumn00
-     */
-    public function testHasCol00($table) {
-        $this->assertTrue($table->hasColumn('new-col'));
-        $this->assertTrue($table->hasColumn(' new-col '));
-        $this->assertTrue($table->hasColumn('new-col-2'));
-    }
-    /**
-     * @test
-     */
-    public function testAddColumn01() {
-        $table = new MySQLTable();
-        $this->assertTrue($table->addColumn(' new-col ', new MySQLColumn()));
-        $this->assertFalse($table->addColumn('invalid key', new MySQLColumn('col_2')));
-        $this->assertFalse($table->addColumn('-', new MySQLColumn('col_2')));
-        $this->assertFalse($table->addColumn('--', new MySQLColumn('col_2')));
-        return $table;
-    }
-    /**
-     * 
-     * @param MySQLTable $table
-     * @depends testAddColumn00
-     */
-    public function testHasCol01($table) {
-        $this->assertTrue($table->hasColumn('new-col'));
-        $this->assertFalse($table->hasColumn('invalid key'));
+    public function testAttributesMap04($table) {
+        $this->assertEquals(['userId'],$table->getAttribitesNames());
     }
     /**
      * @test
@@ -240,20 +263,6 @@ class MySQLTableTest extends TestCase{
     public function testConstructor00() {
         $table = new MySQLTable();
         $this->assertEquals('table',$table->getName());
-    }
-    /**
-     * @test
-     */
-    public function testAddColumn02() {
-        $table = new MySQLTable();
-        $table->addDefaultCols();
-        $this->assertFalse($table->addColumn('id', new MySQLColumn('user_id')));
-        $this->assertFalse($table->addColumn('user-id', new MySQLColumn('id')));
-        $this->assertFalse($table->addColumn('c-on', new MySQLColumn('created_on')));
-        $this->assertFalse($table->addColumn('created-on', new MySQLColumn('cr_date')));
-        $this->assertFalse($table->addColumn('last-u', new MySQLColumn('last_updated')));
-        $this->assertFalse($table->addColumn('last-updated', new MySQLColumn('l_updated')));
-        return $table;
     }
     /**
      * @test
@@ -293,151 +302,55 @@ class MySQLTableTest extends TestCase{
     /**
      * @test
      */
-    public function testAddDefaultCols00() {
-        $table = new MySQLTable();
+    public function testCreateEntity00() {
+        $table = new MySQLTable('users');
         $table->addDefaultCols();
-        $this->assertEquals(3,count($table->columns()));
-        $this->assertTrue($table->hasColumn('id'));
-        $this->assertTrue($table->hasColumn('created-on'));
-        $this->assertTrue($table->hasColumn('last-updated'));
-    }
-    /**
-     * @test
-     */
-    public function testAddDefaultCols01() {
-        $table = new MySQLTable();
-        $table->addDefaultCols([]);
-        $this->assertEquals(0,count($table->columns()));
-        $this->assertFalse($table->hasColumn('id'));
-        $this->assertFalse($table->hasColumn('created-on'));
-        $this->assertFalse($table->hasColumn('last-updated'));
-    }
-    /**
-     * @test
-     */
-    public function testAddDefaultCols02() {
-        $table = new MySQLTable();
-        $table->addDefaultCols([
-            'id'=>[
-                'key-name'=>'user-id',
-                'db-name'=>'user_id'
-            ]
-        ]);
-        $this->assertEquals(1,count($table->columns()));
-        $this->assertFalse($table->hasColumn('id'));
-        $this->assertTrue($table->hasColumn('user-id'));
-        $this->assertFalse($table->hasColumn('created-on'));
-        $this->assertFalse($table->hasColumn('last-updated'));
-        return $table;
+        $this->assertTrue($table->createEntityClass([
+            'store-path' => __DIR__,
+            'class-name' => 'User'
+        ]));
+        $this->assertTrue(file_exists($table->getEntityPath()));
+        require_once $table->getEntityPath();
+        $this->assertTrue(class_exists($table->getEntityNamespace()));
     }
     /**
      * 
-     * @param MySQLTable $table
-     * @depends testAddDefaultCols02
-     */
-    public function testAttributesMap04($table) {
-        $this->assertEquals(['userId'],$table->getAttribitesNames());
-    }
-    /**
      * @test
      */
-    public function testAddDefaultCols03() {
+    public function testGetColByIndex() {
         $table = new MySQLTable();
-        $table->addDefaultCols([
-            'id'=>[
-                'key-name'=>'user id',
-                'db-name'=>'user_id'
+        $table->addColumns([
+            'user-id' => [
+                'datatype' => 'int',
+                'size' => 11,
+                'is-primary' => true
+            ],
+            'username' => [
+                'size' => 20,
+                'is-unique' => true
+            ],
+            'email' => [
+                'size' => 150,
+                'is-unique' => true
+            ],
+            'password' => [
+                'size' => 64
             ]
         ]);
-        $this->assertEquals(1,count($table->columns()));
-        $this->assertFalse($table->hasColumn('user id'));
-        $this->assertTrue($table->hasColumn('id'));
-        $this->assertEquals('user_id',$table->getCol('id')->getName());
-    }
-    /**
-     * @test
-     */
-    public function testAddDefaultCols04() {
-        $table = new MySQLTable();
-        $table->addDefaultCols([
-            'id'=>[
-                'key-name'=>'an-id',
-                'db-name'=>'user id'
-            ]
-        ]);
-        $this->assertEquals(1,count($table->columns()));
-        $this->assertEquals('id',$table->getCol('an-id')->getName());
-    }
-    /**
-     * @test
-     */
-    public function testAddDefaultCols05() {
-        $table = new MySQLTable();
-        $table->addDefaultCols([
-            'created-on'=>[
-                'key-name'=>'created on',
-                'db-name'=>'cr_date'
-            ]
-        ]);
-        $this->assertEquals(1,count($table->columns()));
-        $this->assertFalse($table->hasColumn('created on'));
-        $this->assertTrue($table->hasColumn('created-on'));
-        $this->assertEquals('cr_date',$table->getCol('created-on')->getName());
-    }
-    /**
-     * @test
-     */
-    public function testAddDefaultCols06() {
-        $table = new MySQLTable();
-        $table->addDefaultCols([
-            'created-on'=>[
-                'key-name'=>'a-date',
-                'db-name'=>'created on'
-            ]
-        ]);
-        $this->assertEquals(1,count($table->columns()));
-        $this->assertEquals('created_on',$table->getCol('a-date')->getName());
-    }
-    /**
-     * @test
-     */
-    public function testAddDefaultCols07() {
-        $table = new MySQLTable();
-        $table->addDefaultCols([
-            'last-updated'=>[
-                'key-name'=>'updated on',
-                'db-name'=>'u_date'
-            ]
-        ]);
-        $this->assertEquals(1,count($table->columns()));
-        $this->assertFalse($table->hasColumn('updated on'));
-        $this->assertTrue($table->hasColumn('last-updated'));
-        $this->assertEquals('u_date',$table->getCol('last-updated')->getName());
-    }
-    /**
-     * @test
-     */
-    public function testAddDefaultCols08() {
-        $table = new MySQLTable();
-        $table->addDefaultCols([
-            'created-on'=>[
-                'key-name'=>'a-date',
-                'db-name'=>'updated_on'
-            ]
-        ]);
-        $this->assertEquals(1,count($table->columns()));
-        $this->assertEquals('updated_on',$table->getCol('a-date')->getName());
-    }
-    /**
-     * @test
-     */
-    public function testGetColIndex() {
-        $table = new MySQLTable();
-        $table->addDefaultCols();
-        $this->assertEquals(-1,$table->getColIndex('not-exist'));
-        $this->assertEquals(0,$table->getColIndex('id'));
-        $this->assertEquals(1,$table->getColIndex('created-on '));
-        $this->assertEquals(2,$table->getColIndex(' last-updated'));
+        $col00 = $table->getColByIndex(0);
+        $this->assertEquals('user_id',$col00->getName());
+        $this->assertEquals('int',$col00->getType());
+        $this->assertEquals(11,$col00->getSize());
+        $this->assertTrue($col00->isPrimary());
+
+        $col01 = $table->getColByIndex(2);
+        $this->assertEquals('varchar',$col01->getType());
+        $this->assertEquals(150,$col01->getSize());
+        $this->assertFalse($col01->isPrimary());
+        $this->asserttrue($col01->isUnique());
+
+        $col02 = $table->getColByIndex(6);
+        $this->assertNull($col02);
     }
     /**
      * @test
@@ -453,9 +366,131 @@ class MySQLTableTest extends TestCase{
     /**
      * @test
      */
+    public function testGetColIndex() {
+        $table = new MySQLTable();
+        $table->addDefaultCols();
+        $this->assertEquals(-1,$table->getColIndex('not-exist'));
+        $this->assertEquals(0,$table->getColIndex('id'));
+        $this->assertEquals(1,$table->getColIndex('created-on '));
+        $this->assertEquals(2,$table->getColIndex(' last-updated'));
+    }
+    public function testGetColsNames() {
+        $t = new MySQLTable();
+        $t->addDefaultCols([
+            'id' => [],
+            'created-on' => [],
+            'last-updated' => []
+        ]);
+        $colsNamesInDb = $t->getColsNames();
+        $this->assertEquals('id',$colsNamesInDb[0]);
+        $this->assertEquals('created_on',$colsNamesInDb[1]);
+        $this->assertEquals('last_updated',$colsNamesInDb[2]);
+
+        return $t;
+    }
+    /**
+     * @test
+     */
     public function testGetCreatePrimaryKeyStatement00() {
         $table = new MySQLTable();
         $this->assertTrue(true);
+    }
+    /**
+     * @test
+     */
+    public function testGetEntityMethodsTest00() {
+        $table = new MySQLTable();
+        $table->addColumn('user-id', new MySQLColumn('user_id', 'varchar', 15));
+        $this->assertEquals([
+            'setters' => [
+                'setUserId'
+            ],
+            'getters' => [
+                'getUserId'
+            ]
+        ],$table->getEntityMethods());
+
+        return  $table;
+    }
+    /**
+     * @test
+     */
+    public function testGetEntityMethodsTest01() {
+        $table = new MySQLTable();
+        $table->addColumn('user-id', new MySQLColumn('user_id', 'varchar', 15));
+        $table->addColumn('PASS', new MySQLColumn('user_pass', 'varchar', 15));
+        $table->addColumn('c-in', new MySQLColumn('created_on', 'datetime'));
+        $this->assertEquals([
+            'setters' => [
+                'setUserId',
+                'setPASS',
+                'setCIn'
+            ],
+            'getters' => [
+                'getUserId',
+                'getPASS',
+                'getCIn'
+            ]
+        ],$table->getEntityMethods());
+
+        return  $table;
+    }
+    /**
+     * 
+     * @param MySQLTable $table
+     * @depends testAddColumn00
+     */
+    public function testHasCol00($table) {
+        $this->assertTrue($table->hasColumn('new-col'));
+        $this->assertTrue($table->hasColumn(' new-col '));
+        $this->assertTrue($table->hasColumn('new-col-2'));
+    }
+    /**
+     * 
+     * @param MySQLTable $table
+     * @depends testAddColumn00
+     */
+    public function testHasCol01($table) {
+        $this->assertTrue($table->hasColumn('new-col'));
+        $this->assertFalse($table->hasColumn('invalid key'));
+    }
+    /**
+     * @test
+     */
+    public function testPrimaryKey00() {
+        $table = new MySQLTable('hello');
+        $table->addColumn('id-col', [
+            'is-primary' => true,
+            'size' => 3
+        ]);
+        $this->assertTrue($table->getCol('id-col')->isUnique());
+
+        return $table;
+    }
+    /**
+     * @test
+     * @param MySQLTable $table
+     * @depends testPrimaryKey00
+     */
+    public function testPrimaryKey01($table) {
+        $table->addColumn('id-col-2', [
+            'is-primary' => true
+        ]);
+        $this->assertFalse($table->getCol('id-col')->isUnique());
+        $this->assertFalse($table->getCol('id-col-2')->isUnique());
+
+        return $table;
+    }
+    /**
+     * @test
+     * @param MySQLTable $table
+     * @depends testPrimaryKey01
+     */
+    public function testPrimaryKey02($table) {
+        $table->removeColumn('id-col');
+        $this->assertTrue($table->getCol('id-col-2')->isUnique());
+
+        return $table;
     }
     /**
      * @test
@@ -509,10 +544,16 @@ class MySQLTableTest extends TestCase{
     /**
      * @test
      */
-    public function setOwnerQueryTest00() {
-        $table = new MySQLTable();
-        $table->setOwnerQuery(null);
-        $this->assertNull($table->getOwnerQuery());
+    public function testSetDBName00() {
+        $table = new MySQLTable('table');
+        $this->assertFalse($table->setSchemaName(''));
+        $this->assertFalse($table->setSchemaName('0-db'));
+        $this->assertTrue($table->setSchemaName('_db'));
+        $this->assertEquals('_db',$table->getDatabaseName());
+        $this->assertFalse($table->setSchemaName('_db x'));
+        $this->assertEquals('_db',$table->getDatabaseName());
+        $this->assertEquals('_db.table',$table->getName());
+        $this->assertEquals('table',$table->getName(false));
     }
     /**
      * @test
@@ -552,55 +593,24 @@ class MySQLTableTest extends TestCase{
     }
     /**
      * 
-     * @test
+     * @param MySQLTable $table
+     * @depends testGetEntityMethodsTest00
      */
-    public function testGetColByIndex() {
-        $table = new MySQLTable();
-        $table->addColumns([
-            'user-id'=>[
-                'datatype'=>'int',
-                'size'=>11,
-                'is-primary'=>true
-            ],
-            'username'=>[
-                'size'=>20,
-                'is-unique'=>true
-            ],
-            'email'=>[
-                'size'=>150,
-                'is-unique'=>true
-            ],
-            'password'=>[
-                'size'=>64
-            ]
-        ]);
-        $col00 = $table->getColByIndex(0);
-        $this->assertEquals('user_id',$col00->getName());
-        $this->assertEquals('int',$col00->getType());
-        $this->assertEquals(11,$col00->getSize());
-        $this->assertTrue($col00->isPrimary());
-        
-        $col01 = $table->getColByIndex(2);
-        $this->assertEquals('varchar',$col01->getType());
-        $this->assertEquals(150,$col01->getSize());
-        $this->assertFalse($col01->isPrimary());
-        $this->asserttrue($col01->isUnique());
-        
-        $col02 = $table->getColByIndex(6);
-        $this->assertNull($col02);
+    public function testSettersMap00($table) {
+        $this->assertEquals([
+            'setUserId' => 'user_id'
+        ],$table->getSettersMap());
     }
     /**
-     * @test
+     * 
+     * @param MySQLTable $table
+     * @depends testGetEntityMethodsTest01
      */
-    public function testCreateEntity00() {
-        $table = new MySQLTable('users');
-        $table->addDefaultCols();
-        $this->assertTrue($table->createEntityClass([
-            'store-path'=>__DIR__,
-            'class-name'=>'User'
-        ]));
-        $this->assertTrue(file_exists($table->getEntityPath()));
-        require_once $table->getEntityPath();
-        $this->assertTrue(class_exists($table->getEntityNamespace()));
+    public function testSettersMap01($table) {
+        $this->assertEquals([
+            'setUserId' => 'user_id',
+            'setPASS' => 'user_pass',
+            'setCIn' => 'created_on'
+        ],$table->getSettersMap());
     }
 }
