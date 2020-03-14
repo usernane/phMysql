@@ -1,7 +1,8 @@
 <?php
 namespace phMysql\tests;
-use phMysql\MySQLQuery;
+
 use phMysql\MySQLColumn;
+use phMysql\MySQLQuery;
 use phMysql\MySQLTable;
 
 /**
@@ -9,7 +10,7 @@ use phMysql\MySQLTable;
  *
  * @author Ibrahim
  */
-class UsersQuery extends MySQLQuery{
+class UsersQuery extends MySQLQuery {
     /**
      *
      * @var MySQLTable 

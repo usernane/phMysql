@@ -23,22 +23,14 @@
  * SOFTWARE.
  */
 namespace phMysql;
-use phMysql\MySQLTable;
-use phMysql\MySQLColumn;
-use phMysql\MySQLQuery;
+
 /**
  * Experimental class. DO NOT USE.
  *
  * @author Ibrahim
  * @version 1.0
  */
-class JoinTable extends MySQLTable{
-    private $leftTable;
-    private $rightTable;
-    private $joinType;
-    private $joinCond;
-    private $hasCommon;
-    private $keysMap;
+class JoinTable extends MySQLTable {
     /**
      * An array that contains the names of the columns which are shared between 
      * joined tables.
@@ -46,6 +38,12 @@ class JoinTable extends MySQLTable{
      * @since 1.0 
      */
     private $commonCols;
+    private $hasCommon;
+    private $joinCond;
+    private $joinType;
+    private $keysMap;
+    private $leftTable;
+    private $rightTable;
     /**
      * Creates new instance of the class.
      * @param MySQLQuery|MySQLTable $leftTable The left table. It can be an 
@@ -63,35 +61,38 @@ class JoinTable extends MySQLTable{
      * joined table.
      * @since 1.0
      */
-    public function __construct($leftTable,$rightTable,$tableName=null,$keysMap=[]) {
+    public function __construct($leftTable,$rightTable,$tableName = null,$keysMap = []) {
         parent::__construct();
         $this->hasCommon = false;
-        if(!$this->setName($tableName)){
-            $this->setName('Temp'. strtoupper(substr(hash('sha256',rand()), 0, 5)));
+
+        if (!$this->setName($tableName)) {
+            $this->setName('Temp'.strtoupper(substr(hash('sha256',rand()), 0, 5)));
         }
-        if($leftTable instanceof MySQLTable){
+
+        if ($leftTable instanceof MySQLTable) {
             $this->leftTable = $leftTable;
+        } else {
+            if ($leftTable instanceof MySQLQuery) {
+                $this->leftTable = $leftTable->getTable();
+            } else {
+                $this->leftTable = new MySQLTable('left_table');
+            }
         }
-        else if($leftTable instanceof MySQLQuery){
-            $this->leftTable = $leftTable->getTable();
-        }
-        else{
-            $this->leftTable = new MySQLTable('left_table');
-        }
-        if($rightTable instanceof MySQLTable){
+
+        if ($rightTable instanceof MySQLTable) {
             $this->rightTable = $rightTable;
-        }
-        else if($leftTable instanceof MySQLQuery){
-            $this->rightTable = $rightTable->getTable();
-        }
-        else{
-            $this->rightTable = new MySQLTable('right_table');
+        } else {
+            if ($leftTable instanceof MySQLQuery) {
+                $this->rightTable = $rightTable->getTable();
+            } else {
+                $this->rightTable = new MySQLTable('right_table');
+            }
         }
         $this->joinType = 'left';
         $this->commonCols = [];
         $this->keysMap = [
-            'left'=>[],
-            'right'=>[]
+            'left' => [],
+            'right' => []
         ];
         $this->_addAndValidateColmns($keysMap);
     }
@@ -106,15 +107,22 @@ class JoinTable extends MySQLTable{
      * @since 1.0
      */
     public function getCol($key) {
-        if(isset($this->keysMap['left'][$key])){
+        if (isset($this->keysMap['left'][$key])) {
             $tmpCol = $this->getLeftTable()->getCol($this->keysMap['left'][$key]);
+
             return $tmpCol;
+        } else {
+            if (isset($this->keysMap['right'][$key])) {
+                $tmpCol = $this->getRightTable()->getCol($this->keysMap['right'][$key]);
+
+                return $tmpCol;
+            }
         }
-        else if(isset($this->keysMap['right'][$key])){
-            $tmpCol = $this->getRightTable()->getCol($this->keysMap['right'][$key]);
-            return $tmpCol;
-        }
+
         return $this->getJoinCol($key);
+    }
+    public function getCommonColsNames() {
+        return $this->commonCols;
     }
     /**
      * Returns the column object given the key that it was stored in.
@@ -129,6 +137,59 @@ class JoinTable extends MySQLTable{
         return parent::getCol($key);
     }
     /**
+     * Returns a string that represents join condition.
+     * @return string|null A string that represents join condition. If join 
+     * condition is not set, the method will return null.
+     * @since 1.0
+     */
+    public function getJoinCondition() {
+        return $this->joinCond;
+    }
+    /**
+     * Returns a string that represents the type of the join that will 
+     * be performed.
+     * @return string Possible return values are:
+     * <ul>
+     * <li>left</li>
+     * <li>right</li>
+     * <li>cross</li>
+     * </ul>
+     * Default return value is 'left'.
+     * @since 1.0
+     */
+    public function getJoinType() {
+        return $this->joinType;
+    }
+    /**
+     * Returns the left table of the join.
+     * @return MySQLTable An instance of the class 'MySQLTable' that represents 
+     * left table of the join.
+     * @since 1.0
+     */
+    public function getLeftTable() {
+        return $this->leftTable;
+    }
+    /**
+     * Returns the right table of the join.
+     * @return MySQLTable An instance of the class 'MySQLTable' that represents 
+     * right table of the join.
+     * @since 1.0
+     */
+    public function getRightTable() {
+        return $this->rightTable;
+    }
+    /**
+     * Checks if the two joined tables has common columns between them.
+     * A two tables will have common columns if the two share at least one 
+     * column with the same name in the database.
+     * @return boolean If two tables share same column name, the method will 
+     * return true. If not, it will return false.
+     * @since 1.0
+     */
+    public function hasCommon() {
+        return $this->hasCommon;
+    }
+    /**
      * Checks if a column has the same name in the left and the right table.
      * @param string $colName The name of the column as it appears in the 
      * database.
@@ -138,10 +199,75 @@ class JoinTable extends MySQLTable{
      */
     public function isCommon($colName) {
         $trimmed = trim($colName);
+
         return in_array($trimmed, $this->getCommonColsNames());
     }
-    public function getCommonColsNames() {
-        return $this->commonCols;
+    /**
+     * Sets the condition at which the two tables will be joined on.
+     * @param array $cols An associative array of columns. The indices should be 
+     * the names of columns keys taken from left table and the values should be 
+     * columns keys taken from right table.
+     * @param string $conds An optional array of join conditions. It can have 
+     * values like '=' or '!='.
+     * @since 1.0
+     */
+    public function setJoinCondition($cols,$conds = []) {
+        if (gettype($cols) == 'array') {
+            while (count($conds) < count($cols)) {
+                $conds[] = '=';
+            }
+            $joinOps = [];
+
+            while (count($joinOps) < count($cols)) {
+                $joinOps[] = 'and';
+            }
+            $index = 0;
+            $this->joinCond = null;
+            $leftTable = $this->getLeftTable();
+            $rightTable = $this->getRightTable();
+
+            foreach ($cols as $leftCol => $rightCol) {
+                if ($leftTable instanceof JoinTable) {
+                    $leftColObj = $leftTable->getJoinCol($leftCol);
+                } else {
+                    $leftColObj = $leftTable->getCol($leftCol);
+                }
+
+                if ($leftColObj instanceof MySQLColumn) {
+                    if ($rightTable instanceof JoinTable) {
+                        $rightColObj = $rightTable->getJoinCol($rightCol);
+                    } else {
+                        $rightColObj = $rightTable->getCol($rightCol);
+                    }
+
+                    if ($rightColObj instanceof MySQLColumn) {
+                        if ($rightColObj->getType() == $leftColObj->getType()) {
+                            $cond = $conds[$index];
+
+                            if ($index != 0) {
+                                $joinOp = $joinOps[$index - 1];
+
+                                if ($joinOp != 'and' && $joinOp != 'or') {
+                                    $joinOp = 'and';
+                                }
+                                $this->joinCond .= 
+                                   ' '.$joinOp.' '.$leftTable->getName().'.'
+                                   .$leftColObj->getName().' '.$cond.' '
+                                   .$rightTable->getName().'.'
+                                   .$rightColObj->getName();
+                            } else {
+                                $this->joinCond = 
+                                   'on '.$leftTable->getName().'.'
+                                   .$leftColObj->getName().' '.$cond.' '
+                                   .$rightTable->getName().'.'
+                                   .$rightColObj->getName();
+                            }
+                        }
+                    }
+                }
+                $index++;
+            }
+        }
     }
     /**
      * Sets the type of the join that will be performed.
@@ -160,129 +286,25 @@ class JoinTable extends MySQLTable{
      */
     public function setJoinType($type) {
         $lType = strtolower(trim($type));
-        if($lType == 'left' || $lType == 'natural left' ||
-           $lType == 'right' || $lType == 'natural right'|| 
-           $lType == 'cross' || $lType == 'natural' || $lType == 'join'){
+
+        if ($lType == 'left' || $lType == 'natural left' ||
+           $lType == 'right' || $lType == 'natural right' || 
+           $lType == 'cross' || $lType == 'natural' || $lType == 'join') {
             $this->joinType = $lType;
         }
     }
     /**
-     * Returns a string that represents join condition.
-     * @return string|null A string that represents join condition. If join 
-     * condition is not set, the method will return null.
      * @since 1.0
      */
-    public function getJoinCondition() {
-        return $this->joinCond;
-    }
-    /**
-     * Sets the condition at which the two tables will be joined on.
-     * @param array $cols An associative array of columns. The indices should be 
-     * the names of columns keys taken from left table and the values should be 
-     * columns keys taken from right table.
-     * @param string $conds An optional array of join conditions. It can have 
-     * values like '=' or '!='.
-     * @since 1.0
-     */
-    public function setJoinCondition($cols,$conds=[]) {
-        if(gettype($cols) == 'array'){
-            while (count($conds) < count($cols)){
-                $conds[] = '=';
-            }
-            $joinOps = [];
-            while (count($joinOps) < count($cols)){
-                $joinOps[] = 'and';
-            }
-            $index = 0;
-            $this->joinCond = null;
-            $leftTable = $this->getLeftTable();
-            $rightTable = $this->getRightTable();
-            foreach ($cols as $leftCol => $rightCol){
-                if($leftTable instanceof JoinTable){
-                    $leftColObj = $leftTable->getJoinCol($leftCol);
-                }
-                else{
-                    $leftColObj = $leftTable->getCol($leftCol);
-                }
-                if($leftColObj instanceof MySQLColumn){
-                    if($rightTable instanceof JoinTable){
-                        $rightColObj = $rightTable->getJoinCol($rightCol);
-                    }
-                    else{
-                        $rightColObj = $rightTable->getCol($rightCol);
-                    }
-                    if($rightColObj instanceof MySQLColumn){
-                        if($rightColObj->getType() == $leftColObj->getType()){
-                            $cond = $conds[$index];
-                            if($index != 0){
-                                $joinOp = $joinOps[$index - 1];
-                                if($joinOp != 'and' && $joinOp != 'or'){
-                                    $joinOp = 'and';
-                                }
-                                $this->joinCond .= 
-                                   ' '.$joinOp.' '.$leftTable->getName().'.'
-                                   . $leftColObj->getName().' '.$cond.' '
-                                   . $rightTable->getName().'.'
-                                   . $rightColObj->getName();
-                            }
-                            else{
-                                $this->joinCond = 
-                                   'on '.$leftTable->getName().'.'
-                                   . $leftColObj->getName().' '.$cond.' '
-                                   . $rightTable->getName().'.'
-                                   . $rightColObj->getName();
-                            }
-                        }
-                    }
-                }
-                $index++;
-            }
-        } 
-    }
-    /**
-     * Returns a string that represents the type of the join that will 
-     * be performed.
-     * @return string Possible return values are:
-     * <ul>
-     * <li>left</li>
-     * <li>right</li>
-     * <li>cross</li>
-     * </ul>
-     * Default return value is 'left'.
-     * @since 1.0
-     */
-    public function getJoinType() {
-        return $this->joinType;
-    }
-    /**
-     * Returns the right table of the join.
-     * @return MySQLTable An instance of the class 'MySQLTable' that represents 
-     * right table of the join.
-     * @since 1.0
-     */
-    public function getRightTable() {
-        return $this->rightTable;
-    }
-    /**
-     * Returns the left table of the join.
-     * @return MySQLTable An instance of the class 'MySQLTable' that represents 
-     * left table of the join.
-     * @since 1.0
-     */
-    public function getLeftTable() {
-        return $this->leftTable;
-    }
-    /**
-     * @since 1.0
-     */
-    private function _addAndValidateColmns($keysMap=[]) {
+    private function _addAndValidateColmns($keysMap = []) {
         //collect common keys btween the two tables.
         $commonColsKeys = [];
         $leftColsKeys = $this->getLeftTable()->colsKeys();
         $rightColsKeys = $this->getRightTable()->colsKeys();
-        foreach ($rightColsKeys as $col){
-            foreach ($leftColsKeys as $col2){
-                if($col == $col2){
+
+        foreach ($rightColsKeys as $col) {
+            foreach ($leftColsKeys as $col2) {
+                if ($col == $col2) {
                     $commonColsKeys[] = $col2;
                 }
             }
@@ -290,51 +312,48 @@ class JoinTable extends MySQLTable{
         //collect common columns names in the two tables.
         $rightCols = $this->getRightTable()->getColsNames();
         $leftCols = $this->getLeftTable()->getColsNames();
-        foreach ($rightCols as $col){
-            foreach ($leftCols as $col2){
-                if($col == $col2){
+
+        foreach ($rightCols as $col) {
+            foreach ($leftCols as $col2) {
+                if ($col == $col2) {
                     $this->commonCols[] = $col2;
                 }
             }
         }
         //build an array that contains all columns in the joined table.
         $colsArr = [];
-        foreach ($leftColsKeys as $col){
-            if(in_array($col, $commonColsKeys)){
-                if($this->getLeftTable() instanceof JoinTable){
+
+        foreach ($leftColsKeys as $col) {
+            if (in_array($col, $commonColsKeys)) {
+                if ($this->getLeftTable() instanceof JoinTable) {
                     $newCol = clone $this->getLeftTable()->getJoinCol($col);
                     $colsArr['left-'.$col] = $newCol;
-                }
-                else{
+                } else {
                     $colsArr['left-'.$col] = clone $this->getLeftTable()->getCol($col);
                 }
-            }
-            else{
-                if($this->getLeftTable() instanceof JoinTable){
+            } else {
+                if ($this->getLeftTable() instanceof JoinTable) {
                     $newCol = clone $this->getLeftTable()->getJoinCol($col);
                     $colsArr[$col] = $newCol;
-                }
-                else{
+                } else {
                     $colsArr[$col] = clone $this->getLeftTable()->getCol($col);
                 }
             }
         }
-        foreach ($rightColsKeys as $col){
-            if(in_array($col, $commonColsKeys)){
-                if($this->getRightTable() instanceof JoinTable){
+
+        foreach ($rightColsKeys as $col) {
+            if (in_array($col, $commonColsKeys)) {
+                if ($this->getRightTable() instanceof JoinTable) {
                     $newCol = clone $this->getRightTable()->getJoinCol($col);
                     $colsArr['right-'.$col] = $newCol;
-                }
-                else{
+                } else {
                     $colsArr['right-'.$col] = clone $this->getRightTable()->getCol($col);
                 }
-            }
-            else{
-                if($this->getRightTable() instanceof JoinTable){
+            } else {
+                if ($this->getRightTable() instanceof JoinTable) {
                     $newCol = clone $this->getRightTable()->getJoinCol($col);
                     $colsArr[$col] = $newCol;
-                }
-                else{
+                } else {
                     $colsArr[$col] = clone $this->getRightTable()->getCol($col);
                 }
             }
@@ -344,29 +363,32 @@ class JoinTable extends MySQLTable{
         $leftCount = count($leftCols);
         $hasCommon = false;
         $commonNamesArr = $this->getCommonColsNames();
-        foreach ($colsArr as $colkey => $colObj){
+
+        foreach ($colsArr as $colkey => $colObj) {
             $isAdded = false;
             $colName = $colObj->getName();
-            if(in_array($colName, $commonNamesArr)){
+
+            if (in_array($colName, $commonNamesArr)) {
                 $hasCommon = true;
                 $isAdded = false;
-                if($index < $leftCount){
+
+                if ($index < $leftCount) {
                     $colObj->setName('left_'.$colName);
                     $isAdded = $this->_addWithAlias($colkey, $colObj, $keysMap, 'left');
-                }
-                else{
+                } else {
                     $colObj->setName('right_'.$colName);
                     $isAdded = $this->_addWithAlias($colkey, $colObj, $keysMap, 'right');
                 }
             }
-            if(!$isAdded){
-                if($index < $leftCount){
+
+            if (!$isAdded) {
+                if ($index < $leftCount) {
                     $isAdded = $this->_addWithAlias($colkey, $colObj, $keysMap, 'left');
-                }
-                else{
+                } else {
                     $isAdded = $this->_addWithAlias($colkey, $colObj, $keysMap, 'right');
                 }
-                if(!$isAdded){
+
+                if (!$isAdded) {
                     $this->addColumn($colkey, $colObj);
                 }
             }
@@ -378,28 +400,21 @@ class JoinTable extends MySQLTable{
         $isAdded = false;
         $colsNames = isset($aliasArr[$leftOrRight]) && gettype($aliasArr[$leftOrRight]) == 'array' ? 
                 $aliasArr[$leftOrRight] : [];
-        foreach ($colsNames as $originalName => $newName){
+
+        foreach ($colsNames as $originalName => $newName) {
             $originalNameC = $leftOrRight.'-'.$originalName;
-            if($originalNameC == $colkey || $originalName == $colkey){
+
+            if ($originalNameC == $colkey || $originalName == $colkey) {
                 unset($aliasArr[$leftOrRight][$originalName]);
                 $isAdded = $this->addColumn($newName, $colObj);
-                if($isAdded){
+
+                if ($isAdded) {
                     $this->keysMap[$leftOrRight][$newName] = $originalName;
                 }
                 break;
             }
         }
+
         return $isAdded;
-    }
-    /**
-     * Checks if the two joined tables has common columns between them.
-     * A two tables will have common columns if the two share at least one 
-     * column with the same name in the database.
-     * @return boolean If two tables share same column name, the method will 
-     * return true. If not, it will return false.
-     * @since 1.0
-     */
-    public function hasCommon() {
-        return $this->hasCommon;
     }
 }

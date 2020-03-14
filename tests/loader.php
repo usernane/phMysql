@@ -30,12 +30,12 @@ $testsDirName = 'tests';
 $rootDir = substr(__DIR__, 0, strlen(__DIR__) - strlen($testsDirName));
 $DS = DIRECTORY_SEPARATOR;
 $rootDirTrimmed = trim($rootDir,'/\\');
-echo 'Include Path: \''. get_include_path().'\''."\n";
-if(explode($DS, $rootDirTrimmed)[0] == 'home'){
+echo 'Include Path: \''.get_include_path().'\''."\n";
+
+if (explode($DS, $rootDirTrimmed)[0] == 'home') {
     //linux.
     $rootDir = $DS.$rootDirTrimmed.$DS;
-}
-else{
+} else {
     $rootDir = $rootDirTrimmed.$DS;
 }
 define('ROOT', $rootDir);
@@ -58,53 +58,56 @@ $conn->setDB('testing_db');
 $q00 = new phMysql\tests\UsersQuery();
 $q00->createStructure();
 echo $q00->getQuery();
-if($conn->executeQuery($q00)){
+
+if ($conn->executeQuery($q00)) {
     $q00 = new phMysql\tests\ArticleQuery();
     $q00->createStructure();
     echo $q00->getQuery();
-    if($conn->executeQuery($q00)){
+
+    if ($conn->executeQuery($q00)) {
         echo "Successfully Created Tables.\n";
         echo "Adding Test Dataset...\n";
-        for($x = 0 ; $x < 5 ; $x++){
+
+        for ($x = 0 ; $x < 5 ; $x++) {
             $q = new phMysql\tests\UsersQuery();
             $q->insertRecord([
-                'user-id'=>$x + 1,
-                'email'=>$x.'@test.com',
-                'name'=>'Test User #'.$x
+                'user-id' => $x + 1,
+                'email' => $x.'@test.com',
+                'name' => 'Test User #'.$x
             ]);
             echo $q->getQuery()."\n";
-            if($conn->executeQuery($q)){
-                for($y = 0 ; $y < 4 ; $y++){
+
+            if ($conn->executeQuery($q)) {
+                for ($y = 0 ; $y < 4 ; $y++) {
                     $q = new \phMysql\tests\ArticleQuery();
                     $q->insertRecord([
-                        'author-id'=>$x + 1,
-                        'content'=>'This is the body of article number '.$y.' which '
-                        . 'is created by the user which has the ID '.($x + 1).'.',
-                        'title'=>'User # '.($x + 1).' Article #'.$y
+                        'author-id' => $x + 1,
+                        'content' => 'This is the body of article number '.$y.' which '
+                        .'is created by the user which has the ID '.($x + 1).'.',
+                        'title' => 'User # '.($x + 1).' Article #'.$y
                     ]);
                     echo $q->getQuery()."\n";
-                    if(!$conn->executeQuery($q)){
+
+                    if (!$conn->executeQuery($q)) {
                         echo "Unable to execute query.\n";
                         echo $conn->getErrorCode().': '.$conn->getErrorMessage()."\n";
                     }
                 }
-            }
-            else{
+            } else {
                 echo "Unable to execute query.\n";
                 echo $conn->getErrorCode().': '.$conn->getErrorMessage()."\n";
             }
         }
-    }
-    else{
+    } else {
         echo 'Unable to create the table '.$q00->getTableName()."\n";
         echo $conn->getErrorCode().': '.$conn->getErrorMessage()."\n";
     }
-}
-else{
+} else {
     echo 'Unable to create the table '.$q00->getTableName()."\n";
     echo $conn->getErrorCode().': '.$conn->getErrorMessage()."\n";
 }
-register_shutdown_function(function(){
+register_shutdown_function(function()
+{
     echo "Dropping tables...\n";
     $conn = new phMysql\MySQLLink('localhost', 'root', '123456');
     $conn->setDB('testing_db');
