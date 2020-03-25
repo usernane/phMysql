@@ -803,7 +803,16 @@ class MySQLQuery {
                             } else {
                                 $vals .= 'null'.$comma;
                             }
-                        } else {
+                        } 
+                        else if($type == 'boolean'){
+                            if($cleanedVal === true){
+                                $vals .= "'Y'".$comma;
+                            }
+                            else{
+                                $vals .= "'N'".$comma;
+                            }
+                        }
+                        else {
                             if ($createdOnColObj !== null && $createdOnColObj->getIndex() == $column->getIndex()) {
                                 $vals .= $cleanedVal.$comma;
                                 $createdOnColObj = null;
@@ -2060,7 +2069,16 @@ class MySQLQuery {
                                     }
                                 }
                             }
-                        } else {
+                        } 
+                        else if($col->getType() == 'boolean'){
+                            if($cleanVal === true){
+                                $where .= $colName.' = \'Y\'';
+                            }
+                            else{
+                                $where .= $colName.' = \'N\'';
+                            }
+                        }
+                        else {
                             if (gettype($vals[$index]) == 'array') {
                                 $conditions = isset($vals[$index]['conditions']) ? $vals[$index]['conditions'] : [];
                                 $joinConditions = isset($vals[$index]['join-operators']) ? $vals[$index]['join-operators'] : [];
