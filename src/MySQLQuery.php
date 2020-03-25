@@ -1377,15 +1377,22 @@ class MySQLQuery {
      * The type of the query must be taken from the array MySQLQuery::Q_TYPES.
      * @param string $query a MySQL query.
      * @param string $type The type of the query (such as 'select', 'update').
+     * @param string $mapTo A string that represents the namespace of an entity 
+     * class that query result will be mapped to. For example, if the name 
+     * of the entity is 'MyWallet' and the name space of the class is 
+     * 'core\money', the passed value should be 'core\money\MyWallet'.
      * @since 1.0
      * @throws Exception If the given query type is not supported. 
      */
-    public function setQuery($query,$type) {
+    public function setQuery($query,$type,$mapTo=null) {
         $ltype = strtolower($type.'');
-
+        
         if (in_array($ltype, self::Q_TYPES)) {
             $this->query = $query;
             $this->queryType = $ltype;
+            if($mapTo !== null && class_exists($mapTo)){
+                $this->resultMap = $mapTo;
+            }
         } else {
             throw new Exception('Unsupported query type: \''.$type.'\'');
         }
