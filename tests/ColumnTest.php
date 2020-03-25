@@ -15,7 +15,7 @@ class ColumnTest extends TestCase {
     public function testBoolean00() {
         $col = new MySQLColumn('my_col', 'boolean');
         $this->assertEquals('boolean',$col->getType());
-        $this->assertEquals('my_col varchar(1) not null collate utf8mb4_unicode_ci',$col.'');
+        $this->assertEquals('my_col varchar(1) not null',$col.'');
     }
     /**
      * @test
@@ -24,13 +24,28 @@ class ColumnTest extends TestCase {
         $col = new MySQLColumn('my_col', 'bool');
         $this->assertEquals('boolean',$col->getType());
         $col->setDefault(true);
-        $this->assertEquals('my_col varchar(1) not null default \'Y\' collate utf8mb4_unicode_ci',$col.'');
+        $this->assertEquals('my_col varchar(1) not null default \'Y\'',$col.'');
         $col->setDefault(false);
-        $this->assertEquals('my_col varchar(1) not null default \'N\' collate utf8mb4_unicode_ci',$col.'');
+        $this->assertEquals('my_col varchar(1) not null default \'N\'',$col.'');
         $col->setDefault();
-        $this->assertEquals('my_col varchar(1) not null collate utf8mb4_unicode_ci',$col.'');
+        $this->assertEquals('my_col varchar(1) not null',$col.'');
         $col->setDefault('Random Val');
-        $this->assertEquals('my_col varchar(1) not null default \'N\' collate utf8mb4_unicode_ci',$col.'');
+        $this->assertEquals('my_col varchar(1) not null default \'N\'',$col.'');
+    }
+    /**
+     * @test
+     */
+    public function testBoolean02() {
+        $col = new MySQLColumn('my_col', 'bool');
+        $this->assertEquals('boolean',$col->getType());
+        $col->setIsNull(true);
+        $this->assertEquals('my_col varchar(1) not null',$col.'');
+        $col->setIsAutoInc(true);
+        $this->assertEquals('my_col varchar(1) not null',$col.'');
+        $col->setIsPrimary(true);
+        $this->assertEquals('my_col varchar(1) not null',$col.'');
+        $col->setIsUnique(true);
+        $this->assertEquals('my_col varchar(1) not null',$col.'');
     }
     /**
      * @test
