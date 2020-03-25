@@ -12,6 +12,29 @@ class ColumnTest extends TestCase {
     /**
      * @test
      */
+    public function testBoolean00() {
+        $col = new MySQLColumn('my_col', 'boolean');
+        $this->assertEquals('boolean',$col->getType());
+        $this->assertEquals('my_col varchar(1) not null collate utf8mb4_unicode_ci',$col.'');
+    }
+    /**
+     * @test
+     */
+    public function testBoolean01() {
+        $col = new MySQLColumn('my_col', 'bool');
+        $this->assertEquals('boolean',$col->getType());
+        $col->setDefault(true);
+        $this->assertEquals('my_col varchar(1) not null default \'Y\' collate utf8mb4_unicode_ci',$col.'');
+        $col->setDefault(false);
+        $this->assertEquals('my_col varchar(1) not null default \'N\' collate utf8mb4_unicode_ci',$col.'');
+        $col->setDefault();
+        $this->assertEquals('my_col varchar(1) not null collate utf8mb4_unicode_ci',$col.'');
+        $col->setDefault('Random Val');
+        $this->assertEquals('my_col varchar(1) not null default \'N\' collate utf8mb4_unicode_ci',$col.'');
+    }
+    /**
+     * @test
+     */
     public function setCommentTest00() {
         $col = new MySQLColumn('user_id ', 'varchar', 15);
         $col->setComment('A unique ID for the user.');
