@@ -36,6 +36,36 @@ class MySQLTableTest extends TestCase {
     /**
      * @test
      */
+    public function testWithBoolCol00() {
+        $table = new MySQLTable();
+        $table->addColumns([
+            'user-id'=>[
+                'size'=>15
+            ],
+            'is-active'=>[
+                'type'=>'boolean'
+            ]
+        ]);
+        $this->assertEquals('boolean',$table->getCol('is-active')->getType());
+    }
+    /**
+     * @test
+     */
+    public function testWithBoolCol01() {
+        $table = new MySQLTable();
+        $table->addColumns([
+            'user-id'=>[
+                'size'=>15
+            ],
+            'is-active'=>[
+                'type'=>'bool'
+            ]
+        ]);
+        $this->assertEquals('boolean',$table->getCol('is-active')->getType());
+    }
+    /**
+     * @test
+     */
     public function setOwnerQueryTest00() {
         $table = new MySQLTable();
         $table->setOwnerQuery(null);
@@ -308,6 +338,23 @@ class MySQLTableTest extends TestCase {
         $this->assertTrue($table->createEntityClass([
             'store-path' => __DIR__,
             'class-name' => 'User'
+        ]));
+        $this->assertTrue(file_exists($table->getEntityPath()));
+        require_once $table->getEntityPath();
+        $this->assertTrue(class_exists($table->getEntityNamespace()));
+    }
+    /**
+     * @test
+     */
+    public function testCreateEntity01() {
+        $table = new MySQLTable('users');
+        $table->addDefaultCols();
+        $table->addColumn('is-active', [
+            'type'=>'boolean'
+        ]);
+        $this->assertTrue($table->createEntityClass([
+            'store-path' => __DIR__,
+            'class-name' => 'User2'
         ]));
         $this->assertTrue(file_exists($table->getEntityPath()));
         require_once $table->getEntityPath();

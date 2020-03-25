@@ -164,7 +164,8 @@ class MySQLTable {
      * <li><b>name</b>: The name of the column in the database. If not provided, 
      * the name of the key will be used but with every '-' replaced by '_'.</li>
      * <li><b>datatype</b>: The datatype of the column.  If not provided, 'varchar' 
-     * will be used.</li>
+     * will be used. Note that the value 'type' can be used as an 
+     * alias to this index.</li>
      * <li><b>size</b>: Size of the column (if datatype does support size). 
      * If not provided, 1 will be used.</li>
      * <li><b>default</b>: A default value for the column if its value 
@@ -478,6 +479,19 @@ class MySQLTable {
         return $this->colSet;
     }
     /**
+     * Returns an array that contains data types of table columns.
+     * @return array An indexed array that contains columns data types. Each 
+     * index will corresponds to the index of the column in the table.
+     * @since 1.6.6
+     */
+    public function types() {
+        $retVal = [];
+        foreach ($this->colSet as $colObj){
+            $retVal[] = $colObj->getType();
+        }
+        return $retVal;
+    }
+    /**
      * Create a new entity class that can be used to store table records
      * @param array $options An associative array that contains entity class 
      * options. Available options are:
@@ -517,13 +531,14 @@ class MySQLTable {
                     $entityAttrs = $this->getAttribitesNames();
                     $attrsCount = count($entityAttrs);
                     $settersGettersMap = $this->getEntityMethods();
-                    fwrite($file, "<?php\nnamespace ".$namespace.";\n");
+                    fwrite($file, "<?php\nnamespace ".$namespace.";\n\n");
                     fwrite($file, "/**\n"
                             ." * An auto-generated entity class which maps to a record in the\n"
                             ." * table '".$this->getName()."'\n"
                             ." **/\n");
                     fwrite($file, "class ".$entityName." {\n");
                     $colsNames = $this->getColsNames();
+                    $colsTypes = $this->types();
                     $index = 0;
 
                     foreach ($entityAttrs as $attrName) {
@@ -546,7 +561,12 @@ class MySQLTable {
                                     ."     * @param \$$entityAttrs[$x] ".$this->_getPHPType($x)." The new value of the attribute.\n"
                                     ."     **/\n");
                         fwrite($file, '    public function '.$setterName.'($'.$entityAttrs[$x].") {\n");
-                        fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n");
+                        if($colsTypes[$x] == 'boolean'){
+                            fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x]." === true || $".$entityAttrs[$x]." == 'Y';\n");
+                        }
+                        else {
+                            fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n");
+                        }
                         fwrite($file, "    }\n");
                         $getterName = $settersGettersMap['getters'][$x];
                         fwrite($file, "    /**\n"
@@ -1243,7 +1263,15 @@ class MySQLTable {
      */
     private function _createColObj($options) {
         if (isset($options['name'])) {
-            $datatype = isset($options['datatype']) ? $options['datatype'] : 'varchar';
+            if(isset($options['datatype'])){
+                $datatype = $options['datatype'];
+            }
+            else if(isset ($options['type'])){
+                $datatype = $options['type'];
+            }
+            else{
+                $datatype = 'varchar';
+            }
             $col = new MySQLColumn($options['name'], $datatype);
             $size = isset($options['size']) ? intval($options['size']) : 1;
             $col->setSize($size);
@@ -1288,7 +1316,11 @@ class MySQLTable {
 
         if ($type == 'int') {
             return 'int'.$isNull;
-        } else {
+        }
+        else if($type == 'boolean'){
+            return 'boolean';
+        }
+        else {
             if ($type == 'decimal' || $type == 'double' || $type == 'float') {
                 return 'double'.$isNull;
             } else {

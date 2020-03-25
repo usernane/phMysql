@@ -36,6 +36,7 @@ class MySQLColumn {
      * <ul>
      * <li><b>int</b>: Used to store integers. Maximum size is 11.</li>
      * <li><b>varchar</b>: Used to store strings.</li>
+     * <li><b>boolean</b> Used to store true or false as a varchar.</li>
      * <li><b>timestamp</b>: Used to store changes on the record. Note that only one column 
      * in the table can have this type.</li>
      * <li><b>date</b>: Used to store date in the formate 'YYYY-MM-DD' The range is '1000-01-01' to '9999-12-31'.</li>
@@ -55,7 +56,8 @@ class MySQLColumn {
      */
     const DATATYPES = [
         'int','varchar','timestamp','tinyblob','blob','mediumblob','longblob',
-        'datetime','text','mediumtext','decimal','double','float'
+        'datetime','text','mediumtext','decimal','double','float','boolean', 
+        'bool'
     ];
     /**
      * A constant that is returned by some methods to tell that the 
@@ -247,7 +249,11 @@ class MySQLColumn {
 
         if ($type == 'int' || $type == 'varchar' || $type == 'text') {
             $retVal .= $type.'('.$this->getSize().') ';
-        } else {
+        }
+        else if($type == 'boolean'){
+            $retVal .= 'varchar(1) ';
+        }
+        else {
             if ($type == 'decimal' || $type == 'float' || $type == 'double') {
                 if ($this->getSize() != 0) {
                     $retVal .= $type.'('.$this->getSize().','.$this->getScale().') ';
@@ -259,19 +265,29 @@ class MySQLColumn {
             }
         }
 
-        if (!$this->isNull()) {
+        if (!$this->isNull() || $type == 'boolean') {
             $retVal .= 'not null ';
         } else {
             $retVal .= 'null ';
         }
 
-        if ($this->isUnique()) {
+        if ($this->isUnique() && $type != 'boolean') {
             $retVal .= 'unique ';
         }
         $default = $this->default;
 
         if ($default !== null) {
-            $retVal .= 'default '.$default.' ';
+            if($type == 'boolean'){
+                if($this->getDefault() === true){
+                    $retVal .= 'default \'Y\' ';
+                }
+                else{
+                    $retVal .= 'default \'N\' ';
+                }
+            }
+            else{
+                $retVal .= 'default '.$default.' ';
+            }
         }
 
         if ($type == 'varchar' || $type == 'text' || $type == 'mediumtext') {
@@ -625,8 +641,8 @@ class MySQLColumn {
     /**
      * Updates the value of the property $isNull.
      * This property can be set to true if the column allow the insertion of 
-     * null values. Note that if the column is set as a primary, the property 
-     * will not be updated.
+     * null values. Note that if the column is set as a primary or the datatype 
+     * of the column is set to 'boolean', the property will not be updated.
      * @param boolean $bool true if the column allow null values. false 
      * if not.
      * @return boolean true If the property value is updated. If the given 
@@ -636,7 +652,7 @@ class MySQLColumn {
      */
     public function setIsNull($bool) {
         if (gettype($bool) == 'boolean') {
-            if (!$this->isPrimary()) {
+            if (!$this->isPrimary() && $this->getType() != 'boolean') {
                 $this->isNull = $bool;
 
                 return true;
@@ -647,27 +663,39 @@ class MySQLColumn {
     }
     /**
      * Updates the value of the property <b>$isPrimary</b>.
-     * Note that once the column become primary, it becomes unique by default.
+     * Note that once the column become primary, it becomes unique by default. Also, 
+     * Note that if column type is 'boolean', it cannot be a primary.
      * @param boolean $bool <b>true</b> if the column is primary key. false 
      * if not.
      * @since 1.0
      */
     public function setIsPrimary($bool) {
-        $this->isPrimary = $bool === true;
+        if($this->getType() != 'boolean'){
+            $this->isPrimary = $bool === true;
 
-        if ($this->isPrimary() === true) {
-            $this->setIsNull(false);
-            $this->setIsUnique(true);
+            if ($this->isPrimary() === true) {
+                $this->setIsNull(false);
+                $this->setIsUnique(true);
+            }
+        }
+        else{
+            $this->isPrimary = false;
         }
     }
     /**
      * Sets the value of the property $isUnique.
+     * Note that if column type is 'boolean', it cannot be unique.
      * @param boolean $bool True if the column value is unique. false 
      * if not.
      * @since 1.0
      */
     public function setIsUnique($bool) {
-        $this->isUnique = $bool === true;
+        if($this->getType() != 'boolean'){
+            $this->isUnique = $bool === true;
+        }
+        else{
+            $this->isUnique = false;
+        }
     }
     /**
      * Sets version number of MySQL server.
@@ -776,7 +804,8 @@ class MySQLColumn {
      * the datatype of the column will be changed to 'mediumtext'.
      * For decimal, double and float data types, the value will represent 
      * the  precision. If zero is given, then no specific value for precision 
-     * and scale will be used.
+     * and scale will be used. If the datatype is boolean, the passed value will 
+     * be ignored and the size is set to 1.
      * @param int $size The size to set.
      * @return boolean true if the size is set. The method will return 
      * false in case the size is invalid or datatype does not support 
@@ -787,8 +816,11 @@ class MySQLColumn {
      */
     public function setSize($size) {
         $type = $this->getType();
-
-        if ($type == 'varchar' || $type == 'text') {
+        if($type == 'boolean'){
+            $this->size = 1;
+            
+            return true;
+        } else if ($type == 'varchar' || $type == 'text') {
             if ($size > 0) {
                 $this->size = $size;
 
@@ -845,8 +877,12 @@ class MySQLColumn {
             if ($s_type != 'int') {
                 $this->setIsAutoInc(false);
             }
-            $this->type = $s_type;
-
+            if($s_type == 'bool'){
+                $this->type = 'boolean';
+            }
+            else{
+                $this->type = $s_type;
+            }
             if ($s_type == 'varchar' || $s_type == 'int' || 
                $s_type == 'double' || $s_type == 'float' || $s_type == 'decimal') {
                 if (!$this->setSize($size)) {
@@ -874,7 +910,11 @@ class MySQLColumn {
         } else {
             if ($colDatatype == 'int') {
                 return intval($val);
-            } else {
+            } 
+            else if($colDatatype == 'boolean'){
+                return $val === true;
+            }
+            else {
                 if ($colDatatype == 'decimal' || $colDatatype == 'float' || $colDatatype == 'double') {
                     return '\''.floatval($val).'\'';
                 } else {
