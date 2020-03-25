@@ -28,7 +28,7 @@ namespace phMysql;
  * A class that represents MySQL table.
  *
  * @author Ibrahim
- * @version 1.6.5
+ * @version 1.6.6
  */
 class MySQLTable {
     /**
@@ -503,7 +503,7 @@ class MySQLTable {
 
         if (strlen($entityName) != 0 && !strpos($entityName, ' ')) {
             $namespace = isset($options['namespace']) && strlen($options['namespace']) != 0 
-                    ? trim($options['namespace']) : __NAMESPACE__.'\\entity';
+                    ? trim($options['namespace']) : $this->getEntityNamespace() !== null ? $this->getEntityNamespace() : __NAMESPACE__.'\\entity';
             $override = isset($options['override']) ? $options['override'] === true : false;
 
             if (is_dir($path.DIRECTORY_SEPARATOR.$entityName) && class_exists($namespace.'\\'.$entityName) && !$override) {
@@ -522,7 +522,7 @@ class MySQLTable {
                             ." * An auto-generated entity class which maps to a record in the\n"
                             ." * table '".$this->getName()."'\n"
                             ." **/\n");
-                    fwrite($file, "class ".$entityName."{\n");
+                    fwrite($file, "class ".$entityName." {\n");
                     $colsNames = $this->getColsNames();
                     $index = 0;
 
@@ -545,7 +545,7 @@ class MySQLTable {
                                     ."     * the name '$colName'.\n"
                                     ."     * @param \$$entityAttrs[$x] ".$this->_getPHPType($x)." The new value of the attribute.\n"
                                     ."     **/\n");
-                        fwrite($file, '    public function '.$setterName.'($'.$entityAttrs[$x]."){\n");
+                        fwrite($file, '    public function '.$setterName.'($'.$entityAttrs[$x].") {\n");
                         fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n");
                         fwrite($file, "    }\n");
                         $getterName = $settersGettersMap['getters'][$x];
@@ -555,7 +555,7 @@ class MySQLTable {
                                     ."     * the name '$colName'.\n"
                                     ."     * @return ".$this->_getPHPType($x)." The value of the attribute.\n"
                                     ."     **/\n");
-                        fwrite($file, '    public function '.$getterName."(){\n");
+                        fwrite($file, '    public function '.$getterName."() {\n");
                         fwrite($file, '        return $this->'.$entityAttrs[$x].";\n");
                         fwrite($file, "    }\n");
                     }
@@ -802,10 +802,24 @@ class MySQLTable {
         return $retVal;
     }
     /**
+     * Sets the namespace of the entity at which the table is mapped to.
+     * @param string $ns A string that represents the namespace. For example, 
+     * if the name of the class is 'User' and the class is in the namespace 
+     * 'myProject\entity', then the value that must be passed is 
+     * 'myProject\entity\User'. Note that if the class does not exist, the 
+     * method will not set the namespace.
+     * @since 1.6.6
+     */
+    public function setEntityNamespace($ns) {
+        if(class_exists($ns)){
+            $this->entityNamespace = $ns;
+        }
+    }
+    /**
      * Returns the namespace at which the auto-generated entity class belongs to.
      * @return string|null If no entity class is generated, the method will return 
      * null. Other than that, the method will return a string that represents 
-     * the namespace that the entity class belongs to.
+     * the namespace that the entity class belongs to. 
      * @since 1.6.5
      */
     public function getEntityNamespace() {
