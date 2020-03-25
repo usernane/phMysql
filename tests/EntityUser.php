@@ -10,8 +10,15 @@ class EntityUser {
     private $email;
     private $name;
     private $userId;
+    private $isActive;
     public function __toString() {
         return 'ID: ['.$this->userId.'] Name: ['.$this->name.'] Email: ['.$this->email.']';
+    }
+    public function setIsActive($c) {
+        $this->isActive = 'Y' === $c;
+    }
+    public function getIsActive() {
+        return $this->isActive;
     }
     public function getEmail() {
         return $this->email;

@@ -21,7 +21,8 @@ class MySQLLinkTest extends TestCase {
         $q->insertRecord([
             'user-id' => 33,
             'email' => '33@test.com',
-            'name' => 'Test User #33'
+            'name' => 'Test User #33',
+            'is-active'=>false
         ]);
         $this->assertTrue($conn->executeQuery($q));
 
@@ -82,6 +83,7 @@ class MySQLLinkTest extends TestCase {
         $this->assertEquals(1,$conn->rows());
         $obj = $conn->getRow();
         $this->assertTrue($obj instanceof EntityUser);
+        $this->assertFalse($obj->getIsActive());
         $this->assertEquals('ID: [33] Name: [Test User #33] Email: [33@test.com]',$obj.'');
     }
     /**
