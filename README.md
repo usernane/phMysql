@@ -117,7 +117,57 @@ $query->deleteRecord([
 ]);
 ```
 ### Connecting to MySQL Database
+The class `MySQLLink` is used to connect to MySQL database. It acts as a wrapper for the extension `mysqli`. It also adds extra features to it like the ability to map query result to a class object. 
+To connect to a database, we have to create new instance of the class. The constructor of the class accepts 4 parameters:
+* Database host address.
+* Database username.
+* A password.
+* Port number.
+The first parameter in most cases is `localhost` unless the database is hosted in another place. The username is the user which have a privilege to access the database. The port number is optional. If it is not provided, `3306` is used as a default value. If the connection to the database is established, we must select the database using the method `MySQLLink::setDB()`
+
+The following code shows how to connect to the database. It also checks for connection errors.
+
+``` php
+use phMysql\MySQLLink;
+
+$conn = new MySQLLink('localhost', 'root', '123456');
+
+if($conn->getErrorCode() != 0) {
+  //connection error. Show error message
+  echo $conn->getErrorMessage();
+} else {
+  //connected. Select database now.
+  
+  if($conn->setDB('my_database')) {
+  
+    //connected. Now can execute quires.
+  
+  } else {
+    //unable to set database
+    echo $conn->getErrorMessage();
+  }
+}
+```
+
 ### Executing MySQL Query
+After connecting to the database, we can start running queries on it. As we have said before, the class `MySQLQuery` is used to construct our queries. In order to execute them, we have to use the class `MySQLLink`. To be specific, the method `MySQLLink::executeQuery()`. The method will return a boolean. If the query is successfully executed, the method will return true. If it fails, the method will return false.
+
+Lets assume that we have a connection to a database and we have our query class that has the table `users_information`. The following code sample shows how to execute an insert query.
+
+``` php
+$query->insertRecord([
+  'user-id'=>99,
+  'username'=>'MySuperHeroIsYou',
+  'password'=>'f5d44b6d4a7d91821d602d03c096280e86888fa16cf9c27c540bbc2fd4e73932',
+  'created-on'=>date('Y-m-d H:i:s')
+]);
+if($conn->executeQuery($query)) {
+  //query executed without errors
+} else {
+  //something went wrong. Show error message
+  echo $conn->getErrorMessage();
+}
+```
 ### Fetching Raw Data
 ### Mapping Query Result to Class Object
 ### Joining Two Tables
