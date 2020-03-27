@@ -29,7 +29,7 @@ use mysqli;
  * A class that is used to connect to MySQL database. It works as an interface 
  * for <b>mysqli</b>.
  * @author Ibrahim
- * @version 1.3.1
+ * @version 1.3.2
  */
 class MySQLLink {
     /**
@@ -256,7 +256,7 @@ class MySQLLink {
         $rows = $this->getRows();
         $colNameInDb = $this->getLastQuery()->getColName($colKey);
 
-        if ($colKey != MySQLTable::NO_SUCH_COL) {
+        if ($colNameInDb != MySQLTable::NO_SUCH_COL) {
             foreach ($rows as $row) {
                 if (isset($row[$colNameInDb])) {
                     $retVal[] = $row[$colNameInDb];
@@ -294,6 +294,14 @@ class MySQLLink {
      */
     public function getErrorMessage() {
         return trim($this->lastErrorMessage);
+    }
+    /**
+     * Returns the name of database host.
+     * @return string Database host name.
+     * @since 1.3.2
+     */
+    public function getHost() {
+        return $this->host;
     }
     /**
      * Returns the last executed query object.
@@ -378,6 +386,13 @@ class MySQLLink {
         }
 
         return $this->resultRows;
+    }
+    /**
+     * Returns the name of the user which is used to access the database.
+     * @return string the name of the user which is used to access the database.
+     */
+    public function getUsername() {
+        return $this->user;
     }
     /**
      * Checks if the connection is still active or its dead and try to reconnect.
