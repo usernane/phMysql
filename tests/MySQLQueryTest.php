@@ -101,8 +101,8 @@ class MySQLQueryTest extends TestCase {
             'is-active' => [
                 'type' => 'boolean',
                 'is-null' => true,
-                'is-primary'=>true,
-                'is-unique'=>true
+                'is-primary' => true,
+                'is-unique' => true
             ]
         ]);
         $query->createTable();
@@ -114,67 +114,8 @@ class MySQLQueryTest extends TestCase {
         .'ENGINE = InnoDB'."\n"
         .'DEFAULT CHARSET = utf8mb4'."\n"
         .'collate = utf8mb4_unicode_ci;'."\n",$query->getQuery());
+
         return  $query;
-    }
-    /**
-     * @depends testCreateTable01
-     * @param MySQLQuery $query
-     * @test
-     */
-    public function testInsert004($query) {
-        $query->insertRecord([
-            'username'=>'Good',
-            'password'=>'1223344',
-            'is-active'=>true
-        ]);
-        $this->assertEquals('insert into users (username,password,is_active) values '
-                . "('Good','1223344','Y');",$query->getQuery());
-        return $query;
-    }
-    /**
-     * @depends testInsert004
-     * @param MySQLQuery $query
-     * @test
-     */
-    public function testInsert005($query) {
-        $query->insertRecord([
-            'username'=>'Good',
-            'password'=>'1223344',
-            'is-active'=>false
-        ]);
-        $this->assertEquals('insert into users (username,password,is_active) values '
-                . "('Good','1223344','N');",$query->getQuery());
-        return $query;
-    }
-    /**
-     * @depends testInsert005
-     * @param MySQLQuery $query
-     * @test
-     */
-    public function testInsert006($query) {
-        $query->insertRecord([
-            'username'=>'Good',
-            'password'=>'1223344',
-            'is-active'=>'Random Value'
-        ]);
-        $this->assertEquals('insert into users (username,password,is_active) values '
-                . "('Good','1223344','N');",$query->getQuery());
-        return $query;
-    }
-    /**
-     * @depends testInsert006
-     * @param MySQLQuery $query
-     * @test
-     */
-    public function testInsert007($query) {
-        $query->insertRecord([
-            'username'=>'Good',
-            'password'=>'1223344',
-            'is-active'=>null
-        ]);
-        $this->assertEquals('insert into users (username,password,is_active) values '
-                . "('Good','1223344',null);",$query->getQuery());
-        return $query;
     }
     /**
      * @test
@@ -248,6 +189,70 @@ class MySQLQueryTest extends TestCase {
                 || $query == 'insert into articles (author_id,created_on) values (66,,\''.$next.'\');'
                 || $query == 'insert into articles (author_id,created_on) values (66,\''.$now.'\');';
         $this->assertTrue($isEqual);
+    }
+    /**
+     * @depends testCreateTable01
+     * @param MySQLQuery $query
+     * @test
+     */
+    public function testInsert004($query) {
+        $query->insertRecord([
+            'username' => 'Good',
+            'password' => '1223344',
+            'is-active' => true
+        ]);
+        $this->assertEquals('insert into users (username,password,is_active) values '
+                ."('Good','1223344','Y');",$query->getQuery());
+
+        return $query;
+    }
+    /**
+     * @depends testInsert004
+     * @param MySQLQuery $query
+     * @test
+     */
+    public function testInsert005($query) {
+        $query->insertRecord([
+            'username' => 'Good',
+            'password' => '1223344',
+            'is-active' => false
+        ]);
+        $this->assertEquals('insert into users (username,password,is_active) values '
+                ."('Good','1223344','N');",$query->getQuery());
+
+        return $query;
+    }
+    /**
+     * @depends testInsert005
+     * @param MySQLQuery $query
+     * @test
+     */
+    public function testInsert006($query) {
+        $query->insertRecord([
+            'username' => 'Good',
+            'password' => '1223344',
+            'is-active' => 'Random Value'
+        ]);
+        $this->assertEquals('insert into users (username,password,is_active) values '
+                ."('Good','1223344','N');",$query->getQuery());
+
+        return $query;
+    }
+    /**
+     * @depends testInsert006
+     * @param MySQLQuery $query
+     * @test
+     */
+    public function testInsert007($query) {
+        $query->insertRecord([
+            'username' => 'Good',
+            'password' => '1223344',
+            'is-active' => null
+        ]);
+        $this->assertEquals('insert into users (username,password,is_active) values '
+                ."('Good','1223344',null);",$query->getQuery());
+
+        return $query;
     }
     /**
      * @test
@@ -571,53 +576,6 @@ class MySQLQueryTest extends TestCase {
     /**
      * @test
      */
-    public function testSelect021() {
-        $query = new MySQLQuery('users');
-        $query->getTable()->addColumns([
-            'username' => [
-                'datatype' => 'varchar',
-                'size' => 20,
-                'unique' => true
-            ],
-            'password' => [
-                'datatype' => 'varchar',
-                'size' => 64
-            ],
-            'is-active' => [
-                'type' => 'boolean',
-                'is-null' => true,
-                'is-primary'=>true,
-                'is-unique'=>true
-            ]
-        ]);
-        $query->select([
-            'where'=>[
-                'is-active'=>false
-            ]
-        ]);
-        $this->assertEquals("select * from users where is_active = 'N';",$query->getQuery());
-        $query->select([
-            'where'=>[
-                'is-active'=>true
-            ]
-        ]);
-        $this->assertEquals("select * from users where is_active = 'Y';", $query->getQuery());
-        $query->select([
-            'where'=>[
-                'is-active'=>'XYZ'
-            ]
-        ]);
-        $this->assertEquals("select * from users where is_active = 'N';",$query->getQuery());
-        $query->selectCount([
-            'where'=>[
-                'is-active'=>true
-            ]
-        ]);
-        $this->assertEquals("select count(*) as count from users where is_active = 'Y';",$query->getQuery());
-    }
-    /**
-     * @test
-     */
     public function testSelect020() {
         $q = new MySQLQuery('hello');
         $q->getTable()->addColumns([
@@ -679,6 +637,53 @@ class MySQLQueryTest extends TestCase {
 //                . 'email_address from hello;',$q->getQuery());
 //        $q->select();
 //        $this->assertEquals('select * from hello;',$q->getQuery());
+    }
+    /**
+     * @test
+     */
+    public function testSelect021() {
+        $query = new MySQLQuery('users');
+        $query->getTable()->addColumns([
+            'username' => [
+                'datatype' => 'varchar',
+                'size' => 20,
+                'unique' => true
+            ],
+            'password' => [
+                'datatype' => 'varchar',
+                'size' => 64
+            ],
+            'is-active' => [
+                'type' => 'boolean',
+                'is-null' => true,
+                'is-primary' => true,
+                'is-unique' => true
+            ]
+        ]);
+        $query->select([
+            'where' => [
+                'is-active' => false
+            ]
+        ]);
+        $this->assertEquals("select * from users where is_active = 'N';",$query->getQuery());
+        $query->select([
+            'where' => [
+                'is-active' => true
+            ]
+        ]);
+        $this->assertEquals("select * from users where is_active = 'Y';", $query->getQuery());
+        $query->select([
+            'where' => [
+                'is-active' => 'XYZ'
+            ]
+        ]);
+        $this->assertEquals("select * from users where is_active = 'N';",$query->getQuery());
+        $query->selectCount([
+            'where' => [
+                'is-active' => true
+            ]
+        ]);
+        $this->assertEquals("select count(*) as count from users where is_active = 'Y';",$query->getQuery());
     }
     /**
      * @test

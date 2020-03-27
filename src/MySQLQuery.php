@@ -731,7 +731,10 @@ class MySQLQuery {
      * Note that it is possible for the index to be a numeric value such as 0 
      * or 1. The numeric value will represents column position in the table.
      * Another thing to note is that if a column does not have a value, either  
-     * the default value of the column will be used or 'null' will be used.
+     * the default value of the column will be used or 'null' will be used. For 
+     * blob data type, the value of the index must be physical path to the file. 
+     * For boolean type, the value can be only true or false. If anything else is 
+     * passed, it well considered as false.
      * @since 1.8.2
      */
     public function insertRecord($colsAndVals) {
@@ -803,21 +806,20 @@ class MySQLQuery {
                             } else {
                                 $vals .= 'null'.$comma;
                             }
-                        } 
-                        else if($type == 'boolean'){
-                            if($cleanedVal === true){
-                                $vals .= "'Y'".$comma;
-                            }
-                            else{
-                                $vals .= "'N'".$comma;
-                            }
-                        }
-                        else {
-                            if ($createdOnColObj !== null && $createdOnColObj->getIndex() == $column->getIndex()) {
-                                $vals .= $cleanedVal.$comma;
-                                $createdOnColObj = null;
+                        } else {
+                            if ($type == 'boolean') {
+                                if ($cleanedVal === true) {
+                                    $vals .= "'Y'".$comma;
+                                } else {
+                                    $vals .= "'N'".$comma;
+                                }
                             } else {
-                                $vals .= $cleanedVal.$comma;
+                                if ($createdOnColObj !== null && $createdOnColObj->getIndex() == $column->getIndex()) {
+                                    $vals .= $cleanedVal.$comma;
+                                    $createdOnColObj = null;
+                                } else {
+                                    $vals .= $cleanedVal.$comma;
+                                }
                             }
                         }
                     }
@@ -1384,13 +1386,14 @@ class MySQLQuery {
      * @since 1.0
      * @throws Exception If the given query type is not supported. 
      */
-    public function setQuery($query,$type,$mapTo=null) {
+    public function setQuery($query,$type,$mapTo = null) {
         $ltype = strtolower($type.'');
-        
+
         if (in_array($ltype, self::Q_TYPES)) {
             $this->query = $query;
             $this->queryType = $ltype;
-            if($mapTo !== null && class_exists($mapTo)){
+
+            if ($mapTo !== null && class_exists($mapTo)) {
                 $this->resultMap = $mapTo;
             }
         } else {
@@ -2076,72 +2079,71 @@ class MySQLQuery {
                                     }
                                 }
                             }
-                        } 
-                        else if($col->getType() == 'boolean'){
-                            if($cleanVal === true){
-                                $where .= $colName.' = \'Y\'';
-                            }
-                            else{
-                                $where .= $colName.' = \'N\'';
-                            }
-                        }
-                        else {
-                            if (gettype($vals[$index]) == 'array') {
-                                $conditions = isset($vals[$index]['conditions']) ? $vals[$index]['conditions'] : [];
-                                $joinConditions = isset($vals[$index]['join-operators']) ? $vals[$index]['join-operators'] : [];
-                                $where .= '(';
-
-                                if (gettype($conditions) == 'array') {
-                                    $condIndex = 0;
-
-                                    while (count($conditions) < count($cleanVal)) {
-                                        $conditions[] = '=';
-                                    }
-
-                                    while (count($joinConditions) < count($cleanVal)) {
-                                        $joinConditions[] = 'and';
-                                    }
-
-                                    foreach ($cleanVal as $singleVal) {
-                                        $cond = $conditions[$condIndex];
-
-                                        if (!in_array($cond, $supportedConds)) {
-                                            $cond = '=';
-                                        }
-
-                                        if ($condIndex > 0) {
-                                            $joinCond = $joinConditions[$condIndex - 1];
-
-                                            if ($joinCond == 'and' || $joinCond == 'or') {
-                                            } else {
-                                                $joinCond = 'and';
-                                            }
-                                            $where .= $joinCond.' '.$colName.' '.$cond.' '.$singleVal.' ';
-                                        } else {
-                                            $where .= $colName.' '.$cond.' '.$singleVal.' ';
-                                        }
-                                        $condIndex++;
-                                    }
+                        } else {
+                            if ($col->getType() == 'boolean') {
+                                if ($cleanVal === true) {
+                                    $where .= $colName.' = \'Y\'';
                                 } else {
-                                    $lCond = strtolower(trim($conditions));
-
-                                    if ($lCond == 'in' || $lCond == 'not in') {
-                                        $inCond = $lCond.'(';
-
-                                        for ($x = 0 ; $x < count($cleanVal) ; $x++) {
-                                            if ($x + 1 == count($cleanVal)) {
-                                                $inCond .= $cleanVal[$x];
-                                            } else {
-                                                $inCond .= $cleanVal[$x].',';
-                                            }
-                                        }
-                                        $where .= $colName.' '.$inCond.')';
-                                    } else {
-                                    }
+                                    $where .= $colName.' = \'N\'';
                                 }
-                                $where = trim($where).')';
                             } else {
-                                $where .= $colName.' '.$equalityCond.' '.$cleanVal.' ';
+                                if (gettype($vals[$index]) == 'array') {
+                                    $conditions = isset($vals[$index]['conditions']) ? $vals[$index]['conditions'] : [];
+                                    $joinConditions = isset($vals[$index]['join-operators']) ? $vals[$index]['join-operators'] : [];
+                                    $where .= '(';
+
+                                    if (gettype($conditions) == 'array') {
+                                        $condIndex = 0;
+
+                                        while (count($conditions) < count($cleanVal)) {
+                                            $conditions[] = '=';
+                                        }
+
+                                        while (count($joinConditions) < count($cleanVal)) {
+                                            $joinConditions[] = 'and';
+                                        }
+
+                                        foreach ($cleanVal as $singleVal) {
+                                            $cond = $conditions[$condIndex];
+
+                                            if (!in_array($cond, $supportedConds)) {
+                                                $cond = '=';
+                                            }
+
+                                            if ($condIndex > 0) {
+                                                $joinCond = $joinConditions[$condIndex - 1];
+
+                                                if ($joinCond == 'and' || $joinCond == 'or') {
+                                                } else {
+                                                    $joinCond = 'and';
+                                                }
+                                                $where .= $joinCond.' '.$colName.' '.$cond.' '.$singleVal.' ';
+                                            } else {
+                                                $where .= $colName.' '.$cond.' '.$singleVal.' ';
+                                            }
+                                            $condIndex++;
+                                        }
+                                    } else {
+                                        $lCond = strtolower(trim($conditions));
+
+                                        if ($lCond == 'in' || $lCond == 'not in') {
+                                            $inCond = $lCond.'(';
+
+                                            for ($x = 0 ; $x < count($cleanVal) ; $x++) {
+                                                if ($x + 1 == count($cleanVal)) {
+                                                    $inCond .= $cleanVal[$x];
+                                                } else {
+                                                    $inCond .= $cleanVal[$x].',';
+                                                }
+                                            }
+                                            $where .= $colName.' '.$inCond.')';
+                                        } else {
+                                        }
+                                    }
+                                    $where = trim($where).')';
+                                } else {
+                                    $where .= $colName.' '.$equalityCond.' '.$cleanVal.' ';
+                                }
                             }
                         }
                     }

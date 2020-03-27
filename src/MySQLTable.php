@@ -479,19 +479,6 @@ class MySQLTable {
         return $this->colSet;
     }
     /**
-     * Returns an array that contains data types of table columns.
-     * @return array An indexed array that contains columns data types. Each 
-     * index will corresponds to the index of the column in the table.
-     * @since 1.6.6
-     */
-    public function types() {
-        $retVal = [];
-        foreach ($this->colSet as $colObj){
-            $retVal[] = $colObj->getType();
-        }
-        return $retVal;
-    }
-    /**
      * Create a new entity class that can be used to store table records
      * @param array $options An associative array that contains entity class 
      * options. Available options are:
@@ -561,10 +548,10 @@ class MySQLTable {
                                     ."     * @param \$$entityAttrs[$x] ".$this->_getPHPType($x)." The new value of the attribute.\n"
                                     ."     **/\n");
                         fwrite($file, '    public function '.$setterName.'($'.$entityAttrs[$x].") {\n");
-                        if($colsTypes[$x] == 'boolean'){
+
+                        if ($colsTypes[$x] == 'boolean') {
                             fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x]." === true || $".$entityAttrs[$x]." == 'Y';\n");
-                        }
-                        else {
+                        } else {
                             fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n");
                         }
                         fwrite($file, "    }\n");
@@ -822,20 +809,6 @@ class MySQLTable {
         return $retVal;
     }
     /**
-     * Sets the namespace of the entity at which the table is mapped to.
-     * @param string $ns A string that represents the namespace. For example, 
-     * if the name of the class is 'User' and the class is in the namespace 
-     * 'myProject\entity', then the value that must be passed is 
-     * 'myProject\entity\User'. Note that if the class does not exist, the 
-     * method will not set the namespace.
-     * @since 1.6.6
-     */
-    public function setEntityNamespace($ns) {
-        if(class_exists($ns)){
-            $this->entityNamespace = $ns;
-        }
-    }
-    /**
      * Returns the namespace at which the auto-generated entity class belongs to.
      * @return string|null If no entity class is generated, the method will return 
      * null. Other than that, the method will return a string that represents 
@@ -1062,6 +1035,20 @@ class MySQLTable {
         }
     }
     /**
+     * Sets the namespace of the entity at which the table is mapped to.
+     * @param string $ns A string that represents the namespace. For example, 
+     * if the name of the class is 'User' and the class is in the namespace 
+     * 'myProject\entity', then the value that must be passed is 
+     * 'myProject\entity\User'. Note that if the class does not exist, the 
+     * method will not set the namespace.
+     * @since 1.6.6
+     */
+    public function setEntityNamespace($ns) {
+        if (class_exists($ns)) {
+            $this->entityNamespace = $ns;
+        }
+    }
+    /**
      * Sets version number of MySQL server.
      * Version number of MySQL is used to set the correct collation for table columns 
      * in case of varchar or text data types. If MySQL version is '5.5' or lower, 
@@ -1211,6 +1198,21 @@ class MySQLTable {
 
         return false;
     }
+    /**
+     * Returns an array that contains data types of table columns.
+     * @return array An indexed array that contains columns data types. Each 
+     * index will corresponds to the index of the column in the table.
+     * @since 1.6.6
+     */
+    public function types() {
+        $retVal = [];
+
+        foreach ($this->colSet as $colObj) {
+            $retVal[] = $colObj->getType();
+        }
+
+        return $retVal;
+    }
     private function _checkPKs() {
         $primaryCount = $this->primaryKeyColsCount();
 
@@ -1263,14 +1265,14 @@ class MySQLTable {
      */
     private function _createColObj($options) {
         if (isset($options['name'])) {
-            if(isset($options['datatype'])){
+            if (isset($options['datatype'])) {
                 $datatype = $options['datatype'];
-            }
-            else if(isset ($options['type'])){
-                $datatype = $options['type'];
-            }
-            else{
-                $datatype = 'varchar';
+            } else {
+                if (isset($options['type'])) {
+                    $datatype = $options['type'];
+                } else {
+                    $datatype = 'varchar';
+                }
             }
             $col = new MySQLColumn($options['name'], $datatype);
             $size = isset($options['size']) ? intval($options['size']) : 1;
@@ -1316,18 +1318,18 @@ class MySQLTable {
 
         if ($type == 'int') {
             return 'int'.$isNull;
-        }
-        else if($type == 'boolean'){
-            return 'boolean';
-        }
-        else {
-            if ($type == 'decimal' || $type == 'double' || $type == 'float') {
-                return 'double'.$isNull;
+        } else {
+            if ($type == 'boolean') {
+                return 'boolean';
             } else {
-                if ($type == 'boolean') {
-                    return 'boolean'.$isNull;
+                if ($type == 'decimal' || $type == 'double' || $type == 'float') {
+                    return 'double'.$isNull;
                 } else {
-                    return 'string'.$isNull;
+                    if ($type == 'boolean') {
+                        return 'boolean'.$isNull;
+                    } else {
+                        return 'string'.$isNull;
+                    }
                 }
             }
         }

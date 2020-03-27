@@ -22,7 +22,7 @@ class MySQLLinkTest extends TestCase {
             'user-id' => 33,
             'email' => '33@test.com',
             'name' => 'Test User #33',
-            'is-active'=>false
+            'is-active' => false
         ]);
         $this->assertTrue($conn->executeQuery($q));
 

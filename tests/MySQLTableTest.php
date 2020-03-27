@@ -36,36 +36,6 @@ class MySQLTableTest extends TestCase {
     /**
      * @test
      */
-    public function testWithBoolCol00() {
-        $table = new MySQLTable();
-        $table->addColumns([
-            'user-id'=>[
-                'size'=>15
-            ],
-            'is-active'=>[
-                'type'=>'boolean'
-            ]
-        ]);
-        $this->assertEquals('boolean',$table->getCol('is-active')->getType());
-    }
-    /**
-     * @test
-     */
-    public function testWithBoolCol01() {
-        $table = new MySQLTable();
-        $table->addColumns([
-            'user-id'=>[
-                'size'=>15
-            ],
-            'is-active'=>[
-                'type'=>'bool'
-            ]
-        ]);
-        $this->assertEquals('boolean',$table->getCol('is-active')->getType());
-    }
-    /**
-     * @test
-     */
     public function setOwnerQueryTest00() {
         $table = new MySQLTable();
         $table->setOwnerQuery(null);
@@ -350,7 +320,7 @@ class MySQLTableTest extends TestCase {
         $table = new MySQLTable('users');
         $table->addDefaultCols();
         $table->addColumn('is-active', [
-            'type'=>'boolean'
+            'type' => 'boolean'
         ]);
         $this->assertTrue($table->createEntityClass([
             'store-path' => __DIR__,
@@ -659,5 +629,35 @@ class MySQLTableTest extends TestCase {
             'setPASS' => 'user_pass',
             'setCIn' => 'created_on'
         ],$table->getSettersMap());
+    }
+    /**
+     * @test
+     */
+    public function testWithBoolCol00() {
+        $table = new MySQLTable();
+        $table->addColumns([
+            'user-id' => [
+                'size' => 15
+            ],
+            'is-active' => [
+                'type' => 'boolean'
+            ]
+        ]);
+        $this->assertEquals('boolean',$table->getCol('is-active')->getType());
+    }
+    /**
+     * @test
+     */
+    public function testWithBoolCol01() {
+        $table = new MySQLTable();
+        $table->addColumns([
+            'user-id' => [
+                'size' => 15
+            ],
+            'is-active' => [
+                'type' => 'bool'
+            ]
+        ]);
+        $this->assertEquals('boolean',$table->getCol('is-active')->getType());
     }
 }

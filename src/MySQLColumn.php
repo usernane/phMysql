@@ -249,19 +249,19 @@ class MySQLColumn {
 
         if ($type == 'int' || $type == 'varchar' || $type == 'text') {
             $retVal .= $type.'('.$this->getSize().') ';
-        }
-        else if($type == 'boolean'){
-            $retVal .= 'varchar(1) ';
-        }
-        else {
-            if ($type == 'decimal' || $type == 'float' || $type == 'double') {
-                if ($this->getSize() != 0) {
-                    $retVal .= $type.'('.$this->getSize().','.$this->getScale().') ';
+        } else {
+            if ($type == 'boolean') {
+                $retVal .= 'varchar(1) ';
+            } else {
+                if ($type == 'decimal' || $type == 'float' || $type == 'double') {
+                    if ($this->getSize() != 0) {
+                        $retVal .= $type.'('.$this->getSize().','.$this->getScale().') ';
+                    } else {
+                        $retVal .= $type.' ';
+                    }
                 } else {
                     $retVal .= $type.' ';
                 }
-            } else {
-                $retVal .= $type.' ';
             }
         }
 
@@ -277,15 +277,13 @@ class MySQLColumn {
         $default = $this->default;
 
         if ($default !== null) {
-            if($type == 'boolean'){
-                if($this->getDefault() === true){
+            if ($type == 'boolean') {
+                if ($this->getDefault() === true) {
                     $retVal .= 'default \'Y\' ';
-                }
-                else{
+                } else {
                     $retVal .= 'default \'N\' ';
                 }
-            }
-            else{
+            } else {
                 $retVal .= 'default '.$default.' ';
             }
         }
@@ -670,15 +668,14 @@ class MySQLColumn {
      * @since 1.0
      */
     public function setIsPrimary($bool) {
-        if($this->getType() != 'boolean'){
+        if ($this->getType() != 'boolean') {
             $this->isPrimary = $bool === true;
 
             if ($this->isPrimary() === true) {
                 $this->setIsNull(false);
                 $this->setIsUnique(true);
             }
-        }
-        else{
+        } else {
             $this->isPrimary = false;
         }
     }
@@ -690,10 +687,9 @@ class MySQLColumn {
      * @since 1.0
      */
     public function setIsUnique($bool) {
-        if($this->getType() != 'boolean'){
+        if ($this->getType() != 'boolean') {
             $this->isUnique = $bool === true;
-        }
-        else{
+        } else {
             $this->isUnique = false;
         }
     }
@@ -816,42 +812,45 @@ class MySQLColumn {
      */
     public function setSize($size) {
         $type = $this->getType();
-        if($type == 'boolean'){
+
+        if ($type == 'boolean') {
             $this->size = 1;
-            
+
             return true;
-        } else if ($type == 'varchar' || $type == 'text') {
-            if ($size > 0) {
-                $this->size = $size;
-
-                if ($type == 'varchar' && $size > 21845) {
-                    $this->setType('mediumtext');
-                }
-
-                return true;
-            }
         } else {
-            if ($type == 'int') {
-                if ($size > 0 && $size < 12) {
+            if ($type == 'varchar' || $type == 'text') {
+                if ($size > 0) {
                     $this->size = $size;
 
-                    return true;
-                } else {
-                    if ($size > 11) {
-                        $this->size = 11;
-
-                        return true;
+                    if ($type == 'varchar' && $size > 21845) {
+                        $this->setType('mediumtext');
                     }
+
+                    return true;
                 }
             } else {
-                if ($type == 'decimal' || $type == 'float' || $type == 'double') {
-                    if ($size >= 0) {
+                if ($type == 'int') {
+                    if ($size > 0 && $size < 12) {
                         $this->size = $size;
 
                         return true;
+                    } else {
+                        if ($size > 11) {
+                            $this->size = 11;
+
+                            return true;
+                        }
                     }
                 } else {
-                    return false;
+                    if ($type == 'decimal' || $type == 'float' || $type == 'double') {
+                        if ($size >= 0) {
+                            $this->size = $size;
+
+                            return true;
+                        }
+                    } else {
+                        return false;
+                    }
                 }
             }
         }
@@ -877,12 +876,13 @@ class MySQLColumn {
             if ($s_type != 'int') {
                 $this->setIsAutoInc(false);
             }
-            if($s_type == 'bool'){
+
+            if ($s_type == 'bool') {
                 $this->type = 'boolean';
-            }
-            else{
+            } else {
                 $this->type = $s_type;
             }
+
             if ($s_type == 'varchar' || $s_type == 'int' || 
                $s_type == 'double' || $s_type == 'float' || $s_type == 'decimal') {
                 if (!$this->setSize($size)) {
@@ -910,43 +910,43 @@ class MySQLColumn {
         } else {
             if ($colDatatype == 'int') {
                 return intval($val);
-            } 
-            else if($colDatatype == 'boolean'){
-                return $val === true;
-            }
-            else {
-                if ($colDatatype == 'decimal' || $colDatatype == 'float' || $colDatatype == 'double') {
-                    return '\''.floatval($val).'\'';
+            } else {
+                if ($colDatatype == 'boolean') {
+                    return $val === true;
                 } else {
-                    if ($colDatatype == 'varchar' || $colDatatype == 'text' || $colDatatype == 'mediumtext') {
-                        return '\''.str_replace("'", "\'", $val).'\'';
+                    if ($colDatatype == 'decimal' || $colDatatype == 'float' || $colDatatype == 'double') {
+                        return '\''.floatval($val).'\'';
                     } else {
-                        if ($colDatatype == 'datetime' || $colDatatype == 'timestamp') {
-                            $trimmed = strtolower(trim($val));
+                        if ($colDatatype == 'varchar' || $colDatatype == 'text' || $colDatatype == 'mediumtext') {
+                            return '\''.str_replace("'", "\'", $val).'\'';
+                        } else {
+                            if ($colDatatype == 'datetime' || $colDatatype == 'timestamp') {
+                                $trimmed = strtolower(trim($val));
 
-                            if ($trimmed == 'current_timestamp') {
-                                return 'current_timestamp';
-                            } else {
-                                if ($trimmed == 'now()') {
-                                    return 'now()';
+                                if ($trimmed == 'current_timestamp') {
+                                    return 'current_timestamp';
                                 } else {
-                                    if ($this->_validateDateAndTime($trimmed)) {
-                                        return '\''.$trimmed.'\'';
+                                    if ($trimmed == 'now()') {
+                                        return 'now()';
                                     } else {
-                                        if ($this->_validateDate($trimmed)) {
-                                            if ($dateEndOfDay === true) {
-                                                return '\''.$trimmed.' 23:59:59\'';
-                                            } else {
-                                                return '\''.$trimmed.' 00:00:00\'';
-                                            }
+                                        if ($this->_validateDateAndTime($trimmed)) {
+                                            return '\''.$trimmed.'\'';
                                         } else {
-                                            return '';
+                                            if ($this->_validateDate($trimmed)) {
+                                                if ($dateEndOfDay === true) {
+                                                    return '\''.$trimmed.' 23:59:59\'';
+                                                } else {
+                                                    return '\''.$trimmed.' 00:00:00\'';
+                                                }
+                                            } else {
+                                                return '';
+                                            }
                                         }
                                     }
                                 }
+                            } else {
+                                return '';
                             }
-                        } else {
-                            return '';
                         }
                     }
                 }

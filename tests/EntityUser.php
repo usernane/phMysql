@@ -8,20 +8,17 @@ namespace phMysql\tests;
  */
 class EntityUser {
     private $email;
+    private $isActive;
     private $name;
     private $userId;
-    private $isActive;
     public function __toString() {
         return 'ID: ['.$this->userId.'] Name: ['.$this->name.'] Email: ['.$this->email.']';
     }
-    public function setIsActive($c) {
-        $this->isActive = 'Y' === $c;
+    public function getEmail() {
+        return $this->email;
     }
     public function getIsActive() {
         return $this->isActive;
-    }
-    public function getEmail() {
-        return $this->email;
     }
     public function getName() {
         return $this->name;
@@ -31,6 +28,9 @@ class EntityUser {
     }
     public function setEmail($email) {
         $this->email = $email;
+    }
+    public function setIsActive($c) {
+        $this->isActive = 'Y' === $c;
     }
     public function setName($name) {
         $this->name = $name;

@@ -24,8 +24,8 @@ class UsersQuery extends MySQLQuery {
         $this->table->addColumn('name', new MySQLColumn('name', 'varchar', 25));
         $this->table->addColumn('email', new MySQLColumn('email', 'varchar', 100));
         $this->table->addColumn('is-active', [
-            'type'=>'boolean',
-            'default'=>true
+            'type' => 'boolean',
+            'default' => true
         ]);
         $this->setTable($this->table);
     }
