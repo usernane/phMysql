@@ -10,6 +10,7 @@ Object oriented PHP library for building MySQL database schema and quires.
   <a href="https://github.com/usernane/phMysql/releases">
       <img src="https://img.shields.io/github/release/usernane/phMySql.svg?label=latest" />
   </a>
+  <img alt="GitHub All Releases" src="https://img.shields.io/packagist/dt/webfiori/ph-mysql?color=light-green">
   <a href="https://paypal.me/IbrahimBinAlshikh">
     <img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fprogrammingacademia.com%2Fwebfiori%2Fapis%2Fshields-get-dontate-badget">
   </a>
