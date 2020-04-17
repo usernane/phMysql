@@ -1,22 +1,29 @@
 language: php
 php:
-  - 5.6
-  - 7.2
-  - 7.3
-  - 7.4
+    - 5.6
+    - 7.2
+    - 7.3
+    - 7.4
+addons:
+    sonarcloud:
+        organization: "usernane"
+        token:
+            secure: qsMfvSRT2yUkWbwacpRy2fOKoM8BNRQfHZYpkVQzdic/TE/LthSFLJmL3c0gPxFB0G7uvzAqVUDnwHKfYKgvrODvjdJoNp4TEUgntlh+S3XA4hDFZnTz4ztyUk++3GKnWBtq/mzpssar30YbpmmNouZkFULFXkukls5OgwHUZGynfvLA72e22RufnZEJjALK4tIx771mjFmPvpYpdTT0/7TRdpBUUE2ebFWzrQdgTfCnTpChTt/QtQCE49O5w2uj7CIuE5NXqc/019QB+P4jfsVxq9icDVOl31khoAc8hwQqSfShNAgCcAd3GwTLluEWKQJY/NhjUm6eic2Kr2PJo9aFzJRFmcRDSpVl7WWrnBN/W4aIAw41Uq7da4DenttPmWFD8Lkka2pck+bMGuSe7UinV3pRyEJT+7QdoK+iBTvHoQjKEfRXJOGL9ak8RZ9J3U+VYnOMLcM0z8KMUE6nsIlvGv9E8Vzpsz4v0Sg7mQW46C4EOUsFR03CXwuJzrbWtQFQqQcfF/Mjd29ePc1wBw6oh3b81t+GifIKrhL+I4lCffTfJ0ujNfa1i3EN3m6hWvHS0q0dAxKAknjdQqdY/NmqTM8gP2EPtEfTkx9W1Rofkq53kwA6op5Auld9O9EdOwRg2Xx0yRPi7y9SCexFEKu8Ob7m3hpMnMCYWFFav2c=
 services:
     - mysql
-before_install:
 before_script:
     - composer self-update
     - composer install --prefer-source --no-interaction --dev
-    #create a test database
     - mysql -e 'create database if not exists testing_db;'
-    - sudo mysql -e "use mysql; update user set authentication_string=PASSWORD('123456') where User='root'; update user set plugin='mysql_native_password';FLUSH PRIVILEGES;"
+    - sudo mysql -e "use mysql; update user set authentication_string=PASSWORD('123456')
+      where User='root'; update user set plugin='mysql_native_password';FLUSH PRIVILEGES;"
     - sudo mysql_upgrade -u root -p123456
     - sudo service mysql restart
 script:
-    - phpunit --configuration phpunit.xml
+    - phpunit --verbose --configuration phpunit.xml
+    
 after_success:
     - bash <(curl -s https://codecov.io/bash)
     - mysql -e 'drop database testing_db;'
+    - sonar-scanner
+    
