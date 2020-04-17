@@ -392,7 +392,7 @@ class MySQLColumn {
      */
     public function getDefault() {
         $defaultVal = $this->default;
-
+        $retVal = null;
         if ($defaultVal !== null) {
             $dt = $this->getType();
 
@@ -404,21 +404,24 @@ class MySQLColumn {
                 $retVal = substr($defaultVal, 1, strlen($defaultVal) - 2);
 
                 if ($dt == 'decimal' || $dt == 'float' || $dt == 'double') {
-                    return floatval($retVal);
+                    $retVal = floatval($retVal);
                 }
 
-                return $retVal;
             } else if (($this->default == 'now()' || $this->default == 'current_timestamp') &&
                 ($dt == 'datetime' || $dt == 'timestamp')) {
-                return date('Y-m-d H:i:s');
+                $retVal = date('Y-m-d H:i:s');
             } else if ($dt == 'timestamp' || $dt == 'datetime') {
-                return substr($defaultVal, 1, strlen($defaultVal) - 2);
+                $retVal = substr($defaultVal, 1, strlen($defaultVal) - 2);
             } else if ($dt == 'int') {
-                return intval($defaultVal);
+                $retVal = intval($defaultVal);
+            } else if ($dt == 'boolean'){
+                return $defaultVal === true;
             }
+            return $retVal;
         }
-
-        return $this->default;
+        else{
+            return $this->default;
+        }
     }
     /**
      * Returns the index of the column in its parent table.
@@ -809,25 +812,9 @@ class MySQLColumn {
 
             $retVal = true;
         } else if ($type == 'varchar' || $type == 'text') {
-            if ($size > 0) {
-                $this->size = $size;
-
-                if ($type == 'varchar' && $size > 21845) {
-                    $this->setType('mediumtext');
-                }
-
-                $retVal = true;
-            }
+            $retVal = $this->_textTypeSize($size);
         } else if ($type == 'int') {
-            if ($size > 0 && $size < 12) {
-                $this->size = $size;
-
-                $retVal = true;
-            } else if ($size > 11) {
-                $this->size = 11;
-
-                $retVal = true;
-            }
+            $retVal = $this->_intSize($size);
         } else if (($type == 'decimal' || $type == 'float' || $type == 'double') && $size >= 0) {
             $this->size = $size;
 
@@ -837,6 +824,30 @@ class MySQLColumn {
         }
 
         return $retVal;
+    }
+    private function _intSize($size) {
+        if ($size > 0 && $size < 12) {
+            $this->size = $size;
+
+            return true;
+        } else if ($size > 11) {
+            $this->size = 11;
+
+            return true;
+        }
+        return false;
+    }
+    private function _textTypeSize($size) {
+        if ($size > 0) {
+            $this->size = $size;
+
+            if ($size > 21845) {
+                $this->setType('mediumtext');
+            }
+
+            return true;
+        }
+        return false;
     }
     /**
      * Sets the type of column data.
@@ -888,39 +899,39 @@ class MySQLColumn {
         $cleanedVal = null;
         if ($val === null) {
             return null;
+        } else if ($colDatatype == 'int') {
+            $cleanedVal = intval($val);
+        } else if ($colDatatype == 'boolean') {
+            $cleanedVal = $val === true;
+        } else if ($colDatatype == 'decimal' || $colDatatype == 'float' || $colDatatype == 'double') {
+            $cleanedVal = '\''.floatval($val).'\'';
+        } else if ($colDatatype == 'varchar' || $colDatatype == 'text' || $colDatatype == 'mediumtext') {
+            $cleanedVal = '\''.str_replace("'", "\'", $val).'\'';
+        } else if ($colDatatype == 'datetime' || $colDatatype == 'timestamp') {
+            $cleanedVal = $this->_dateCleanUp($val, $dateEndOfDay);
         } else {
-            if ($colDatatype == 'int') {
-                $cleanedVal = intval($val);
-            } else if ($colDatatype == 'boolean') {
-                $cleanedVal = $val === true;
-            } else if ($colDatatype == 'decimal' || $colDatatype == 'float' || $colDatatype == 'double') {
-                $cleanedVal = '\''.floatval($val).'\'';
-            } else if ($colDatatype == 'varchar' || $colDatatype == 'text' || $colDatatype == 'mediumtext') {
-                $cleanedVal = '\''.str_replace("'", "\'", $val).'\'';
-            } else if ($colDatatype == 'datetime' || $colDatatype == 'timestamp') {
-                $trimmed = strtolower(trim($val));
-
-                if ($trimmed == 'current_timestamp') {
-                    $cleanedVal = 'current_timestamp';
-                } else if ($trimmed == 'now()') {
-                    $cleanedVal = 'now()';
-                } else if ($this->_validateDateAndTime($trimmed)) {
-                    $cleanedVal = '\''.$trimmed.'\'';
-                } else if ($this->_validateDate($trimmed)) {
-                    if ($dateEndOfDay === true) {
-                        $cleanedVal = '\''.$trimmed.' 23:59:59\'';
-                    } else {
-                        $cleanedVal = '\''.$trimmed.' 00:00:00\'';
-                    }
-                } else {
-                    $cleanedVal = '';
-                }
-            } else {
-                $cleanedVal = '';
-            }
+            $cleanedVal = '';
         }
         if($this->customCleaner !== null){
             return call_user_func($this->customCleaner, $val, $cleanedVal);
+        }
+        return $cleanedVal;
+    }
+    private function _dateCleanUp($val, $dateEndOfDay) {
+        $trimmed = strtolower(trim($val));
+        $cleanedVal = '';
+        if ($trimmed == 'current_timestamp') {
+            $cleanedVal = 'current_timestamp';
+        } else if ($trimmed == 'now()') {
+            $cleanedVal = 'now()';
+        } else if ($this->_validateDateAndTime($trimmed)) {
+            $cleanedVal = '\''.$trimmed.'\'';
+        } else if ($this->_validateDate($trimmed)) {
+            if ($dateEndOfDay === true) {
+                $cleanedVal = '\''.$trimmed.' 23:59:59\'';
+            } else {
+                $cleanedVal = '\''.$trimmed.' 00:00:00\'';
+            }
         }
         return $cleanedVal;
     }
@@ -977,8 +988,7 @@ class MySQLColumn {
                     return false;
                 }
 
-                if ($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')) {
-                } else {
+                if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
                     return false;
                 }
             }

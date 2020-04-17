@@ -302,29 +302,18 @@ class JoinTable extends MySQLTable {
     private function _getCommonCols() {
         $rightCols = $this->getRightTable()->getColsNames();
         $leftCols = $this->getLeftTable()->getColsNames();
-        $commonCols = [];
+        $commonColsArr = [];
         foreach ($rightCols as $col) {
             foreach ($leftCols as $col2) {
                 if ($col == $col2) {
-                    $commonCols[] = $col2;
+                    $commonColsArr[] = $col2;
                 }
             }
         }
-        return $commonCols;
+        return $commonColsArr;
     }
-    /**
-     * @since 1.0
-     */
-    private function _addAndValidateColmns($keysMap = []) {
-        //collect common keys btween the two tables.
-        $commonColsKeys = $this->_getCommonColsKeys();
-        
-        //collect common columns names in the two tables.
-        $this->commonCols = $this->_getCommonCols();
-        
-        //build an array that contains all columns in the joined table.
+    private function _getColsArr($commonColsArr) {
         $colsArr = [];
-
         foreach ($this->getLeftTable()->colsKeys() as $col) {
             if (in_array($col, $commonColsKeys)) {
                 if ($this->getLeftTable() instanceof JoinTable) {
@@ -360,6 +349,22 @@ class JoinTable extends MySQLTable {
                 }
             }
         }
+        return $colsArr;
+    }
+    /**
+     * @since 1.0
+     */
+    private function _addAndValidateColmns($keysMap = []) {
+        //collect common keys btween the two tables.
+        $commonColsKeys = $this->_getCommonColsKeys();
+        
+        //collect common columns names in the two tables.
+        $this->commonCols = $this->_getCommonCols();
+        
+        //build an array that contains all columns in the joined table.
+        $colsArr = $this->_getColsArr($commonColsKeys);
+
+        
         //rename common columns.
         $index = 0;
         $leftCount = count($this->getLeftTable()->columns());

@@ -12,6 +12,47 @@ class ColumnTest extends TestCase {
     /**
      * @test
      */
+    public function testCustomCleaner00() {
+        $col = new MySQLColumn('hello', 'varchar');
+        $col->setCustomFilter(function($originalVal, $basicFilterResult){
+            
+        });
+        $this->assertNull($col->cleanValue('Hello World'));
+        $col->setCustomFilter(function($originalVal, $basicFilterResult){
+            return $originalVal.'?';
+        });
+        $this->assertEquals('Hello World.?',$col->cleanValue('Hello World.'));
+    }
+    /**
+     * @test
+     */
+    public function testCustomCleaner01() {
+        $col = new MySQLColumn('hello', 'int');
+        $col->setCustomFilter(function($originalVal, $basicFilterResult){
+            return $basicFilterResult*10;
+        });
+        $this->assertEquals(0,$col->cleanValue('Hello World.'));
+        $this->assertEquals(10,$col->cleanValue(1));
+        $this->assertEquals(260,$col->cleanValue(26));
+        $col->setCustomFilter(function($originalVal, $basicFilterResult){
+            return $basicFilterResult*$originalVal;
+        });
+        $this->assertEquals(100,$col->cleanValue(10));
+        $this->assertEquals(9,$col->cleanValue(3));
+    }
+    /**
+     * @test
+     */
+    public function testCustomCleaner02() {
+        $col = new MySQLColumn('hello', 'int');
+        $col->setCustomFilter(function(){
+            return 5;
+        });
+        $this->assertEquals(5,$col->cleanValue('Hello World.'));
+    }
+    /**
+     * @test
+     */
     public function setCommentTest00() {
         $col = new MySQLColumn('user_id ', 'varchar', 15);
         $col->setComment('A unique ID for the user.');
