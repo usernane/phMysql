@@ -145,40 +145,47 @@ class ForeignKey {
      * @since 1.3.1
      */
     public function addReference($ownerColName,$sourceColName = null) {
-        $ownerTbl = $this->getOwner();
-
-        if ($ownerTbl !== null) {
+        if($this->_addReferenceHelper()){
             $ownerColName = trim($ownerColName);
+            $sourceColName = $sourceColName === null ? $ownerColName : trim($sourceColName);
+            
             $sourceTbl = $this->getSource();
+            $ownerTbl = $this->getOwner();
+            
+            $ownerCol = $ownerTbl->getCol($ownerColName);
+            if($ownerCol !== null){
+                $sourceCol = $sourceTbl->getCol($sourceColName);
+                if($sourceCol !== null){
+                    if ($sourceCol->getType() == $ownerCol->getType()) {
+                        $this->ownerCols[$ownerColName] = $ownerCol;
+                        $this->sourceCols[$sourceColName] = $sourceCol;
 
-            if ($sourceTbl !== null) {
-                $ownerCol = $ownerTbl->getCol($ownerColName);
-
-                if ($ownerCol instanceof MySQLColumn) {
-                    $sourceColName = $sourceColName === null ? $ownerColName : trim($sourceColName);
-                    $sourceCol = $sourceTbl->getCol($sourceColName);
-
-                    if ($sourceCol instanceof MySQLColumn) {
-                        if ($sourceCol->getType() == $ownerCol->getType()) {
-                            $this->ownerCols[$ownerColName] = $ownerCol;
-                            $this->sourceCols[$sourceColName] = $sourceCol;
-
-                            return true;
-                        } else {
-                            trigger_error('Source['.$sourceColName.'] and target['.$ownerCol.'] columns have incompatible datatypes. '
-                                    .'Source type: \''.$sourceCol->getType().'\'. Target type: \''.$ownerCol->getType().'\'.');
-                        }
+                        return true;
+                    } else {
+                        trigger_error('Source['.$sourceColName.'] and target['.$ownerCol.'] columns have incompatible datatypes. '
+                                .'Source type: \''.$sourceCol->getType().'\'. Target type: \''.$ownerCol->getType().'\'.');
                     }
-                } else {
-                    trigger_error('No column which has the name \''.$ownerColName.'\' was found in the table \''.$ownerTbl->getName().'\'.');
                 }
+                else {
+                    trigger_error('No column which has the name \''.$sourceColName.'\' was found in the table \''.$sourceTbl->getName().'\'.');
+                }
+            } else {
+                trigger_error('No column which has the name \''.$ownerColName.'\' was found in the table \''.$ownerTbl->getName().'\'.');
+            }
+        }
+        
+        return false;
+    }
+    private function _addReferenceHelper() {
+        if($this->getOwner() !== null){
+            if($this->getSource() !== null){
+                return true;
             } else {
                 trigger_error('Source table is not set.');
             }
         } else {
             trigger_error('Owner table is not set.');
         }
-
         return false;
     }
     /**
@@ -318,7 +325,7 @@ class ForeignKey {
     public function setKeyName($name) {
         $trim = trim($name);
 
-        if ($this->validateAttr($trim) == true) {
+        if ($this->validateAttr($trim)) {
             $this->keyName = $trim;
 
             return true;
@@ -396,23 +403,20 @@ class ForeignKey {
     private function validateAttr($trimmed) {
         $len = strlen($trimmed);
 
-        if ($len != 0) {
-            if (strpos($trimmed, ' ') === false) {
-                for ($x = 0 ; $x < $len ; $x++) {
-                    $ch = $trimmed[$x];
+        if ($len != 0 && strpos($trimmed, ' ') === false) {
+            for ($x = 0 ; $x < $len ; $x++) {
+                $ch = $trimmed[$x];
 
-                    if ($x == 0 && ($ch >= '0' && $ch <= '9')) {
-                        return false;
-                    }
-
-                    if ($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')) {
-                    } else {
-                        return false;
-                    }
+                if ($x == 0 && ($ch >= '0' && $ch <= '9')) {
+                    return false;
                 }
 
-                return true;
+                if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
+                    return false;
+                }
             }
+
+            return true;
         }
 
         return false;
