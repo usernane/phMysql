@@ -16,6 +16,45 @@ class MySQLLinkTest extends TestCase {
      * @param MySQLLink $conn
      * @test
      */
+    public function testAddDataTest01($conn) {
+        $q = new UsersQuery();
+        $q->insertRecord([
+            'user-id' => 34,
+            'email' => '34@test.com',
+            'name' => 'Test ; User #34',
+            'is-active' => false
+        ]);
+        $this->assertTrue($conn->executeQuery($q));
+
+        return $conn;
+    }
+    /**
+     * 
+     * @param type $conn
+     * @depends testAddDataTest01
+     */
+    public function testGetDataTest02($conn){
+        $q = new UsersQuery();
+        $q->select([
+            'where' => [
+                'user-id' => [
+                    'values' => [33]
+                ]
+            ],
+            'map-result-to' => '\phMysql\tests\EntityUser'
+        ]);
+        $this->assertTrue($conn->executeQuery($q));
+        $this->assertEquals(1,$conn->rows());
+        $obj = $conn->getRow();
+        $this->assertTrue($obj instanceof EntityUser);
+        $this->assertFalse($obj->getIsActive());
+        $this->assertEquals('ID: [34] Name: [Test ; User #34] Email: [34@test.com]',$obj.'');
+    }
+    /**
+     * @depends testSetDb01
+     * @param MySQLLink $conn
+     * @test
+     */
     public function testAddDataTest00($conn) {
         $q = new UsersQuery();
         $q->insertRecord([

@@ -166,78 +166,90 @@ class MySQLLink {
                 $qType = $query->getType();
 
                 if ($qType != 'insert' && $qType != 'update') {
-                    $eploded = explode(';', trim($query->getQuery(), ';'));
-
-                    if (count($eploded) != 1) {
-                        foreach ($eploded as $xQuery) {
-                            if (strlen(trim($xQuery)) != 0) {
-                                $r = mysqli_query($this->link, $xQuery);
-
-                                if ($r === false) {
-                                    $this->lastErrorMessage = $this->link->error;
-                                    $this->lastErrorNo = $this->link->errno;
-                                    break;
-                                }
-                            }
-                        }
-
-                        $r = mysqli_multi_query($this->link, $query->getQuery());
-
-                        while (mysqli_more_results($this->link)) {
-                            $x = mysqli_store_result($this->link);
-                            mysqli_next_result($this->link);
-                        }
-
-                        if ($r !== true) {
-                            $this->lastErrorMessage = $this->link->error;
-                            $this->lastErrorNo = $this->link->errno;
-                        }
-                        $query->setIsBlobInsertOrUpdate(false);
-
-                        return $r;
-                    }
+                    return $this->_insertQuery();
                 }
 
                 if ($query->getType() == 'select' || $query->getType() == 'show'
                    || $query->getType() == 'describe') {
-                    $r = mysqli_query($this->link, $query->getQuery());
-
-                    if ($r) {
-                        $this->result = $r;
-                        $this->lastErrorNo = 0;
-
-                        return true;
-                    } else {
-                        $this->lastErrorMessage = $this->link->error;
-                        $this->lastErrorNo = $this->link->errno;
-                        $this->result = null;
-                        $query->setIsBlobInsertOrUpdate(false);
-
-                        return false;
-                    }
+                    return $this->_selectQuery();
                 } else {
-                    $this->result = null;
-                    $r = mysqli_query($this->link, $query->getQuery());
-
-                    if ($r == false) {
-                        $this->lastErrorMessage = $this->link->error;
-                        $this->lastErrorNo = $this->link->errno;
-                        $this->result = null;
-                        $query->setIsBlobInsertOrUpdate(false);
-
-                        return false;
-                    } else {
-                        $this->lastErrorMessage = 'NO ERRORS';
-                        $this->lastErrorNo = 0;
-                        $this->result = null;
-                        $query->setIsBlobInsertOrUpdate(false);
-
-                        return true;
-                    }
+                    return $this->_otherQuery();
                 }
             }
         }
 
+        return false;
+    }
+    private function _otherQuery() {
+        $this->result = null;
+        $query = $this->getLastQuery();
+        $r = mysqli_query($this->link, $query->getQuery());
+
+        if (!$r) {
+            $this->lastErrorMessage = $this->link->error;
+            $this->lastErrorNo = $this->link->errno;
+            $this->result = null;
+            $query->setIsBlobInsertOrUpdate(false);
+
+            return false;
+        } else {
+            $this->lastErrorMessage = 'NO ERRORS';
+            $this->lastErrorNo = 0;
+            $this->result = null;
+            $query->setIsBlobInsertOrUpdate(false);
+
+            return true;
+        }
+    }
+    private function _selectQuery() {
+        $r = mysqli_query($this->link, $this->getLastQuery()->getQuery());
+
+        if ($r) {
+            $this->result = $r;
+            $this->lastErrorNo = 0;
+
+            return true;
+        } else {
+            $this->lastErrorMessage = $this->link->error;
+            $this->lastErrorNo = $this->link->errno;
+            $this->result = null;
+            $this->getLastQuery()->setIsBlobInsertOrUpdate(false);
+
+            return false;
+        }
+    }
+    private function _insertQuery() {
+        $query = $this->getLastQuery();
+        $eploded = explode(';', trim($query->getQuery(), ';'));
+
+        if (count($eploded) != 1) {
+            foreach ($eploded as $xQuery) {
+                if (strlen(trim($xQuery)) != 0) {
+                    $r = mysqli_query($this->link, $xQuery);
+
+                    if (!$r) {
+                        $this->lastErrorMessage = $this->link->error;
+                        $this->lastErrorNo = $this->link->errno;
+                        break;
+                    }
+                }
+            }
+
+            $r = mysqli_multi_query($this->link, $query->getQuery());
+
+            while (mysqli_more_results($this->link)) {
+                mysqli_store_result($this->link);
+                mysqli_next_result($this->link);
+            }
+
+            if (!$r) {
+                $this->lastErrorMessage = $this->link->error;
+                $this->lastErrorNo = $this->link->errno;
+            }
+            $query->setIsBlobInsertOrUpdate(false);
+
+            return $r;
+        }
         return false;
     }
     /**
@@ -361,15 +373,15 @@ class MySQLLink {
         if ($this->resultRows != null) {
             return $this->resultRows;
         }
-        $result = $this->getResult();
+        $execResult = $this->getResult();
 
         if (function_exists('mysqli_fetch_all')) {
-            $rows = $result !== null ? mysqli_fetch_all($result, MYSQLI_ASSOC) : [];
+            $rows = $execResult !== null ? mysqli_fetch_all($execResult, MYSQLI_ASSOC) : [];
         } else {
             $rows = [];
 
-            if ($result !== null) {
-                while ($row = $result->fetch_assoc()) {
+            if ($execResult !== null) {
+                while ($row = $execResult->fetch_assoc()) {
                     $rows[] = $row;
                 }
             }

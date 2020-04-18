@@ -215,7 +215,7 @@ class JoinTable extends MySQLTable {
             $this->joinCond = null;
             $leftTable = $this->getLeftTable();
             $rightTable = $this->getRightTable();
-
+            $tempJoinStr = '';
             foreach ($cols as $leftCol => $rightCol) {
                 $leftColObj = $this->_getCol($leftTable, $leftCol);
                 $rightColObj = $this->_getCol($rightTable, $rightCol); 
@@ -226,26 +226,22 @@ class JoinTable extends MySQLTable {
 
                     if ($index != 0) {
                         $joinOp = $joinOps[$index - 1];
-
                         if ($joinOp != 'and' && $joinOp != 'or') {
                             $joinOp = 'and';
                         }
-                        $this->joinCond .= 
+                    } else {
+                        $joinOp = '';
+                    }
+                    $tempJoinStr .= 
                            ' '.$joinOp.' '.$leftTable->getName().'.'
                            .$leftColObj->getName().' '.$cond.' '
                            .$rightTable->getName().'.'
                            .$rightColObj->getName();
-                    } else {
-                        $this->joinCond = 
-                           'on '.$leftTable->getName().'.'
-                           .$leftColObj->getName().' '.$cond.' '
-                           .$rightTable->getName().'.'
-                           .$rightColObj->getName();
-                    }
                 }
                 $index++;
             }
         }
+        $this->joinCond = 'on '.trim($tempJoinStr);
     }
     /**
      * 
@@ -312,44 +308,35 @@ class JoinTable extends MySQLTable {
         }
         return $commonColsArr;
     }
-    private function _getColsArr($commonColsArr) {
-        $colsArr = [];
-        foreach ($this->getLeftTable()->colsKeys() as $col) {
-            if (in_array($col, $commonColsArr)) {
-                if ($this->getLeftTable() instanceof JoinTable) {
-                    $newCol = clone $this->getLeftTable()->getJoinCol($col);
-                    $colsArr['left-'.$col] = $newCol;
-                } else {
-                    $colsArr['left-'.$col] = clone $this->getLeftTable()->getCol($col);
-                }
-            } else {
-                if ($this->getLeftTable() instanceof JoinTable) {
-                    $newCol = clone $this->getLeftTable()->getJoinCol($col);
-                    $colsArr[$col] = $newCol;
-                } else {
-                    $colsArr[$col] = clone $this->getLeftTable()->getCol($col);
-                }
-            }
+    private function _getColsArrHelper($isLeft, $commonColsArr) {
+        if($isLeft){
+            $table = $this->getLeftTable();
+            $prefix = 'left-';
+        } else{
+            $table = $this->getRightTable();
+            $prefix = 'right-';
         }
-
-        foreach ($this->getRightTable()->colsKeys() as $col) {
+        $colsArr = [];
+        foreach ($table->colsKeys() as $col) {
             if (in_array($col, $commonColsArr)) {
-                if ($this->getRightTable() instanceof JoinTable) {
-                    $newCol = clone $this->getRightTable()->getJoinCol($col);
-                    $colsArr['right-'.$col] = $newCol;
+                if ($table instanceof JoinTable) {
+                    $newCol = clone $table->getJoinCol($col);
+                    $colsArr[$prefix.$col] = $newCol;
                 } else {
-                    $colsArr['right-'.$col] = clone $this->getRightTable()->getCol($col);
+                    $colsArr[$prefix.$col] = clone $table->getCol($col);
                 }
+            } else if ($table instanceof JoinTable) {
+                $newCol = clone $table->getJoinCol($col);
+                $colsArr[$col] = $newCol;
             } else {
-                if ($this->getRightTable() instanceof JoinTable) {
-                    $newCol = clone $this->getRightTable()->getJoinCol($col);
-                    $colsArr[$col] = $newCol;
-                } else {
-                    $colsArr[$col] = clone $this->getRightTable()->getCol($col);
-                }
+                $colsArr[$col] = clone $table->getCol($col);
             }
         }
         return $colsArr;
+    }
+    private function _getColsArr($commonColsArr) {
+        $colsArr = $this->_getColsArrHelper(true, $commonColsArr);
+        return array_merge($colsArr, $this->_getColsArrHelper(false, $commonColsArr));
     }
     /**
      * @since 1.0

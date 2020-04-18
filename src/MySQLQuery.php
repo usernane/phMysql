@@ -133,7 +133,7 @@ class MySQLQuery {
         $sourceTable = $key->getSource();
 
         if ($sourceTable !== null && $ownerTable !== null) {
-            $query = 'alter table '.$ownerTable->getName()
+            $queryStr = 'alter table '.$ownerTable->getName()
                     .' add constraint '.$key->getKeyName().' foreign key (';
             $ownerCols = $key->getOwnerCols();
             $ownerCount = count($ownerCols);
@@ -141,75 +141,70 @@ class MySQLQuery {
 
             foreach ($ownerCols as $col) {
                 if ($i0 + 1 == $ownerCount) {
-                    $query .= $col->getName().') ';
+                    $queryStr .= $col->getName().') ';
                 } else {
-                    $query .= $col->getName().', ';
+                    $queryStr .= $col->getName().', ';
                 }
                 $i0++;
             }
-            $query .= 'references '.$key->getSourceName().'(';
+            $queryStr .= 'references '.$key->getSourceName().'(';
             $sourceCols = $key->getSourceCols();
             $refCount = count($sourceCols);
             $i1 = 0;
 
             foreach ($sourceCols as $col) {
                 if ($i1 + 1 == $refCount) {
-                    $query .= $col->getName().') ';
+                    $queryStr .= $col->getName().') ';
                 } else {
-                    $query .= $col->getName().', ';
+                    $queryStr .= $col->getName().', ';
                 }
                 $i1++;
             }
             $onDelete = $key->getOnDelete();
 
             if ($onDelete !== null) {
-                $query .= 'on delete '.$onDelete.' ';
+                $queryStr .= 'on delete '.$onDelete.' ';
             }
             $onUpdate = $key->getOnUpdate();
 
             if ($onUpdate !== null) {
-                $query .= 'on update '.$onUpdate;
+                $queryStr .= 'on update '.$onUpdate;
             }
         }
-        $this->setQuery($query, 'alter');
+        $this->setQuery($queryStr, 'alter');
     }
     /**
      * Constructs a query that can be used to add a primary key to a table.
-     * @param MySQLTable $table The table that will have the primary key.
+     * @param MySQLTable $tableObj The table that will have the primary key.
      * @since 1.8.8
      */
-    public function addPrimaryKey($table) {
-        if ($table instanceof MySQLTable) {
-            $primaryCount = $table->primaryKeyColsCount();
-
-            if ($primaryCount != 0) {
-                $stm = 'alter table '.$table->getName().' add constraint '.$table->getPrimaryKeyName().' primary key (';
-                $index = 0;
-                $alterStm = '';
-
-                foreach ($table->getColumns() as $col) {
-                    if ($col->isPrimary()) {
-                        if ($index + 1 == $primaryCount) {
-                            $stm .= $col->getName().')';
-                        } else {
-                            $stm .= $col->getName().',';
-                        }
-
-                        if ($col->isAutoInc()) {
-                            $alterStm .= 'alter table '.$table->getName().' modify '.$col.' auto_increment;'.self::NL;
-                        }
-                        $index++;
+    public function addPrimaryKey($tableObj) {
+        if ($tableObj instanceof MySQLTable) {
+            $primaryCount = $tableObj->primaryKeyColsCount();
+            $stm = 'alter table '.$tableObj->getName().' add constraint '.$tableObj->getPrimaryKeyName().' primary key (';
+            $index = 0;
+            $alterStm = '';
+            $comma = ',';
+            foreach ($tableObj->getColumns() as $col) {
+                if ($col->isPrimary()) {
+                    if ($index + 1 == $primaryCount) {
+                        $comma = ')';
                     }
+                    $stm .= $col->getName().$comma;
+                    if ($col->isAutoInc()) {
+                        $alterStm .= 'alter table '.$tableObj->getName().' modify '.$col.' auto_increment;'.self::NL;
+                    }
+                    $index++;
                 }
-
-                if (strlen($stm) !== 0) {
-                    $stm .= ';'.MySQLQuery::NL.$alterStm;
-                    $this->setQuery($stm, 'alter');
-
-                    return;
-                }
-                $this->setQuery('', 'alter');
             }
+
+            if (strlen($stm) !== 0) {
+                $stm .= ';'.MySQLQuery::NL.$alterStm;
+                $this->setQuery($stm, 'alter');
+
+                return;
+            }
+            $this->setQuery('', 'alter');
         }
     }
     /**
@@ -255,14 +250,14 @@ class MySQLQuery {
      */
     public function createColsToSelect($colsArr,$withTablePrefix) {
         $retVal = '';
-        $table = $this->getTable();
+        $tableObj = $this->getTable();
 
-        if ($table instanceof JoinTable && $table->hasCommon()) {
+        if ($tableObj instanceof JoinTable && $tableObj->hasCommon()) {
             if (count($colsArr) == 0) {
                 $comma = " \n";
 
-                foreach ($table->getLeftTable()->getColumns() as $colObj) {
-                    if ($table->isCommon($colObj->getName())) {
+                foreach ($tableObj->getLeftTable()->getColumns() as $colObj) {
+                    if ($tableObj->isCommon($colObj->getName())) {
                         $alias = 'left_'.$colObj->getName();
                         $colObj->setAlias($alias);
                         $asPart = $comma.$colObj->getName(true).' as '.$alias;
@@ -273,8 +268,8 @@ class MySQLQuery {
                     $comma = ",\n";
                 }
 
-                foreach ($table->getRightTable()->getColumns() as $colObj) {
-                    if ($table->isCommon($colObj->getName())) {
+                foreach ($tableObj->getRightTable()->getColumns() as $colObj) {
+                    if ($tableObj->isCommon($colObj->getName())) {
                         $alias = 'right_'.$colObj->getName();
                         $colObj->setAlias($alias);
                         $asPart = $comma.$colObj->getName(true).' as '.$alias;
@@ -510,8 +505,8 @@ class MySQLQuery {
                 $vals[] = $colObjOrVal;
             }
         }
-        $query = 'delete from '.$this->getTableName();
-        $this->setQuery($query.$this->createWhereConditions($cols, $vals, $valsConds, $jointOps).';', 'delete');
+        $queryStr = 'delete from '.$this->getTableName();
+        $this->setQuery($queryStr.$this->createWhereConditions($cols, $vals, $valsConds, $jointOps).';', 'delete');
     }
     /**
      * Constructs a query that can be used to delete the table from the 
@@ -523,16 +518,16 @@ class MySQLQuery {
     }
     /**
      * Escape any MySQL special characters from a string.
-     * @param string $query The string that the characters will be escaped from.
+     * @param string $queryStr The string that the characters will be escaped from.
      * @return string A string with escaped MySQL characters.
      * @deprecated since version 1.8.9
      * @since 1.4
      */
-    public static function escapeMySQLSpeciarChars($query) {
+    public static function escapeMySQLSpeciarChars($queryStr) {
         $escapedQuery = '';
-        $query = ''.$query;
+        $queryStr = ''.$queryStr;
 
-        if ($query) {
+        if ($queryStr) {
             $mysqlSpecial = [
                 "\\","'","\0","\b","\n"
             ];
@@ -543,7 +538,7 @@ class MySQLQuery {
 
             for ($i = 0 ; $i < $count ; $i++) {
                 if ($i == 0) {
-                    $escapedQuery = str_replace($mysqlSpecial[$i], $mysqlSpecialEsc[$i], $query);
+                    $escapedQuery = str_replace($mysqlSpecial[$i], $mysqlSpecialEsc[$i], $queryStr);
                 } else {
                     $escapedQuery = str_replace($mysqlSpecial[$i], $mysqlSpecialEsc[$i], $escapedQuery);
                 }
@@ -585,9 +580,8 @@ class MySQLQuery {
      */
     public function getColIndex($colKey) {
         $col = $this->getCol($colKey);
-        $index = $col instanceof MySQLColumn ? $col->getIndex() : -1;
-
-        return $index;
+        
+        return $col instanceof MySQLColumn ? $col->getIndex() : -1;
     }
     /**
      * Returns the name of the column from the table given its key.
@@ -1019,14 +1013,12 @@ class MySQLQuery {
         'group-by' => null,
         'without-select' => false
         ]) {
-        $table = $this->getTable();
+        $tableObj = $this->getTable();
 
-        if ($table instanceof MySQLTable) {
-            $vNum = $table->getMySQLVersion();
+        if ($tableObj instanceof MySQLTable) {
+            $vNum = $tableObj->getMySQLVersion();
             $vSplit = explode('.', $vNum);
 
-            if (intval($vSplit[0]) <= 5 && intval($vSplit[1]) < 6) {
-            }
             $selectQuery = 'select ';
             $limit = isset($selectOptions['limit']) ? $selectOptions['limit'] : -1;
             $offset = isset($selectOptions['offset']) ? $selectOptions['offset'] : -1;
@@ -1054,13 +1046,13 @@ class MySQLQuery {
             if (isset($selectOptions['columns']) && gettype($selectOptions['columns']) == 'array') {
                 $withTablePrefix = isset($selectOptions['table-prefix']) ? $selectOptions['table-prefix'] === true : false;
 
-                if ($table instanceof JoinTable) {
-                    if ($table->getJoinType() == 'join') {
+                if ($tableObj instanceof JoinTable) {
+                    if ($tableObj->getJoinType() == 'join') {
                         $joinStm = 'join';
                     } else {
-                        $joinStm = $table->getJoinType().' join';
+                        $joinStm = $tableObj->getJoinType().' join';
                     }
-                    $completeJoin = $this->_getJoinStm($table, $joinStm);
+                    $completeJoin = $this->_getJoinStm($tableObj, $joinStm);
                     $columnsStr = $this->createColsToSelect($selectOptions['columns'], $withTablePrefix);
                     $selectQuery .= trim($columnsStr,' ').'from '.$completeJoin;
                 } else {
@@ -1077,8 +1069,8 @@ class MySQLQuery {
                         $renameTo = '';
                     }
 
-                    if (isset($selectOptions['column']) && $table->hasColumn($selectOptions['column'])) {
-                        $selectQuery .= 'max('.$this->getColName($selectOptions['column']).') '.$renameTo.' from '.$table->getName();
+                    if (isset($selectOptions['column']) && $tableObj->hasColumn($selectOptions['column'])) {
+                        $selectQuery .= 'max('.$this->getColName($selectOptions['column']).') '.$renameTo.' from '.$tableObj->getName();
                         $limitPart = '';
                     } else {
                         return false;
@@ -1093,22 +1085,22 @@ class MySQLQuery {
                             $renameTo = '';
                         }
 
-                        if (isset($selectOptions['column']) && $table->hasColumn($selectOptions['column'])) {
-                            $selectQuery .= 'min('.$this->getColName($selectOptions['column']).') '.$renameTo.' from '.$table->getName();
+                        if (isset($selectOptions['column']) && $tableObj->hasColumn($selectOptions['column'])) {
+                            $selectQuery .= 'min('.$this->getColName($selectOptions['column']).') '.$renameTo.' from '.$tableObj->getName();
                             $limitPart = '';
                         } else {
                             return false;
                         }
                     } else {
-                        if ($table instanceof JoinTable) {
+                        if ($tableObj instanceof JoinTable) {
                             $colsToSelect = $this->createColsToSelect([], true);
 
-                            if ($table->getJoinType() == 'join') {
+                            if ($tableObj->getJoinType() == 'join') {
                                 $joinStm = 'join';
                             } else {
-                                $joinStm = $table->getJoinType().' join';
+                                $joinStm = $tableObj->getJoinType().' join';
                             }
-                            $selectQuery .= trim($colsToSelect,' ')."from ".$this->_getJoinStm($table, $joinStm);
+                            $selectQuery .= trim($colsToSelect,' ')."from ".$this->_getJoinStm($tableObj, $joinStm);
                         } else {
                             $selectQuery .= '* from '.$this->getTableName();
                         }
@@ -1134,21 +1126,16 @@ class MySQLQuery {
                         $vals[] = $valOrColIndex;
                     } else {
                         if (gettype($valOrColIndex) == 'integer') {
-                            $testCol = $table->getColByIndex($valOrColIndex);
+                            $testCol = $tableObj->getColByIndex($valOrColIndex);
                         } else {
-//                            if($table instanceof JoinTable){
-//                                $testCol = $table->getJoinCol($valOrColIndex);
-//                            }
-//                            else{
-                            $testCol = $table->getCol($valOrColIndex);
-                            //}
+                            $testCol = $tableObj->getCol($valOrColIndex);
                         }
                         $cols[] = $testCol;
                         $vals[] = $colOrVal;
                     }
                 }
-                $where = $table instanceof JoinTable ? 
-                        $this->createWhereConditions($cols, $vals, $selectOptions['conditions'], $selectOptions['join-operators'],$table->getName()) :
+                $where = $tableObj instanceof JoinTable ? 
+                        $this->createWhereConditions($cols, $vals, $selectOptions['conditions'], $selectOptions['join-operators'],$tableObj->getName()) :
                         $this->createWhereConditions($cols, $vals, $selectOptions['conditions'], $selectOptions['join-operators']);
             } else {
                 $where = '';
@@ -1158,11 +1145,11 @@ class MySQLQuery {
                 $where = '';
             }
 
-            if ($table instanceof JoinTable) {
+            if ($tableObj instanceof JoinTable) {
                 if (isset($selectOptions['without-select']) && $selectOptions['without-select'] === true) {
                     $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart, 'select');
                 } else {
-                    $this->setQuery('select * from ('.$selectQuery.")\nas ".$table->getName().$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
+                    $this->setQuery('select * from ('.$selectQuery.")\nas ".$tableObj->getName().$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
                 }
             } else {
                 $this->setQuery($selectQuery.$where.$groupByPart.$orderByPart.$limitPart.';', 'select');
@@ -1378,13 +1365,13 @@ class MySQLQuery {
      * Sets the value of the property $query. 
      * The type of the query must be taken from the array MySQLQuery::Q_TYPES.
      * @param string $query a MySQL query.
-     * @param string $type The type of the query (such as 'select', 'update').
+     * @param string $type The type of the query (such as 'select', 'update'). If 
+     * given type is not known, 'select' is used as default value.
      * @param string $mapTo A string that represents the namespace of an entity 
      * class that query result will be mapped to. For example, if the name 
      * of the entity is 'MyWallet' and the name space of the class is 
      * 'core\money', the passed value should be 'core\money\MyWallet'.
      * @since 1.0
-     * @throws Exception If the given query type is not supported. 
      */
     public function setQuery($query,$type,$mapTo = null) {
         $ltype = strtolower($type.'');
@@ -1397,7 +1384,7 @@ class MySQLQuery {
                 $this->resultMap = $mapTo;
             }
         } else {
-            throw new Exception('Unsupported query type: \''.$type.'\'');
+            $this->queryType = 'select';
         }
     }
     /**
@@ -1783,18 +1770,18 @@ class MySQLQuery {
      * @return type
      */
     private function _createColToSelectH2($colKey,$alias = null,$leftOrRight = 'both') {
-        $table = $this->getTable();
+        $tableObj = $this->getTable();
         $left = true;
         $asPart = null;
         $updateName = false;
-        $leftTable = $table->getLeftTable();
-        $rightTable = $table->getRightTable();
+        $leftTable = $tableObj->getLeftTable();
+        $rightTable = $tableObj->getRightTable();
 
         if ($leftOrRight == 'left') {
             $colObj = $leftTable->getCol($colKey);
 
             if (!($colObj instanceof MySQLColumn)) {
-                $colObj = $table->getCol($colKey);
+                $colObj = $tableObj->getCol($colKey);
             }
         } else {
             if ($leftOrRight == 'right') {
@@ -1802,7 +1789,7 @@ class MySQLQuery {
                 $colObj = $rightTable->getCol($colKey);
 
                 if (!($colObj instanceof MySQLColumn)) {
-                    $colObj = $table->getCol($colKey);
+                    $colObj = $tableObj->getCol($colKey);
                 }
             } else {
                 $colObj = $leftTable->getCol($colKey);
@@ -1812,7 +1799,7 @@ class MySQLQuery {
                     $colObj = $rightTable->getCol($colKey);
 
                     if (!($colObj instanceof MySQLColumn) /*&& $alias !== null*/) {
-                        $colObj = $table->getCol($colKey);
+                        $colObj = $tableObj->getCol($colKey);
 
                         if ($colObj instanceof MySQLColumn && $colObj->getOwner()->getName() == $leftTable->getName()) {
                             $left = true;
@@ -1861,71 +1848,71 @@ class MySQLQuery {
     }
     /**
      * Constructs a query that can be used to create a new table.
-     * @param MySQLTable $table an instance of <b>MySQLTable</b>.
+     * @param MySQLTable $tableObj an instance of <b>MySQLTable</b>.
      * @param boolean $inclSqlComments If set to true, a set of comment will appear 
      * in the generated SQL which description what is happening in every SQL Statement.
      * @since 1.4
      */
-    private function _createTable($table,$inclSqlComments = false) {
-        if ($table instanceof MySQLTable) {
-            $query = '';
+    private function _createTable($tableObj,$inclSqlComments = false) {
+        if ($tableObj instanceof MySQLTable) {
+            $queryStr = '';
 
             if ($inclSqlComments === true) {
-                $query .= '-- Structure of the table \''.$this->getStructureName().'\''.self::NL;
-                $query .= '-- Number of columns: \''.count($this->getStructure()->columns()).'\''.self::NL;
-                $query .= '-- Number of forign keys count: \''.count($this->getStructure()->forignKeys()).'\''.self::NL;
-                $query .= '-- Number of primary key columns count: \''.$this->getStructure()->primaryKeyColsCount().'\''.self::NL;
+                $queryStr .= '-- Structure of the table \''.$this->getStructureName().'\''.self::NL;
+                $queryStr .= '-- Number of columns: \''.count($this->getStructure()->columns()).'\''.self::NL;
+                $queryStr .= '-- Number of forign keys count: \''.count($this->getStructure()->forignKeys()).'\''.self::NL;
+                $queryStr .= '-- Number of primary key columns count: \''.$this->getStructure()->primaryKeyColsCount().'\''.self::NL;
             }
-            $query .= 'create table if not exists '.$table->getName().'('.self::NL;
-            $keys = $table->colsKeys();
+            $queryStr .= 'create table if not exists '.$tableObj->getName().'('.self::NL;
+            $keys = $tableObj->colsKeys();
             $count = count($keys);
 
             for ($x = 0 ; $x < $count ; $x++) {
                 if ($x + 1 == $count) {
-                    $query .= '    '.$table->columns()[$keys[$x]].self::NL;
+                    $queryStr .= '    '.$tableObj->columns()[$keys[$x]].self::NL;
                 } else {
-                    $query .= '    '.$table->columns()[$keys[$x]].','.self::NL;
+                    $queryStr .= '    '.$tableObj->columns()[$keys[$x]].','.self::NL;
                 }
             }
-            $query .= ')'.self::NL;
-            $comment = $table->getComment();
+            $queryStr .= ')'.self::NL;
+            $comment = $tableObj->getComment();
 
             if ($comment !== null) {
-                $query .= 'comment \''.$comment.'\''.self::NL;
+                $queryStr .= 'comment \''.$comment.'\''.self::NL;
             }
-            $query .= 'ENGINE = '.$table->getEngine().self::NL;
-            $query .= 'DEFAULT CHARSET = '.$table->getCharSet().self::NL;
-            $query .= 'collate = '.$table->getCollation().';'.self::NL;
+            $queryStr .= 'ENGINE = '.$tableObj->getEngine().self::NL;
+            $queryStr .= 'DEFAULT CHARSET = '.$tableObj->getCharSet().self::NL;
+            $queryStr .= 'collate = '.$tableObj->getCollation().';'.self::NL;
             $coutPk = $this->getStructure()->primaryKeyColsCount();
 
             if ($coutPk >= 1) {
                 if ($inclSqlComments === true) {
-                    $query .= '-- Add Primary key to the table.'.self::NL;
+                    $queryStr .= '-- Add Primary key to the table.'.self::NL;
                 }
-                $this->addPrimaryKey($table);
+                $this->addPrimaryKey($tableObj);
                 $q = $this->getQuery();
 
                 if (strlen($q) != 0) {
                     //no need to append ';\n' as it was added before.
-                    $query .= $q;
+                    $queryStr .= $q;
                 }
             }
             //add forign keys
-            $count2 = count($table->forignKeys());
+            $count2 = count($tableObj->forignKeys());
 
             if ($inclSqlComments === true && $count2 != 0) {
-                $query .= '-- Add Forign keys to the table.'.self::NL;
+                $queryStr .= '-- Add Forign keys to the table.'.self::NL;
             }
 
             for ($x = 0 ; $x < $count2 ; $x++) {
-                $this->addForeignKey($table->forignKeys()[$x]);
-                $query .= $this->getQuery().';'.self::NL;
+                $this->addForeignKey($tableObj->forignKeys()[$x]);
+                $queryStr .= $this->getQuery().';'.self::NL;
             }
 
             if ($inclSqlComments === true) {
-                $query .= '-- End of the Structure of the table \''.$this->getStructureName().'\''.self::NL;
+                $queryStr .= '-- End of the Structure of the table \''.$this->getStructureName().'\''.self::NL;
             }
-            $this->setQuery($query, 'create');
+            $this->setQuery($queryStr, 'create');
         }
     }
     /**

@@ -203,30 +203,33 @@ class MySQLTable {
                 }
                 $col = $this->_createColObj($col);
             }
-
             if ($col instanceof MySQLColumn) {
-                if (!isset($this->colSet[$trimmedKey])) {
-                    $givanColName = $col->getName();
-
-                    foreach ($this->columns() as $val) {
-                        $inTableColName = $val->getName();
-
-                        if ($inTableColName == $givanColName) {
-                            return false;
-                        }
-                    }
-
-                    if ($this->_isKeyNameValid($trimmedKey)) {
-                        $col->setOwner($this);
-                        $this->colSet[$trimmedKey] = $col;
-                        $this->_checkPKs();
-
-                        return true;
-                    }
-                }
-            }
+                return $this->_addColObj($trimmedKey, $col);
+            }   
         }
 
+        return false;
+    }
+    private function _addColObj($trimmedKey, $col) {
+        if (!isset($this->colSet[$trimmedKey])) {
+            $givanColName = $col->getName();
+
+            foreach ($this->columns() as $val) {
+                $inTableColName = $val->getName();
+
+                if ($inTableColName == $givanColName) {
+                    return false;
+                }
+            }
+
+            if ($this->_isKeyNameValid($trimmedKey)) {
+                $col->setOwner($this);
+                $this->colSet[$trimmedKey] = $col;
+                $this->_checkPKs();
+
+                return true;
+            }
+        }
         return false;
     }
     /**
@@ -290,66 +293,50 @@ class MySQLTable {
         'last-updated' => []
     ]) {
         if (gettype($options) == 'array') {
-            if (isset($options['id']) && $this->defaultColsKeys['id'] === null) {
-                $id = $options['id'];
-                $key = isset($id['key-name']) ? trim($id['key-name']) : 'id';
-
-                if (!$this->_isKeyNameValid($key)) {
-                    $key = 'id';
-                }
-                $inDbName = isset($id['db-name']) ? $id['db-name'] : 'id';
-                $colObj = new MySQLColumn($inDbName, 'int', 11);
-                $colObj->setIsPrimary(true);
-                $colObj->setIsAutoInc(true);
-
-                if (!($colObj->getName() == $inDbName)) {
-                    $colObj->setName('id');
-                }
-
-                if ($this->addColumn($key, $colObj)) {
-                    $this->defaultColsKeys['id'] = $key;
-                }
+            if (isset($options['id'])) {
+                $options['size'] = 11;
+                $this->_addDefaultCol('id', 'int', $options);
             }
 
-            if (isset($options['created-on']) && $this->defaultColsKeys['created-on'] === null) {
-                $createdOn = $options['created-on'];
-                $key = isset($createdOn['key-name']) ? trim($createdOn['key-name']) : 'created-on';
-
-                if (!$this->_isKeyNameValid($key)) {
-                    $key = 'created-on';
-                }
-                $inDbName = isset($createdOn['db-name']) ? $createdOn['db-name'] : 'created_on';
-                $colObj = new MySQLColumn($inDbName, 'timestamp');
-
-                if (!($colObj->getName() == $inDbName)) {
-                    $colObj->setName('created_on');
-                }
-                $colObj->setDefault('current_timestamp');
-
-                if ($this->addColumn($key, $colObj)) {
-                    $this->defaultColsKeys['created-on'] = $key;
-                }
+            if (isset($options['created-on'])) {
+                $this->_addDefaultCol('created-on', 'timestamp', $options);
             }
+            
+            if (isset($options['last-updated'])) {
+                $options['auto-update'] = true;
+                $options['allow-null'] = true;
+                $this->_addDefaultCol('last-updated', 'datetime', $options);
+            }
+        }
+    }
+    private function _addDefaultCol($colIndex, $datatype, $options) {
+        if (isset($options[$colIndex]) && $this->defaultColsKeys[$colIndex] === null) {
+            $defaultCol = $options[$colIndex];
+            $key = isset($defaultCol['key-name']) ? trim($defaultCol['key-name']) : $colIndex;
 
-            if (isset($options['last-updated']) && $this->defaultColsKeys['last-updated'] === null) {
-                $lastUpdated = $options['last-updated'];
-                $key = isset($lastUpdated['key-name']) ? trim($lastUpdated['key-name']) : 'last-updated';
+            if (!$this->_isKeyNameValid($key)) {
+                $key = $colIndex;
+            }
+            $inDbName = isset($defaultCol['db-name']) ? $defaultCol['db-name'] : str_replace('-', '_', $colIndex);
+            $colObj = new MySQLColumn($inDbName, $datatype);
 
-                if (!$this->_isKeyNameValid($key)) {
-                    $key = 'last-updated';
-                }
-                $inDbName = isset($lastUpdated['db-name']) ? $lastUpdated['db-name'] : 'last_updated';
-                $colObj = new MySQLColumn($inDbName, 'datetime');
-
-                if (!($colObj->getName() == $inDbName)) {
-                    $colObj->setName('last_update');
-                }
-                $colObj->setAutoUpdate(true);
-                $colObj->setIsNull(true);
-
-                if ($this->addColumn($key, $colObj)) {
-                    $this->defaultColsKeys['last-updated'] = $key;
-                }
+            if (!($colObj->getName() == $inDbName)) {
+                $colObj->setName(str_replace('-', '_', $colIndex));
+            }
+            if(isset($options['default'])){
+                $colObj->setDefault($options['default']);
+            }
+            if(isset($options['auto-update'])){
+                $colObj->setAutoUpdate($options['auto-update']);
+            }
+            if(isset($options['allow-null'])){
+                $colObj->setIsNull($options['allow-null']);
+            }
+            if(isset($options['size'])){
+                $colObj->setSize($options['size']);
+            }
+            if ($this->addColumn($key, $colObj)) {
+                $this->defaultColsKeys[$colIndex] = $key;
             }
         }
     }
@@ -417,13 +404,11 @@ class MySQLTable {
         if (!($refTable instanceof MySQLTable)) {
             if ($refTable instanceof MySQLQuery) {
                 $refTable = $refTable->getStructure();
-            } else {
-                if (class_exists($refTable)) {
-                    $q = new $refTable();
+            } else if (class_exists($refTable)) {
+                $q = new $refTable();
 
-                    if ($q instanceof MySQLQuery) {
-                        $refTable = $q->getStructure();
-                    }
+                if ($q instanceof MySQLQuery) {
+                    $refTable = $q->getStructure();
                 }
             }
         }
@@ -478,6 +463,50 @@ class MySQLTable {
     public function columns() {
         return $this->colSet;
     }
+    private function _createEntityVariables($resource, $colsNames, $entityAttrs) {
+        $index = 0;
+        foreach ($entityAttrs as $attrName) {
+            $colName = $colsNames[$index];
+            fwrite($resource, "    /**\n"
+                        ."     * The attribute which is mapped to the column '".$colName."'.\n"
+                        ."     * @var ".$this->_getPHPType($index)."\n"
+                        ."     **/\n");
+            fwrite($resource, '    private $'.$attrName.";\n");
+            $index++;
+        }
+    }
+    private function _createEntityMethods($file, $settersGettersMap, $colsNames, $colsTypes, $entityAttrs) {
+        $attrsCount = count($entityAttrs);
+        for ($x = 0 ; $x < $attrsCount ; $x++) {
+            $colName = $colsNames[$x];
+            $setterName = $settersGettersMap['setters'][$x];
+            $attrName = $entityAttrs[$x];
+            fwrite($file, "    /**\n"
+                        ."     * Sets the value of the attribute '".$attrName."'.\n"
+                        ."     * The value of the attribute is mapped to the column which has\n"
+                        ."     * the name '$colName'.\n"
+                        ."     * @param \$$entityAttrs[$x] ".$this->_getPHPType($x)." The new value of the attribute.\n"
+                        ."     **/\n");
+            fwrite($file, '    public function '.$setterName.'($'.$entityAttrs[$x].") {\n");
+
+            if ($colsTypes[$x] == 'boolean') {
+                fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x]." === true || $".$entityAttrs[$x]." == 'Y';\n");
+            } else {
+                fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n");
+            }
+            fwrite($file, "    }\n");
+            $getterName = $settersGettersMap['getters'][$x];
+            fwrite($file, "    /**\n"
+                        ."     * Returns the value of the attribute '".$attrName."'.\n"
+                        ."     * The value of the attribute is mapped to the column which has\n"
+                        ."     * the name '$colName'.\n"
+                        ."     * @return ".$this->_getPHPType($x)." The value of the attribute.\n"
+                        ."     **/\n");
+            fwrite($file, '    public function '.$getterName."() {\n");
+            fwrite($file, '        return $this->'.$entityAttrs[$x].";\n");
+            fwrite($file, "    }\n");
+        }
+    }
     /**
      * Create a new entity class that can be used to store table records
      * @param array $options An associative array that contains entity class 
@@ -516,7 +545,6 @@ class MySQLTable {
 
                 if (is_resource($file)) {
                     $entityAttrs = $this->getAttribitesNames();
-                    $attrsCount = count($entityAttrs);
                     $settersGettersMap = $this->getEntityMethods();
                     fwrite($file, "<?php\nnamespace ".$namespace.";\n\n");
                     fwrite($file, "/**\n"
@@ -526,46 +554,10 @@ class MySQLTable {
                     fwrite($file, "class ".$entityName." {\n");
                     $colsNames = $this->getColsNames();
                     $colsTypes = $this->types();
-                    $index = 0;
-
-                    foreach ($entityAttrs as $attrName) {
-                        $colName = $colsNames[$index];
-                        fwrite($file, "    /**\n"
-                                    ."     * The attribute which is mapped to the column '".$colName."'.\n"
-                                    ."     * @var ".$this->_getPHPType($index)."\n"
-                                    ."     **/\n");
-                        fwrite($file, '    private $'.$attrName.";\n");
-                        $index++;
-                    }
-
-                    for ($x = 0 ; $x < $attrsCount ; $x++) {
-                        $colName = $colsNames[$x];
-                        $setterName = $settersGettersMap['setters'][$x];
-                        fwrite($file, "    /**\n"
-                                    ."     * Sets the value of the attribute '".$attrName."'.\n"
-                                    ."     * The value of the attribute is mapped to the column which has\n"
-                                    ."     * the name '$colName'.\n"
-                                    ."     * @param \$$entityAttrs[$x] ".$this->_getPHPType($x)." The new value of the attribute.\n"
-                                    ."     **/\n");
-                        fwrite($file, '    public function '.$setterName.'($'.$entityAttrs[$x].") {\n");
-
-                        if ($colsTypes[$x] == 'boolean') {
-                            fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x]." === true || $".$entityAttrs[$x]." == 'Y';\n");
-                        } else {
-                            fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n");
-                        }
-                        fwrite($file, "    }\n");
-                        $getterName = $settersGettersMap['getters'][$x];
-                        fwrite($file, "    /**\n"
-                                    ."     * Returns the value of the attribute '".$attrName."'.\n"
-                                    ."     * The value of the attribute is mapped to the column which has\n"
-                                    ."     * the name '$colName'.\n"
-                                    ."     * @return ".$this->_getPHPType($x)." The value of the attribute.\n"
-                                    ."     **/\n");
-                        fwrite($file, '    public function '.$getterName."() {\n");
-                        fwrite($file, '        return $this->'.$entityAttrs[$x].";\n");
-                        fwrite($file, "    }\n");
-                    }
+                    
+                    $this->_createEntityVariables($file, $colsNames, $entityAttrs);
+                    $this->_createEntityMethods($file, $settersGettersMap, $colsNames, $colsTypes, $entityAttrs);
+                    
                     fwrite($file, "}\n");
                     fclose($file);
                     $this->entityNamespace = $namespace.'\\'.$entityName;

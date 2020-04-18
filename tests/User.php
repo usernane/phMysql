@@ -22,7 +22,7 @@ class User {
      **/
     private $lastUpdated;
     /**
-     * Sets the value of the attribute 'lastUpdated'.
+     * Sets the value of the attribute 'id'.
      * The value of the attribute is mapped to the column which has
      * the name 'id'.
      * @param $id int The new value of the attribute.
@@ -31,7 +31,7 @@ class User {
         $this->id = $id;
     }
     /**
-     * Returns the value of the attribute 'lastUpdated'.
+     * Returns the value of the attribute 'id'.
      * The value of the attribute is mapped to the column which has
      * the name 'id'.
      * @return int The value of the attribute.
@@ -40,7 +40,7 @@ class User {
         return $this->id;
     }
     /**
-     * Sets the value of the attribute 'lastUpdated'.
+     * Sets the value of the attribute 'createdOn'.
      * The value of the attribute is mapped to the column which has
      * the name 'created_on'.
      * @param $createdOn string The new value of the attribute.
@@ -49,7 +49,7 @@ class User {
         $this->createdOn = $createdOn;
     }
     /**
-     * Returns the value of the attribute 'lastUpdated'.
+     * Returns the value of the attribute 'createdOn'.
      * The value of the attribute is mapped to the column which has
      * the name 'created_on'.
      * @return string The value of the attribute.
