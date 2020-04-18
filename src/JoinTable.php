@@ -315,7 +315,7 @@ class JoinTable extends MySQLTable {
     private function _getColsArr($commonColsArr) {
         $colsArr = [];
         foreach ($this->getLeftTable()->colsKeys() as $col) {
-            if (in_array($col, $commonColsKeys)) {
+            if (in_array($col, $commonColsArr)) {
                 if ($this->getLeftTable() instanceof JoinTable) {
                     $newCol = clone $this->getLeftTable()->getJoinCol($col);
                     $colsArr['left-'.$col] = $newCol;
@@ -333,7 +333,7 @@ class JoinTable extends MySQLTable {
         }
 
         foreach ($this->getRightTable()->colsKeys() as $col) {
-            if (in_array($col, $commonColsKeys)) {
+            if (in_array($col, $commonColsArr)) {
                 if ($this->getRightTable() instanceof JoinTable) {
                     $newCol = clone $this->getRightTable()->getJoinCol($col);
                     $colsArr['right-'.$col] = $newCol;
