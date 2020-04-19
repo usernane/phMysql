@@ -106,13 +106,13 @@ if ($conn->executeQuery($q00)) {
 register_shutdown_function(function()
 {
     echo "Dropping tables...\n";
-//    $conn = new phMysql\MySQLLink('localhost', 'root', '123456');
-//    $conn->setDB('testing_db');
-//    $q = new \phMysql\tests\ArticleQuery();
-//    $q->dropTable();
-//    $conn->executeQuery($q);
-//    $q = new \phMysql\tests\UsersQuery();
-//    $q->dropTable();
-//    $conn->executeQuery($q);
+    $conn = new phMysql\MySQLLink('localhost', 'root', '123456');
+    $conn->setDB('testing_db');
+    $q = new \phMysql\tests\ArticleQuery();
+    $q->dropTable();
+    $conn->executeQuery($q);
+    $q = new \phMysql\tests\UsersQuery();
+    $q->dropTable();
+    $conn->executeQuery($q);
     echo "Done.\n";
 });
