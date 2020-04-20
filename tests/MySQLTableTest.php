@@ -90,6 +90,7 @@ class MySQLTableTest extends TestCase {
         $this->assertTrue($table->hasColumn('id'));
         $this->assertTrue($table->hasColumn('created-on'));
         $this->assertTrue($table->hasColumn('last-updated'));
+        $this->assertEquals(1, $table->primaryKeyColsCount());
     }
     /**
      * @test
@@ -118,7 +119,7 @@ class MySQLTableTest extends TestCase {
         $this->assertTrue($table->hasColumn('user-id'));
         $this->assertFalse($table->hasColumn('created-on'));
         $this->assertFalse($table->hasColumn('last-updated'));
-
+        $this->assertEquals(1, $table->primaryKeyColsCount());
         return $table;
     }
     /**
@@ -136,6 +137,7 @@ class MySQLTableTest extends TestCase {
         $this->assertFalse($table->hasColumn('user id'));
         $this->assertTrue($table->hasColumn('id'));
         $this->assertEquals('user_id',$table->getCol('id')->getName());
+        $this->assertEquals(1, $table->primaryKeyColsCount());
     }
     /**
      * @test
@@ -150,6 +152,7 @@ class MySQLTableTest extends TestCase {
         ]);
         $this->assertEquals(1,count($table->columns()));
         $this->assertEquals('id',$table->getCol('an-id')->getName());
+        $this->assertEquals(1, $table->primaryKeyColsCount());
     }
     /**
      * @test
@@ -163,6 +166,7 @@ class MySQLTableTest extends TestCase {
             ]
         ]);
         $this->assertEquals(1,count($table->columns()));
+        $this->assertEquals(0, $table->primaryKeyColsCount());
         $this->assertFalse($table->hasColumn('created on'));
         $this->assertTrue($table->hasColumn('created-on'));
         $this->assertEquals('cr_date',$table->getCol('created-on')->getName());
@@ -359,7 +363,8 @@ class MySQLTableTest extends TestCase {
         $this->assertEquals('int',$col00->getType());
         $this->assertEquals(11,$col00->getSize());
         $this->assertTrue($col00->isPrimary());
-
+        $this->assertEquals(1, $table->primaryKeyColsCount());
+        
         $col01 = $table->getColByIndex(2);
         $this->assertEquals('varchar',$col01->getType());
         $this->assertEquals(150,$col01->getSize());
@@ -481,7 +486,7 @@ class MySQLTableTest extends TestCase {
             'size' => 3
         ]);
         $this->assertTrue($table->getCol('id-col')->isUnique());
-
+        $this->assertEquals(1, $table->primaryKeyColsCount());
         return $table;
     }
     /**
@@ -495,7 +500,7 @@ class MySQLTableTest extends TestCase {
         ]);
         $this->assertFalse($table->getCol('id-col')->isUnique());
         $this->assertFalse($table->getCol('id-col-2')->isUnique());
-
+        $this->assertEquals(2, $table->primaryKeyColsCount());
         return $table;
     }
     /**
