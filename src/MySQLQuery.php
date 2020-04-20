@@ -181,31 +181,33 @@ class MySQLQuery {
     public function addPrimaryKey($tableObj) {
         if ($tableObj instanceof MySQLTable) {
             $primaryCount = $tableObj->primaryKeyColsCount();
-            $stm = 'alter table '.$tableObj->getName().' add constraint '.$tableObj->getPrimaryKeyName().' primary key (';
-            $index = 0;
-            $alterStm = '';
-            $comma = ',';
-            foreach ($tableObj->getColumns() as $col) {
-                if ($col->isPrimary()) {
-                    if ($index + 1 == $primaryCount) {
-                        $comma = ')';
+            if($primaryCount != 0){
+                $stm = 'alter table '.$tableObj->getName().' add constraint '.$tableObj->getPrimaryKeyName().' primary key (';
+                $index = 0;
+                $alterStm = '';
+                $comma = ',';
+                foreach ($tableObj->getColumns() as $col) {
+                    if ($col->isPrimary()) {
+                        if ($index + 1 == $primaryCount) {
+                            $comma = ')';
+                        }
+                        $stm .= $col->getName().$comma;
+                        if ($col->isAutoInc()) {
+                            $alterStm .= 'alter table '.$tableObj->getName().' modify '.$col.' auto_increment;'.self::NL;
+                        }
+                        $index++;
                     }
-                    $stm .= $col->getName().$comma;
-                    if ($col->isAutoInc()) {
-                        $alterStm .= 'alter table '.$tableObj->getName().' modify '.$col.' auto_increment;'.self::NL;
-                    }
-                    $index++;
+                }
+
+                if (strlen($stm) !== 0) {
+                    $stm .= ';'.MySQLQuery::NL.$alterStm;
+                    $this->setQuery($stm, 'alter');
+
+                    return;
                 }
             }
-
-            if (strlen($stm) !== 0) {
-                $stm .= ';'.MySQLQuery::NL.$alterStm;
-                $this->setQuery($stm, 'alter');
-
-                return;
-            }
-            $this->setQuery('', 'alter');
         }
+        $this->setQuery('', 'alter');
     }
     /**
      * Constructs a query that can be used to alter the properties of a table
