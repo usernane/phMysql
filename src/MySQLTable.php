@@ -294,17 +294,19 @@ class MySQLTable {
     ]) {
         if (gettype($options) == 'array') {
             if (isset($options['id'])) {
-                $options['size'] = 11;
+                $options['id']['size'] = 11;
+                $options['id']['primary'] = true;
                 $this->_addDefaultCol('id', 'int', $options);
             }
 
             if (isset($options['created-on'])) {
+                $options['created-on']['default'] = 'current_timestamp';
                 $this->_addDefaultCol('created-on', 'timestamp', $options);
             }
             
             if (isset($options['last-updated'])) {
-                $options['auto-update'] = true;
-                $options['allow-null'] = true;
+                $options['last-updated']['auto-update'] = true;
+                $options['last-updated']['allow-null'] = true;
                 $this->_addDefaultCol('last-updated', 'datetime', $options);
             }
         }
@@ -323,17 +325,23 @@ class MySQLTable {
             if (!($colObj->getName() == $inDbName)) {
                 $colObj->setName(str_replace('-', '_', $colIndex));
             }
-            if(isset($options['default'])){
-                $colObj->setDefault($options['default']);
+            if(isset($options[$colIndex]['default'])){
+                $colObj->setDefault($options[$colIndex]['default']);
             }
-            if(isset($options['auto-update'])){
-                $colObj->setAutoUpdate($options['auto-update']);
+            if(isset($options[$colIndex]['auto-update'])){
+                $colObj->setAutoUpdate($options[$colIndex]['auto-update']);
             }
-            if(isset($options['allow-null'])){
-                $colObj->setIsNull($options['allow-null']);
+            if(isset($options[$colIndex]['allow-null'])){
+                $colObj->setIsNull($options[$colIndex]['allow-null']);
             }
-            if(isset($options['size'])){
-                $colObj->setSize($options['size']);
+            if(isset($options[$colIndex]['size'])){
+                $colObj->setSize($options[$colIndex]['size']);
+            }
+            if(isset($options[$colIndex]['primary'])){
+                $colObj->setIsPrimary($options[$colIndex]['primary']);
+                if($colObj->isPrimary()){
+                    $colObj->setIsAutoInc(true);
+                }
             }
             if ($this->addColumn($key, $colObj)) {
                 $this->defaultColsKeys[$colIndex] = $key;
@@ -1277,10 +1285,14 @@ class MySQLTable {
             }
             $isNull = isset($options['is-null']) ? $options['is-null'] === true : false;
             $col->setIsNull($isNull);
-
-            if (isset($options['is-primary'])) {
-                $col->setIsPrimary($options['is-primary']);
-
+            
+            $isPrimary = isset($options['primary']) ? $options['primary'] : false;
+            if(!$isPrimary){
+                $isPrimary = isset($options['is-primary']) ? $options['is-primary'] : false;
+            }
+            $col->setIsPrimary($isPrimary);
+            if ($isPrimary) {
+                
                 if (isset($options['auto-inc'])) {
                     $col->setIsAutoInc($options['auto-inc']);
                 }
