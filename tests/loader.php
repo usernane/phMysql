@@ -54,12 +54,12 @@ $conn = new phMysql\MySQLLink('localhost', 'root', '123456');
 $conn->setDB('testing_db');
 $q00 = new phMysql\tests\UsersQuery();
 $q00->createStructure();
-echo $q00->getQuery();
+echo $q00->getQuery()."\n";
 
 if ($conn->executeQuery($q00)) {
     $q00 = new phMysql\tests\ArticleQuery();
     $q00->createStructure();
-    echo $q00->getQuery();
+    echo $q00->getQuery()."\n";
 
     if ($conn->executeQuery($q00)) {
         echo "Successfully Created Tables.\n";
@@ -110,9 +110,23 @@ register_shutdown_function(function()
     $conn->setDB('testing_db');
     $q = new \phMysql\tests\ArticleQuery();
     $q->dropTable();
-    $conn->executeQuery($q);
-    $q = new \phMysql\tests\UsersQuery();
-    $q->dropTable();
-    $conn->executeQuery($q);
+    echo $q->getQuery()."\n";
+    if($conn->executeQuery($q)){
+        echo 'Table '.$q->getTableName()." Dropped.\n";
+        $q = new \phMysql\tests\UsersQuery();
+        $q->dropTable();
+        echo $q->getQuery()."\n";
+        if($conn->executeQuery($q)){
+            echo 'Table '.$q->getTableName()." Dropped.\n";
+            
+        } else{
+            echo 'Unable to drop Table '.$q->getTableName().".\n";
+            echo 'Error: '.$conn->getErrorCode().' - '.$conn->getErrorMessage()."\n";
+        }
+    } else{
+        echo 'Unable to drop Table '.$q->getTableName().".\n";
+        echo 'Error: '.$conn->getErrorCode().' - '.$conn->getErrorMessage()."\n";
+    }
+    
     echo "Done.\n";
 });
