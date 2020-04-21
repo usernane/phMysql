@@ -165,12 +165,10 @@ class MySQLLink {
                 // insert and update.
                 $qType = $query->getType();
 
-                if ($qType != 'insert' && $qType != 'update') {
+                if ($qType == 'insert' || $qType == 'update') {
                     return $this->_insertQuery();
-                }
-
-                if ($query->getType() == 'select' || $query->getType() == 'show'
-                   || $query->getType() == 'describe') {
+                } else if ($qType == 'select' || $qType == 'show'
+                   || $qType == 'describe') {
                     return $this->_selectQuery();
                 } else {
                     return $this->_otherQuery();
@@ -184,22 +182,28 @@ class MySQLLink {
         $this->result = null;
         $query = $this->getLastQuery();
         $r = mysqli_query($this->link, $query->getQuery());
-
+        $retVal = false;
         if (!$r) {
             $this->lastErrorMessage = $this->link->error;
             $this->lastErrorNo = $this->link->errno;
             $this->result = null;
-            $query->setIsBlobInsertOrUpdate(false);
-
-            return false;
+            $r = mysqli_multi_query($this->link, $query->getQuery());
+            if($r){
+                $this->lastErrorMessage = 'NO ERRORS';
+                $this->lastErrorNo = 0;
+                $this->result = null;
+                $retVal = true;
+            }
         } else {
             $this->lastErrorMessage = 'NO ERRORS';
             $this->lastErrorNo = 0;
             $this->result = null;
             $query->setIsBlobInsertOrUpdate(false);
 
-            return true;
+            $retVal = true;
         }
+        $query->setIsBlobInsertOrUpdate(false);
+        return $retVal;
     }
     private function _selectQuery() {
         $r = mysqli_query($this->link, $this->getLastQuery()->getQuery());
@@ -220,37 +224,27 @@ class MySQLLink {
     }
     private function _insertQuery() {
         $query = $this->getLastQuery();
-        $eploded = explode(';', trim($query->getQuery(), ';'));
+        $retVal = false;
+        $r = mysqli_query($this->link, $query->getQuery());
 
-        if (count($eploded) != 1) {
-            foreach ($eploded as $xQuery) {
-                if (strlen(trim($xQuery)) != 0) {
-                    $r = mysqli_query($this->link, $xQuery);
-
-                    if (!$r) {
-                        $this->lastErrorMessage = $this->link->error;
-                        $this->lastErrorNo = $this->link->errno;
-                        break;
-                    }
-                }
-            }
-
+        if (!$r) {
+            $this->lastErrorMessage = $this->link->error;
+            $this->lastErrorNo = $this->link->errno;
+            $this->result = null;
             $r = mysqli_multi_query($this->link, $query->getQuery());
-
-            while (mysqli_more_results($this->link)) {
-                mysqli_store_result($this->link);
-                mysqli_next_result($this->link);
+            if($r){
+                $this->lastErrorMessage = 'NO ERRORS';
+                $this->lastErrorNo = 0;
+                $this->result = null;
+                $retVal = true;
             }
-
-            if (!$r) {
-                $this->lastErrorMessage = $this->link->error;
-                $this->lastErrorNo = $this->link->errno;
-            }
-            $query->setIsBlobInsertOrUpdate(false);
-
-            return $r;
         }
-        return false;
+        else{
+            $retVal = true;
+        }
+        $query->setIsBlobInsertOrUpdate(false);
+
+        return $retVal;
     }
     /**
      * Returns an array which contains all data from a specific column given its 
