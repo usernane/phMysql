@@ -472,8 +472,8 @@ class MySQLLink {
 
     /**
      * Return the number of rows returned by last query.
-     * If no result returned by MySQL server, the method will return -1.
-     * @return int
+     * @return int If no result returned by MySQL server, the method will return -1. If 
+     * the executed query returned 0 rows, the method will return 0.
      * @since 1.0
      */
     public function rows() {
