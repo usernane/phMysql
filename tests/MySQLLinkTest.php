@@ -38,7 +38,7 @@ class MySQLLinkTest extends TestCase {
         $q->select([
             'where' => [
                 'user-id' => [
-                    'values' => [33]
+                    'values' => [34]
                 ]
             ],
             'map-result-to' => '\phMysql\tests\EntityUser'
@@ -76,8 +76,10 @@ class MySQLLinkTest extends TestCase {
         $this->assertEquals('programmingacademia.com',$conn->getHost());
         $this->assertEquals('root',$conn->getUsername());
         $this->assertEquals(2002,$conn->getErrorCode());
-        $this->assertTrue('No connection could be made because the target machine actively refused it.' == $conn->getErrorMessage() 
-                || 'Connection refused' == $conn->getErrorMessage());
+        $errMsg = $conn->getErrorMessage();
+        $bool = $errMsg = 'No connection could be made because the target machine actively refused it.' 
+                || $errMsg = 'Connection refused';
+        $this->assertTrue($bool);
     }
     /**
      * @test
@@ -85,8 +87,10 @@ class MySQLLinkTest extends TestCase {
     public function testConnect01() {
         $conn = new MySQLLink('programmingacademia.com', 'root', '123456',5543);
         $this->assertEquals(2002,$conn->getErrorCode());
-        $this->assertTrue('No connection could be made because the target machine actively refused it.' == $conn->getErrorMessage() 
-                || 'Connection refused' == $conn->getErrorMessage());
+        $errMesg = $conn->getErrorMessage();
+        $check = $errMesg == 'No connection could be made because the target machine actively refused it.' ||
+                $errMesg == 'Connection refused';
+        $this->assertTrue($check);
     }
     /**
      * @test
@@ -118,7 +122,7 @@ class MySQLLinkTest extends TestCase {
                 'title','content'
             ]
         ]);
-        $this->assertEquals(-1,$conn->rows());
+        $this->assertEquals(0,$conn->rows());
         $result = $conn->executeQuery($q2);
         $this->assertTrue($result);
         $this->assertNotEquals(-1,$conn->rows());
@@ -224,7 +228,7 @@ class MySQLLinkTest extends TestCase {
         $this->assertEquals(0,$conn->getErrorCode());
         $this->assertEquals("NO ERRORS",$conn->getErrorMessage());
         $this->assertEquals(-1,$conn->rows());
-
+        print_r("\nDB Set to ".$conn->getDBName()."\n");
         return $conn;
     }
 }
