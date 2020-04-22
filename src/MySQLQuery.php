@@ -199,12 +199,10 @@ class MySQLQuery {
                     }
                 }
 
-                if (strlen($stm) !== 0) {
-                    $stm .= ';'.MySQLQuery::NL.$alterStm;
-                    $this->setQuery($stm, 'alter');
+                $stm .= ';'.MySQLQuery::NL.$alterStm;
+                $this->setQuery($stm, 'alter');
 
-                    return;
-                }
+                return;
             }
         }
         $this->setQuery('', 'alter');
@@ -228,6 +226,47 @@ class MySQLQuery {
             }
         }
         $this->setQuery($q, 'alter');
+    }
+    private function _createColsToSelectJoin($colsArr) {
+        $retVal = '';
+        if (count($colsArr) == 0) {
+            $comma = " \n";
+            $tableObj = $this->getTable();
+            foreach ($tableObj->getLeftTable()->getColumns() as $colObj) {
+                if ($tableObj->isCommon($colObj->getName())) {
+                    $alias = 'left_'.$colObj->getName();
+                    $colObj->setAlias($alias);
+                    $asPart = $comma.$colObj->getName(true).' as '.$alias;
+                } else {
+                    $asPart = $comma.$colObj->getName(true);
+                }
+                $retVal .= $asPart;
+                $comma = ",\n";
+            }
+
+            foreach ($tableObj->getRightTable()->getColumns() as $colObj) {
+                if ($tableObj->isCommon($colObj->getName())) {
+                    $alias = 'right_'.$colObj->getName();
+                    $colObj->setAlias($alias);
+                    $asPart = $comma.$colObj->getName(true).' as '.$alias;
+                } else {
+                    $asPart = $comma.$colObj->getName(true);
+                }
+                $retVal .= $asPart;
+            }
+        } else {
+            $comma = " \n";
+
+            if (isset($colsArr['left']) && gettype($colsArr['left']) == 'array') {
+                $retVal .= $this->_createColToSelechH1($colsArr['left'], $comma, 'left');
+            }
+
+            if (isset($colsArr['right']) && gettype($colsArr['right']) == 'array') {
+                $retVal .= $this->_createColToSelechH1($colsArr['right'], $comma, 'right');
+            }
+            $retVal .= $this->_createColToSelechH1($colsArr, $comma);
+        }
+        return $retVal;
     }
     /**
      * Constructs a string which contains columns names that will be selected.
@@ -255,63 +294,25 @@ class MySQLQuery {
         $tableObj = $this->getTable();
 
         if ($tableObj instanceof JoinTable && $tableObj->hasCommon()) {
-            if (count($colsArr) == 0) {
-                $comma = " \n";
-
-                foreach ($tableObj->getLeftTable()->getColumns() as $colObj) {
-                    if ($tableObj->isCommon($colObj->getName())) {
-                        $alias = 'left_'.$colObj->getName();
-                        $colObj->setAlias($alias);
-                        $asPart = $comma.$colObj->getName(true).' as '.$alias;
-                    } else {
-                        $asPart = $comma.$colObj->getName(true);
-                    }
-                    $retVal .= $asPart;
-                    $comma = ",\n";
-                }
-
-                foreach ($tableObj->getRightTable()->getColumns() as $colObj) {
-                    if ($tableObj->isCommon($colObj->getName())) {
-                        $alias = 'right_'.$colObj->getName();
-                        $colObj->setAlias($alias);
-                        $asPart = $comma.$colObj->getName(true).' as '.$alias;
-                    } else {
-                        $asPart = $comma.$colObj->getName(true);
-                    }
-                    $retVal .= $asPart;
-                }
-            } else {
-                $comma = " \n";
-
-                if (isset($colsArr['left']) && gettype($colsArr['left']) == 'array') {
-                    $retVal .= $this->_createColToSelechH1($colsArr['left'], $comma, 'left');
-                }
-
-                if (isset($colsArr['right']) && gettype($colsArr['right']) == 'array') {
-                    $retVal .= $this->_createColToSelechH1($colsArr['right'], $comma, 'right');
-                }
-                $retVal .= $this->_createColToSelechH1($colsArr, $comma);
-            }
-        } else {
-            if (count($colsArr) == 0) {
+            $retVal = $this->_createColsToSelectJoin($colsArr);
+        } else if (count($colsArr) == 0) {
                 $retVal = '*';
-            } else {
-                $comma = " \n";
+        } else {
+            $comma = " \n";
 
-                foreach ($colsArr as $index => $colName) {
-                    if (gettype($index) == 'string') {
-                        $colObj = $this->getCol($index);
-                        $colObj->setAlias($colName);
-                        $asPart = ' as '.$colName;
-                    } else {
-                        $colObj = $this->getCol($colName);
-                        $asPart = '';
-                    }
+            foreach ($colsArr as $index => $colName) {
+                if (gettype($index) == 'string') {
+                    $colObj = $this->getCol($index);
+                    $colObj->setAlias($colName);
+                    $asPart = ' as '.$colName;
+                } else {
+                    $colObj = $this->getCol($colName);
+                    $asPart = '';
+                }
 
-                    if ($colObj instanceof MySQLColumn) {
-                        $retVal .= $comma.$colObj->getName($withTablePrefix).$asPart;
-                        $comma = ",\n";
-                    }
+                if ($colObj instanceof MySQLColumn) {
+                    $retVal .= $comma.$colObj->getName($withTablePrefix).$asPart;
+                    $comma = ",\n";
                 }
             }
         }
@@ -669,7 +670,7 @@ class MySQLQuery {
      * @deprecated since version 1.9.0 Use MySQLQuery::getTable() instead.
      */
     public function getStructure() {
-        return $this->table;
+        return $this->getTable();
     }
     /**
      * Returns the name of the table that is used to construct queries.
@@ -1019,7 +1020,6 @@ class MySQLQuery {
 
         if ($tableObj instanceof MySQLTable) {
             $vNum = $tableObj->getMySQLVersion();
-            $vSplit = explode('.', $vNum);
 
             $selectQuery = 'select ';
             $limit = isset($selectOptions['limit']) ? $selectOptions['limit'] : -1;
@@ -1027,12 +1027,10 @@ class MySQLQuery {
 
             if ($limit > 0 && $offset > 0) {
                 $limitPart = ' limit '.$limit.' offset '.$offset;
+            } else if ($limit > 0 && $offset <= 0) {
+                $limitPart = ' limit '.$limit;
             } else {
-                if ($limit > 0 && $offset <= 0) {
-                    $limitPart = ' limit '.$limit;
-                } else {
-                    $limitPart = '';
-                }
+                $limitPart = '';
             }
             $groupByPart = '';
 
@@ -1061,53 +1059,47 @@ class MySQLQuery {
                     $columnsStr = $this->createColsToSelect($selectOptions['columns'], $withTablePrefix);
                     $selectQuery .= trim($columnsStr).' from '.$this->getTableName();
                 }
-            } else {
-                if (isset($selectOptions['select-max']) && $selectOptions['select-max'] === true) {
-                    $renameTo = isset($selectOptions['rename-to']) ? $selectOptions['rename-to'] : '';
+            } else if (isset($selectOptions['select-max']) && $selectOptions['select-max'] === true) {
+                $renameTo = isset($selectOptions['rename-to']) ? $selectOptions['rename-to'] : '';
 
-                    if (strlen($renameTo) != 0) {
-                        $renameTo = 'as '.$renameTo;
-                    } else {
-                        $renameTo = '';
-                    }
-
-                    if (isset($selectOptions['column']) && $tableObj->hasColumn($selectOptions['column'])) {
-                        $selectQuery .= 'max('.$this->getColName($selectOptions['column']).') '.$renameTo.' from '.$tableObj->getName();
-                        $limitPart = '';
-                    } else {
-                        return false;
-                    }
+                if (strlen($renameTo) != 0) {
+                    $renameTo = 'as '.$renameTo;
                 } else {
-                    if (isset($selectOptions['select-min']) && $selectOptions['select-min'] === true) {
-                        $renameTo = isset($selectOptions['rename-to']) ? $selectOptions['rename-to'] : '';
-
-                        if (strlen($renameTo) != 0) {
-                            $renameTo = 'as '.$renameTo;
-                        } else {
-                            $renameTo = '';
-                        }
-
-                        if (isset($selectOptions['column']) && $tableObj->hasColumn($selectOptions['column'])) {
-                            $selectQuery .= 'min('.$this->getColName($selectOptions['column']).') '.$renameTo.' from '.$tableObj->getName();
-                            $limitPart = '';
-                        } else {
-                            return false;
-                        }
-                    } else {
-                        if ($tableObj instanceof JoinTable) {
-                            $colsToSelect = $this->createColsToSelect([], true);
-
-                            if ($tableObj->getJoinType() == 'join') {
-                                $joinStm = 'join';
-                            } else {
-                                $joinStm = $tableObj->getJoinType().' join';
-                            }
-                            $selectQuery .= trim($colsToSelect,' ')."from ".$this->_getJoinStm($tableObj, $joinStm);
-                        } else {
-                            $selectQuery .= '* from '.$this->getTableName();
-                        }
-                    }
+                    $renameTo = '';
                 }
+
+                if (isset($selectOptions['column']) && $tableObj->hasColumn($selectOptions['column'])) {
+                    $selectQuery .= 'max('.$this->getColName($selectOptions['column']).') '.$renameTo.' from '.$tableObj->getName();
+                    $limitPart = '';
+                } else {
+                    return false;
+                }
+            } else if (isset($selectOptions['select-min']) && $selectOptions['select-min'] === true) {
+                $renameTo = isset($selectOptions['rename-to']) ? $selectOptions['rename-to'] : '';
+
+                if (strlen($renameTo) != 0) {
+                    $renameTo = 'as '.$renameTo;
+                } else {
+                    $renameTo = '';
+                }
+
+                if (isset($selectOptions['column']) && $tableObj->hasColumn($selectOptions['column'])) {
+                    $selectQuery .= 'min('.$this->getColName($selectOptions['column']).') '.$renameTo.' from '.$tableObj->getName();
+                    $limitPart = '';
+                } else {
+                    return false;
+                }
+            } else if ($tableObj instanceof JoinTable) {
+                $colsToSelect = $this->createColsToSelect([], true);
+
+                if ($tableObj->getJoinType() == 'join') {
+                    $joinStm = 'join';
+                } else {
+                    $joinStm = $tableObj->getJoinType().' join';
+                }
+                $selectQuery .= trim($colsToSelect,' ')."from ".$this->_getJoinStm($tableObj, $joinStm);
+            } else {
+                $selectQuery .= '* from '.$this->getTableName();
             }
 
             if (!isset($selectOptions['condition-cols-and-vals'])) {
@@ -1126,15 +1118,13 @@ class MySQLQuery {
                     if ($colOrVal instanceof MySQLColumn) {
                         $cols[] = $colOrVal;
                         $vals[] = $valOrColIndex;
+                    } else if (gettype($valOrColIndex) == 'integer') {
+                        $testCol = $tableObj->getColByIndex($valOrColIndex);
                     } else {
-                        if (gettype($valOrColIndex) == 'integer') {
-                            $testCol = $tableObj->getColByIndex($valOrColIndex);
-                        } else {
-                            $testCol = $tableObj->getCol($valOrColIndex);
-                        }
-                        $cols[] = $testCol;
-                        $vals[] = $colOrVal;
+                        $testCol = $tableObj->getCol($valOrColIndex);
                     }
+                    $cols[] = $testCol;
+                    $vals[] = $colOrVal;
                 }
                 $where = $tableObj instanceof JoinTable ? 
                         $this->createWhereConditions($cols, $vals, $selectOptions['conditions'], $selectOptions['join-operators'],$tableObj->getName()) :
@@ -1248,33 +1238,36 @@ class MySQLQuery {
                     gettype($options['conditions']) == 'array' ? $options['conditions'] : [];
 
             if (isset($options['where']) && isset($options['conditions'])) {
-                $cols = [];
-                $vals = [];
-
-                foreach ($options['where'] as $valOrColIndex => $colOrVal) {
-                    if ($colOrVal instanceof MySQLColumn) {
-                        $cols[] = $colOrVal;
-                        $vals[] = $valOrColIndex;
-                    } else {
-                        if (gettype($valOrColIndex) == 'integer') {
-                            $testCol = $this->getStructure()->getColByIndex($valOrColIndex);
-                        } else {
-                            $testCol = $this->getStructure()->getCol($valOrColIndex);
-                        }
-                        $cols[] = $testCol;
-                        $vals[] = $colOrVal;
-                    }
-                }
-                $where = $this->createWhereConditions($cols, $vals, $options['conditions'], $options['join-operators']);
+                $where = $this->_where($options);
             } else {
                 $where = '';
             }
 
-            if (trim($where) == 'where') {
-                $where = '';
-            }
+            
         }
         $this->setQuery('select count(*)'.$asPart.' from '.$this->getStructureName().$where.';', 'select');
+    }
+    private function _where($options) {
+        $cols = [];
+        $vals = [];
+
+        foreach ($options['where'] as $valOrColIndex => $colOrVal) {
+            if ($colOrVal instanceof MySQLColumn) {
+                $cols[] = $colOrVal;
+                $vals[] = $valOrColIndex;
+            } else if (gettype($valOrColIndex) == 'integer') {
+                $testCol = $this->getTable()->getColByIndex($valOrColIndex);
+            } else {
+                $testCol = $this->getTable()->getCol($valOrColIndex);
+            }
+            $cols[] = $testCol;
+            $vals[] = $colOrVal;
+        }
+        $where = $this->createWhereConditions($cols, $vals, $options['conditions'], $options['join-operators']);
+        if (trim($where) == 'where') {
+            $where = '';
+        }
+        return $where;
     }
     /**
      * Constructs a query that can be used to select maximum value of a table column.
@@ -1360,6 +1353,11 @@ class MySQLQuery {
                 $updatedSize = $new < $max && $new > 0 ? $new : $max;
                 break;
             }
+            default :{
+                $new = $size * 1024 * 1024;
+                $updatedSize = $new < $max && $new > 0 ? $new : $max;
+                break;
+            }
         }
         $this->query = 'set global max_allowed_packet = '.$updatedSize.';';
     }
@@ -1420,8 +1418,7 @@ class MySQLQuery {
                         return false;
                     }
 
-                    if ($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')) {
-                    } else {
+                    if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
                         return false;
                     }
                 }
@@ -1800,7 +1797,7 @@ class MySQLQuery {
                     $left = false;
                     $colObj = $rightTable->getCol($colKey);
 
-                    if (!($colObj instanceof MySQLColumn) /*&& $alias !== null*/) {
+                    if (!($colObj instanceof MySQLColumn)) {
                         $colObj = $tableObj->getCol($colKey);
 
                         if ($colObj instanceof MySQLColumn && $colObj->getOwner()->getName() == $leftTable->getName()) {
@@ -1814,39 +1811,72 @@ class MySQLQuery {
 
         if ($colObj instanceof MySQLColumn) {
             if ($alias !== null) {
-//                if($colObj->getAlias() !== null){
-//                    $asPart = $colObj->getAlias(true).' as '.$alias;
-//                    $colObj->setName($colObj->getAlias());
-//                    $colObj->setAlias($alias);
-//                }
-//                else{
                 $asPart = $colObj->getName(true).' as '.$alias;
                 $colObj->setAlias($alias);
-                //}
                 if ($updateName) {
                     $this->origColsNames[$colKey] = $colObj->getName();
                     $colObj->setName($alias);
                 }
-            } else {
-                if ($this->getTable()->isCommon($colObj->getName())) {
-                    if ($left === true) {
-                        $alias = 'left_'.$colObj->getName();
-                        $colObj->setAlias($alias);
-                        $asPart = $colObj->getName(true).' as '.$alias;
-                    } else {
-                        $alias = 'right_'.$colObj->getName();
-                        $colObj->setAlias($alias);
-                        $asPart = $colObj->getName(true).' as '.$alias;
-                    }
+            } else if ($this->getTable()->isCommon($colObj->getName())) {
+                if ($left === true) {
+                    $alias = 'left_'.$colObj->getName();
+                    $colObj->setAlias($alias);
+                    $asPart = $colObj->getName(true).' as '.$alias;
                 } else {
-                    $asPart = $colObj->getName(true);
+                    $alias = 'right_'.$colObj->getName();
+                    $colObj->setAlias($alias);
+                    $asPart = $colObj->getName(true).' as '.$alias;
                 }
+            } else {
+                $asPart = $colObj->getName(true);
             }
         } else {
             $asPart = null;
         }
 
         return $asPart;
+    }
+    private function _createTableColumns($tableObj) {
+        $keys = $this->getTable()->colsKeys();
+        $count = count($keys);
+        $queryStr = '';
+        for ($x = 0 ; $x < $count ; $x++) {
+            if ($x + 1 == $count) {
+                $queryStr .= '    '.$tableObj->columns()[$keys[$x]].self::NL;
+            } else {
+                $queryStr .= '    '.$tableObj->columns()[$keys[$x]].','.self::NL;
+            }
+        }
+        return $queryStr;
+    }
+    private function _createTablePK($inclSqlComments) {
+        $coutPk = $this->getTable()->primaryKeyColsCount();
+        $queryStr = '';
+        if ($coutPk >= 1) {
+            if ($inclSqlComments === true) {
+                $queryStr .= '-- Add Primary key to the table.'.self::NL;
+            }
+            $this->addPrimaryKey($this->getTable());
+            $q = $this->getQuery();
+
+            if (strlen($q) != 0) {
+                //no need to append ';\n' as it was added before.
+                $queryStr .= $q;
+            }
+        }
+        return $queryStr;
+    }
+    private function _createTableFKs($inclSqlComments) {
+        $count2 = count($this->getTable()->forignKeys());
+        $queryStr = '';
+        if ($inclSqlComments === true && $count2 != 0) {
+            $queryStr .= '-- Add Forign keys to the table.'.self::NL;
+        }
+
+        for ($x = 0 ; $x < $count2 ; $x++) {
+            $this->addForeignKey($this->getTable()->forignKeys()[$x]);
+            $queryStr .= $this->getQuery().';'.self::NL;
+        }
     }
     /**
      * Constructs a query that can be used to create a new table.
@@ -1866,16 +1896,7 @@ class MySQLQuery {
                 $queryStr .= '-- Number of primary key columns count: \''.$this->getStructure()->primaryKeyColsCount().'\''.self::NL;
             }
             $queryStr .= 'create table if not exists '.$tableObj->getName().'('.self::NL;
-            $keys = $tableObj->colsKeys();
-            $count = count($keys);
-
-            for ($x = 0 ; $x < $count ; $x++) {
-                if ($x + 1 == $count) {
-                    $queryStr .= '    '.$tableObj->columns()[$keys[$x]].self::NL;
-                } else {
-                    $queryStr .= '    '.$tableObj->columns()[$keys[$x]].','.self::NL;
-                }
-            }
+            $queryStr .= $this->_createTableColumns($tableObj);
             $queryStr .= ')'.self::NL;
             $comment = $tableObj->getComment();
 
@@ -1885,32 +1906,10 @@ class MySQLQuery {
             $queryStr .= 'ENGINE = '.$tableObj->getEngine().self::NL;
             $queryStr .= 'DEFAULT CHARSET = '.$tableObj->getCharSet().self::NL;
             $queryStr .= 'collate = '.$tableObj->getCollation().';'.self::NL;
-            $coutPk = $this->getStructure()->primaryKeyColsCount();
-
-            if ($coutPk >= 1) {
-                if ($inclSqlComments === true) {
-                    $queryStr .= '-- Add Primary key to the table.'.self::NL;
-                }
-                $this->addPrimaryKey($tableObj);
-                $q = $this->getQuery();
-
-                if (strlen($q) != 0) {
-                    //no need to append ';\n' as it was added before.
-                    $queryStr .= $q;
-                }
-            }
+            //Add Primary key
+            $queryStr .= $this->_createTablePK($inclSqlComments);
             //add forign keys
-            $count2 = count($tableObj->forignKeys());
-
-            if ($inclSqlComments === true && $count2 != 0) {
-                $queryStr .= '-- Add Forign keys to the table.'.self::NL;
-            }
-
-            for ($x = 0 ; $x < $count2 ; $x++) {
-                $this->addForeignKey($tableObj->forignKeys()[$x]);
-                $queryStr .= $this->getQuery().';'.self::NL;
-            }
-
+            $queryStr .= $this->_createTableFKs($inclSqlComments);
             if ($inclSqlComments === true) {
                 $queryStr .= '-- End of the Structure of the table \''.$this->getStructureName().'\''.self::NL;
             }
@@ -1948,8 +1947,6 @@ class MySQLQuery {
         }
 
         return $selectQuery;
-    }
-    private function _selectIn($optionsArr) {
     }
     /**
      * A method that is used to create the 'where' part of any query in case 
@@ -2036,105 +2033,88 @@ class MySQLQuery {
                         } else {
                             $where .= $colName.' is not null ';
                         }
-                    } else {
-                        if ($col->getType() == 'datetime' || $col->getType() == 'timestamp') {
-                            if ($equalityCond == '=') {
-                                $where .= $colName.' >= '.$cleanVal.' ';
-                                $cleanVal = $col->cleanValue($vals[$index],true);
-                                $where .= 'and '.$colName.' <= '.$cleanVal.' ';
-                            } else {
-                                if ($equalityCond == '!=') {
-                                    $where .= $colName.' < '.$cleanVal.' ';
-                                    $cleanVal = $col->cleanValue($vals[$index],true);
-                                    $where .= 'and '.$colName.' > '.$cleanVal.' ';
-                                } else {
-                                    if ($equalityCond == '>=') {
-                                        $where .= $colName.' >= '.$cleanVal.' ';
-                                        $cleanVal = $col->cleanValue($vals[$index],true);
-                                    } else {
-                                        if ($equalityCond == '<=') {
-                                            $cleanVal = $col->cleanValue($vals[$index],true);
-                                            $where .= $colName.' <= '.$cleanVal.' ';
-                                        } else {
-                                            if ($equalityCond == '>') {
-                                                $cleanVal = $col->cleanValue($vals[$index],true);
-                                                $where .= $colName.' > '.$cleanVal.' ';
-                                            } else {
-                                                if ($equalityCond == '<') {
-                                                    $where .= $colName.' < '.$cleanVal.' ';
-                                                }
-                                            }
-                                        }
-                                    }
+                    } else if ($col->getType() == 'datetime' || $col->getType() == 'timestamp') {
+                        if ($equalityCond == '=') {
+                            $where .= $colName.' >= '.$cleanVal.' ';
+                            $cleanVal = $col->cleanValue($vals[$index],true);
+                            $where .= 'and '.$colName.' <= '.$cleanVal.' ';
+                        } else if ($equalityCond == '!=') {
+                            $where .= $colName.' < '.$cleanVal.' ';
+                            $cleanVal = $col->cleanValue($vals[$index],true);
+                            $where .= 'and '.$colName.' > '.$cleanVal.' ';
+                        } else if ($equalityCond == '>=') {
+                            $where .= $colName.' >= '.$cleanVal.' ';
+                            $cleanVal = $col->cleanValue($vals[$index],true);
+                        } else if ($equalityCond == '<=') {
+                            $cleanVal = $col->cleanValue($vals[$index],true);
+                            $where .= $colName.' <= '.$cleanVal.' ';
+                        } else if ($equalityCond == '>') {
+                            $cleanVal = $col->cleanValue($vals[$index],true);
+                            $where .= $colName.' > '.$cleanVal.' ';
+                        } else if ($equalityCond == '<') {
+                            $where .= $colName.' < '.$cleanVal.' ';
+                        }
+                    } else if ($col->getType() == 'boolean') {
+                        if ($cleanVal === true) {
+                            $where .= $colName.' = \'Y\'';
+                        } else {
+                            $where .= $colName.' = \'N\'';
+                        }
+                    } else if (gettype($vals[$index]) == 'array') {
+                        $conditions = isset($vals[$index]['conditions']) ? $vals[$index]['conditions'] : [];
+                        $joinConditions = isset($vals[$index]['join-operators']) ? $vals[$index]['join-operators'] : [];
+                        $where .= '(';
+
+                        if (gettype($conditions) == 'array') {
+                            $condIndex = 0;
+
+                            while (count($conditions) < count($cleanVal)) {
+                                $conditions[] = '=';
+                            }
+
+                            while (count($joinConditions) < count($cleanVal)) {
+                                $joinConditions[] = 'and';
+                            }
+
+                            foreach ($cleanVal as $singleVal) {
+                                $cond = $conditions[$condIndex];
+
+                                if (!in_array($cond, $supportedConds)) {
+                                    $cond = '=';
                                 }
+
+                                if ($condIndex > 0) {
+                                    $joinCond = $joinConditions[$condIndex - 1];
+
+                                    if ($joinCond == 'and' || $joinCond == 'or') {
+                                    } else {
+                                        $joinCond = 'and';
+                                    }
+                                    $where .= $joinCond.' '.$colName.' '.$cond.' '.$singleVal.' ';
+                                } else {
+                                    $where .= $colName.' '.$cond.' '.$singleVal.' ';
+                                }
+                                $condIndex++;
                             }
                         } else {
-                            if ($col->getType() == 'boolean') {
-                                if ($cleanVal === true) {
-                                    $where .= $colName.' = \'Y\'';
-                                } else {
-                                    $where .= $colName.' = \'N\'';
-                                }
-                            } else {
-                                if (gettype($vals[$index]) == 'array') {
-                                    $conditions = isset($vals[$index]['conditions']) ? $vals[$index]['conditions'] : [];
-                                    $joinConditions = isset($vals[$index]['join-operators']) ? $vals[$index]['join-operators'] : [];
-                                    $where .= '(';
+                            $lCond = strtolower(trim($conditions));
 
-                                    if (gettype($conditions) == 'array') {
-                                        $condIndex = 0;
+                            if ($lCond == 'in' || $lCond == 'not in') {
+                                $inCond = $lCond.'(';
 
-                                        while (count($conditions) < count($cleanVal)) {
-                                            $conditions[] = '=';
-                                        }
-
-                                        while (count($joinConditions) < count($cleanVal)) {
-                                            $joinConditions[] = 'and';
-                                        }
-
-                                        foreach ($cleanVal as $singleVal) {
-                                            $cond = $conditions[$condIndex];
-
-                                            if (!in_array($cond, $supportedConds)) {
-                                                $cond = '=';
-                                            }
-
-                                            if ($condIndex > 0) {
-                                                $joinCond = $joinConditions[$condIndex - 1];
-
-                                                if ($joinCond == 'and' || $joinCond == 'or') {
-                                                } else {
-                                                    $joinCond = 'and';
-                                                }
-                                                $where .= $joinCond.' '.$colName.' '.$cond.' '.$singleVal.' ';
-                                            } else {
-                                                $where .= $colName.' '.$cond.' '.$singleVal.' ';
-                                            }
-                                            $condIndex++;
-                                        }
+                                for ($x = 0 ; $x < count($cleanVal) ; $x++) {
+                                    if ($x + 1 == count($cleanVal)) {
+                                        $inCond .= $cleanVal[$x];
                                     } else {
-                                        $lCond = strtolower(trim($conditions));
-
-                                        if ($lCond == 'in' || $lCond == 'not in') {
-                                            $inCond = $lCond.'(';
-
-                                            for ($x = 0 ; $x < count($cleanVal) ; $x++) {
-                                                if ($x + 1 == count($cleanVal)) {
-                                                    $inCond .= $cleanVal[$x];
-                                                } else {
-                                                    $inCond .= $cleanVal[$x].',';
-                                                }
-                                            }
-                                            $where .= $colName.' '.$inCond.')';
-                                        } else {
-                                        }
+                                        $inCond .= $cleanVal[$x].',';
                                     }
-                                    $where = trim($where).')';
-                                } else {
-                                    $where .= $colName.' '.$equalityCond.' '.$cleanVal.' ';
                                 }
-                            }
+                                $where .= $colName.' '.$inCond.')';
+                            } 
                         }
+                        $where = trim($where).')';
+                    } else {
+                        $where .= $colName.' '.$equalityCond.' '.$cleanVal.' ';
                     }
                 }
 

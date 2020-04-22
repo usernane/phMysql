@@ -256,11 +256,7 @@ class MySQLColumn {
             $this->customCleaner = $func;
         }
     }
-    /**
-     * Constructs a string that can be used to create the column in a table.
-     * @return string A string that can be used to create the column in a table.
-     */
-    public function __toString() {
+    private function _firstColPart(){
         $retVal = $this->getName().' ';
         $colDataType = $this->getType();
 
@@ -277,38 +273,54 @@ class MySQLColumn {
         } else {
             $retVal .= $colDataType.' ';
         }
-
+        return $retVal;
+    }
+    private function _nullPart() {
+        $colDataType = $this->getType();
         if (!$this->isNull() || $colDataType == 'boolean') {
-            $retVal .= 'not null ';
+            return 'not null ';
         } else {
-            $retVal .= 'null ';
+            return 'null ';
         }
-
-        if ($this->isUnique() && $colDataType != 'boolean') {
-            $retVal .= 'unique ';
-        }
+    }
+    private function _defaultPart() {
+        $colDataType = $this->getType();
         $colDefault = $this->default;
-
         if ($colDefault !== null) {
             if ($colDataType == 'boolean') {
                 if ($this->getDefault() === true) {
-                    $retVal .= 'default \'Y\' ';
+                    return 'default \'Y\' ';
                 } else {
-                    $retVal .= 'default \'N\' ';
+                    return 'default \'N\' ';
                 }
             } else {
-                $retVal .= 'default '.$colDefault.' ';
+                return 'default '.$colDefault.' ';
             }
         }
+    }
+    private function _commentPart() {
+        $colComment = $this->getComment();
+        if ($colComment !== null) {
+            return 'comment \''.$colComment.'\'';
+        }
+    }
+    /**
+     * Constructs a string that can be used to create the column in a table.
+     * @return string A string that can be used to create the column in a table.
+     */
+    public function __toString() {
+        $retVal = $this->_firstColPart();
+        $retVal .= $this->_nullPart();
+        $colDataType = $this->getType();
+        if ($this->isUnique() && $colDataType != 'boolean') {
+            $retVal .= 'unique ';
+        }
+        $retVal .= $this->_defaultPart();
 
         if ($colDataType == 'varchar' || $colDataType == 'text' || $colDataType == 'mediumtext') {
             $retVal .= 'collate '.$this->getCollation().' ';
         }
-        $colComment = $this->getComment();
-
-        if ($colComment !== null) {
-            $retVal .= 'comment \''.$colComment.'\'';
-        }
+        $retVal .= $this->_commentPart();
 
         return trim($retVal);
     }

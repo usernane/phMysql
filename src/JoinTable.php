@@ -201,7 +201,7 @@ class JoinTable extends MySQLTable {
      * values like '=' or '!='.
      * @since 1.0
      */
-    public function setJoinCondition($cols,$conds = []) {
+    public function setJoinCondition($cols, $conds = []) {
         if (gettype($cols) == 'array') {
             while (count($conds) < count($cols)) {
                 $conds[] = '=';
@@ -223,17 +223,8 @@ class JoinTable extends MySQLTable {
                     && $rightColObj instanceof MySQLColumn 
                     && $rightColObj->getType() == $leftColObj->getType()) {
                     $cond = $conds[$index];
-
-                    if ($index != 0) {
-                        $joinOp = $joinOps[$index - 1];
-                        if ($joinOp != 'and' && $joinOp != 'or') {
-                            $joinOp = 'and';
-                        }
-                    } else {
-                        $joinOp = '';
-                    }
                     $tempJoinStr .= 
-                           ' '.$joinOp.' '.$leftTable->getName().'.'
+                           ' '.$this->_getJoinOp($joinOps, $index).' '.$leftTable->getName().'.'
                            .$leftColObj->getName().' '.$cond.' '
                            .$rightTable->getName().'.'
                            .$rightColObj->getName();
@@ -242,6 +233,17 @@ class JoinTable extends MySQLTable {
             }
         }
         $this->joinCond = 'on '.trim($tempJoinStr);
+    }
+    private function _getJoinOp($joinOps, $index) {
+        if ($index != 0) {
+            $joinOp = $joinOps[$index - 1];
+            if ($joinOp != 'and' && $joinOp != 'or') {
+                $joinOp = 'and';
+            }
+        } else {
+            $joinOp = '';
+        }
+        return $joinOp;
     }
     /**
      * 

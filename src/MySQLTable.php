@@ -294,24 +294,31 @@ class MySQLTable {
     ]) {
         if (gettype($options) == 'array') {
             if (isset($options['id'])) {
-                $options['id']['size'] = 11;
-                $options['id']['primary'] = true;
-                $this->_addDefaultCol('id', 'int', $options);
+                $indexName = 'id';
+                $options[$indexName]['size'] = 11;
+                $options[$indexName]['primary'] = true;
+                $options[$indexName]['auto-inc'] = true;
+                $options[$indexName]['datatype'] = 'int';
+                $this->_addDefaultCol($indexName, $options);
             }
 
             if (isset($options['created-on'])) {
-                $options['created-on']['default'] = 'current_timestamp';
-                $this->_addDefaultCol('created-on', 'timestamp', $options);
+                $indexName = 'created-on';
+                $options[$indexName]['datatype'] = 'timestamp';
+                $options[$indexName]['default'] = 'current_timestamp';
+                $this->_addDefaultCol($indexName, $options);
             }
             
             if (isset($options['last-updated'])) {
-                $options['last-updated']['auto-update'] = true;
-                $options['last-updated']['allow-null'] = true;
-                $this->_addDefaultCol('last-updated', 'datetime', $options);
+                $indexName = 'last-updated';
+                $options[$indexName]['auto-update'] = true;
+                $options[$indexName]['is-null'] = true;
+                $options[$indexName]['datatype'] = 'datetime';
+                $this->_addDefaultCol($indexName, $options);
             }
         }
     }
-    private function _addDefaultCol($colIndex, $datatype, $options) {
+    private function _addDefaultCol($colIndex, $options) {
         if (isset($options[$colIndex]) && $this->defaultColsKeys[$colIndex] === null) {
             $defaultCol = $options[$colIndex];
             $key = isset($defaultCol['key-name']) ? trim($defaultCol['key-name']) : $colIndex;
@@ -320,28 +327,11 @@ class MySQLTable {
                 $key = $colIndex;
             }
             $inDbName = isset($defaultCol['db-name']) ? $defaultCol['db-name'] : str_replace('-', '_', $colIndex);
-            $colObj = new MySQLColumn($inDbName, $datatype);
+            $options[$colIndex]['name'] = $inDbName;
+            $colObj = $this->_createColObj($options[$colIndex]);
 
             if (!($colObj->getName() == $inDbName)) {
                 $colObj->setName(str_replace('-', '_', $colIndex));
-            }
-            if(isset($options[$colIndex]['default'])){
-                $colObj->setDefault($options[$colIndex]['default']);
-            }
-            if(isset($options[$colIndex]['auto-update'])){
-                $colObj->setAutoUpdate($options[$colIndex]['auto-update']);
-            }
-            if(isset($options[$colIndex]['allow-null'])){
-                $colObj->setIsNull($options[$colIndex]['allow-null']);
-            }
-            if(isset($options[$colIndex]['size'])){
-                $colObj->setSize($options[$colIndex]['size']);
-            }
-            if(isset($options[$colIndex]['primary'])){
-                $colObj->setIsPrimary($options[$colIndex]['primary']);
-                if($colObj->isPrimary()){
-                    $colObj->setIsAutoInc(true);
-                }
             }
             if ($this->addColumn($key, $colObj)) {
                 $this->defaultColsKeys[$colIndex] = $key;
@@ -647,9 +637,8 @@ class MySQLTable {
         if (isset($this->colSet[$trimmed])) {
             return $this->colSet[$trimmed];
         }
-        $null = null;
 
-        return $null;
+        return null;
     }
     /**
      * Returns a column given its index.
@@ -664,9 +653,8 @@ class MySQLTable {
                 return $col;
             }
         }
-        $null = null;
 
-        return $null;
+        return null;
     }
     /**
      * Returns the index of a column given its key.
@@ -1096,14 +1084,11 @@ class MySQLTable {
         for ($x = 0 ; $x < $len ; $x++) {
             $ch = $trimmedName[$x];
 
-            if ($x == 0) {
-                if ($ch >= '0' && $ch <= '9') {
-                    return false;
-                }
+            if ($x == 0 && $ch >= '0' && $ch <= '9') {
+                return false;
             }
 
-            if ($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')) {
-            } else {
+            if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
                 return false;
             }
         }
@@ -1185,8 +1170,7 @@ class MySQLTable {
                         return false;
                     }
 
-                    if ($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9')) {
-                    } else {
+                    if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
                         return false;
                     }
                 }
@@ -1291,11 +1275,8 @@ class MySQLTable {
                 $isPrimary = isset($options['is-primary']) ? $options['is-primary'] : false;
             }
             $col->setIsPrimary($isPrimary);
-            if ($isPrimary) {
-                
-                if (isset($options['auto-inc'])) {
-                    $col->setIsAutoInc($options['auto-inc']);
-                }
+            if ($isPrimary && isset($options['auto-inc'])) {
+                $col->setIsAutoInc($options['auto-inc']);
             }
 
             if (isset($options['is-unique'])) {
