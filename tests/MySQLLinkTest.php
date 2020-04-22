@@ -12,6 +12,31 @@ use PHPUnit\Framework\TestCase;
  */
 class MySQLLinkTest extends TestCase {
     /**
+     * @test
+     * @depends testSetDb01
+     * @param MySQLLink $conn Description
+     */
+    public function testGetCol00($conn) {
+        $q2 = new ArticleQuery();
+        $q2->select([
+            'columns' => [
+                'title','content'
+            ]
+        ]);
+        $this->assertEquals(-1,$conn->rows());
+        $result = $conn->executeQuery($q2);
+        $this->assertTrue($result);
+        $this->assertNotEquals(-1,$conn->rows());
+        $data = $conn->getColumn('random');
+        $this->assertEquals(\phMysql\MySQLTable::NO_SUCH_COL,$data);
+        $col1Data = $conn->getColumn('title');
+        $this->assertEquals(20, count($col1Data));
+        $col2Data = $conn->getColumn('content');
+        $this->assertEquals(20, count($col2Data));
+        $col3Data = $conn->getColumn('author-id');
+        $this->assertEquals(0, count($col3Data));
+    }
+    /**
      * @depends testSetDb01
      * @param MySQLLink $conn
      * @test
@@ -109,31 +134,6 @@ class MySQLLinkTest extends TestCase {
         $this->assertEquals("NO ERRORS",$conn->getErrorMessage());
 
         return $conn;
-    }
-    /**
-     * @test
-     * @depends testSetDb01
-     * @param MySQLLink $conn Description
-     */
-    public function testGetCol00($conn) {
-        $q2 = new ArticleQuery();
-        $q2->select([
-            'columns' => [
-                'title','content'
-            ]
-        ]);
-        $this->assertEquals(0,$conn->rows());
-        $result = $conn->executeQuery($q2);
-        $this->assertTrue($result);
-        $this->assertNotEquals(-1,$conn->rows());
-        $data = $conn->getColumn('random');
-        $this->assertEquals(\phMysql\MySQLTable::NO_SUCH_COL,$data);
-        $col1Data = $conn->getColumn('title');
-        $this->assertEquals(20, count($col1Data));
-        $col2Data = $conn->getColumn('content');
-        $this->assertEquals(20, count($col2Data));
-        $col3Data = $conn->getColumn('author-id');
-        $this->assertEquals(0, count($col3Data));
     }
     /**
      * @test
