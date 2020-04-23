@@ -1019,8 +1019,6 @@ class MySQLQuery {
         $tableObj = $this->getTable();
 
         if ($tableObj instanceof MySQLTable) {
-            $vNum = $tableObj->getMySQLVersion();
-
             $selectQuery = 'select ';
             $limit = isset($selectOptions['limit']) ? $selectOptions['limit'] : -1;
             $offset = isset($selectOptions['offset']) ? $selectOptions['offset'] : -1;
@@ -1343,11 +1341,6 @@ class MySQLQuery {
                 $updatedSize = $new < $max && $new > 0 ? $new : $max;
                 break;
             }
-            case 'MB':{
-                $new = $size * 1024 * 1024;
-                $updatedSize = $new < $max && $new > 0 ? $new : $max;
-                break;
-            }
             case 'GB':{
                 $new = $size * 1024 * 1024 * 1024;
                 $updatedSize = $new < $max && $new > 0 ? $new : $max;
@@ -1406,27 +1399,24 @@ class MySQLQuery {
      */
     public function setSchemaName($name) {
         $nameT = trim($name);
+        $len = strlen($nameT);
 
-        if (strlen($nameT) != 0) {
-            $len = strlen($nameT);
+        if ($len > 0) {
+            for ($x = 0 ; $x < $len ; $x++) {
+                $ch = $nameT[$x];
 
-            if ($len > 0) {
-                for ($x = 0 ; $x < $len ; $x++) {
-                    $ch = $nameT[$x];
-
-                    if ($x == 0 && ($ch >= '0' && $ch <= '9')) {
-                        return false;
-                    }
-
-                    if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
-                        return false;
-                    }
+                if ($x == 0 && ($ch >= '0' && $ch <= '9')) {
+                    return false;
                 }
-                $this->schemaName = $nameT;
-                $this->getTable()->setSchemaName($nameT);
 
-                return true;
+                if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
+                    return false;
+                }
             }
+            $this->schemaName = $nameT;
+            $this->getTable()->setSchemaName($nameT);
+
+            return true;
         }
 
         return false;
@@ -1877,6 +1867,7 @@ class MySQLQuery {
             $this->addForeignKey($this->getTable()->forignKeys()[$x]);
             $queryStr .= $this->getQuery().';'.self::NL;
         }
+        return $queryStr;
     }
     /**
      * Constructs a query that can be used to create a new table.
@@ -1930,8 +1921,7 @@ class MySQLQuery {
         $joinCond = $table->getJoinCondition();
 
         if ($lt instanceof JoinTable) {
-            if ($rt instanceof JoinTable) {
-            } else {
+            if (!($rt instanceof JoinTable)) {
                 $tempQuery = new MySQLQuery();
                 $tempQuery->setTable($lt);
                 $tempQuery->select([
@@ -1939,11 +1929,8 @@ class MySQLQuery {
                 ]);
                 $selectQuery = '('.$tempQuery->getQuery().') as '.$lt->getName().' '.$joinStm.' '.$rt->getName()."\n".$joinCond;
             }
-        } else {
-            if ($rt instanceof JoinTable) {
-            } else {
-                $selectQuery = $lt->getName().' '.$joinStm.' '.$rt->getName()."\n".$joinCond;
-            }
+        } else if (!($rt instanceof JoinTable)) {
+            $selectQuery = $lt->getName().' '.$joinStm.' '.$rt->getName()."\n".$joinCond;
         }
 
         return $selectQuery;
@@ -2026,96 +2013,93 @@ class MySQLQuery {
 
                 if ($valLower == 'is null' || $valLower == 'is not null') {
                     $where .= $colName.' '.$valLower.' ';
-                } else {
-                    if ($cleanVal === null) {
-                        if ($equalityCond == '=') {
-                            $where .= $colName.' is null ';
-                        } else {
-                            $where .= $colName.' is not null ';
-                        }
-                    } else if ($col->getType() == 'datetime' || $col->getType() == 'timestamp') {
-                        if ($equalityCond == '=') {
-                            $where .= $colName.' >= '.$cleanVal.' ';
-                            $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= 'and '.$colName.' <= '.$cleanVal.' ';
-                        } else if ($equalityCond == '!=') {
-                            $where .= $colName.' < '.$cleanVal.' ';
-                            $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= 'and '.$colName.' > '.$cleanVal.' ';
-                        } else if ($equalityCond == '>=') {
-                            $where .= $colName.' >= '.$cleanVal.' ';
-                            $cleanVal = $col->cleanValue($vals[$index],true);
-                        } else if ($equalityCond == '<=') {
-                            $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= $colName.' <= '.$cleanVal.' ';
-                        } else if ($equalityCond == '>') {
-                            $cleanVal = $col->cleanValue($vals[$index],true);
-                            $where .= $colName.' > '.$cleanVal.' ';
-                        } else if ($equalityCond == '<') {
-                            $where .= $colName.' < '.$cleanVal.' ';
-                        }
-                    } else if ($col->getType() == 'boolean') {
-                        if ($cleanVal === true) {
-                            $where .= $colName.' = \'Y\'';
-                        } else {
-                            $where .= $colName.' = \'N\'';
-                        }
-                    } else if (gettype($vals[$index]) == 'array') {
-                        $conditions = isset($vals[$index]['conditions']) ? $vals[$index]['conditions'] : [];
-                        $joinConditions = isset($vals[$index]['join-operators']) ? $vals[$index]['join-operators'] : [];
-                        $where .= '(';
-
-                        if (gettype($conditions) == 'array') {
-                            $condIndex = 0;
-
-                            while (count($conditions) < count($cleanVal)) {
-                                $conditions[] = '=';
-                            }
-
-                            while (count($joinConditions) < count($cleanVal)) {
-                                $joinConditions[] = 'and';
-                            }
-
-                            foreach ($cleanVal as $singleVal) {
-                                $cond = $conditions[$condIndex];
-
-                                if (!in_array($cond, $supportedConds)) {
-                                    $cond = '=';
-                                }
-
-                                if ($condIndex > 0) {
-                                    $joinCond = $joinConditions[$condIndex - 1];
-
-                                    if ($joinCond == 'and' || $joinCond == 'or') {
-                                    } else {
-                                        $joinCond = 'and';
-                                    }
-                                    $where .= $joinCond.' '.$colName.' '.$cond.' '.$singleVal.' ';
-                                } else {
-                                    $where .= $colName.' '.$cond.' '.$singleVal.' ';
-                                }
-                                $condIndex++;
-                            }
-                        } else {
-                            $lCond = strtolower(trim($conditions));
-
-                            if ($lCond == 'in' || $lCond == 'not in') {
-                                $inCond = $lCond.'(';
-
-                                for ($x = 0 ; $x < count($cleanVal) ; $x++) {
-                                    if ($x + 1 == count($cleanVal)) {
-                                        $inCond .= $cleanVal[$x];
-                                    } else {
-                                        $inCond .= $cleanVal[$x].',';
-                                    }
-                                }
-                                $where .= $colName.' '.$inCond.')';
-                            } 
-                        }
-                        $where = trim($where).')';
+                } else if ($cleanVal === null) {
+                    if ($equalityCond == '=') {
+                        $where .= $colName.' is null ';
                     } else {
-                        $where .= $colName.' '.$equalityCond.' '.$cleanVal.' ';
+                        $where .= $colName.' is not null ';
                     }
+                } else if ($col->getType() == 'datetime' || $col->getType() == 'timestamp') {
+                    if ($equalityCond == '=') {
+                        $where .= $colName.' >= '.$cleanVal.' ';
+                        $cleanVal = $col->cleanValue($vals[$index],true);
+                        $where .= 'and '.$colName.' <= '.$cleanVal.' ';
+                    } else if ($equalityCond == '!=') {
+                        $where .= $colName.' < '.$cleanVal.' ';
+                        $cleanVal = $col->cleanValue($vals[$index],true);
+                        $where .= 'and '.$colName.' > '.$cleanVal.' ';
+                    } else if ($equalityCond == '>=') {
+                        $cleanVal = $col->cleanValue($vals[$index],true);
+                        $where .= $colName.' >= '.$cleanVal.' ';
+                    } else if ($equalityCond == '<=') {
+                        $cleanVal = $col->cleanValue($vals[$index],true);
+                        $where .= $colName.' <= '.$cleanVal.' ';
+                    } else if ($equalityCond == '>') {
+                        $cleanVal = $col->cleanValue($vals[$index],true);
+                        $where .= $colName.' > '.$cleanVal.' ';
+                    } else if ($equalityCond == '<') {
+                        $where .= $colName.' < '.$cleanVal.' ';
+                    }
+                } else if ($col->getType() == 'boolean') {
+                    if ($cleanVal === true) {
+                        $where .= $colName.' = \'Y\'';
+                    } else {
+                        $where .= $colName.' = \'N\'';
+                    }
+                } else if (gettype($vals[$index]) == 'array') {
+                    $conditions = isset($vals[$index]['conditions']) ? $vals[$index]['conditions'] : [];
+                    $joinConditions = isset($vals[$index]['join-operators']) ? $vals[$index]['join-operators'] : [];
+                    $where .= '(';
+
+                    if (gettype($conditions) == 'array') {
+                        $condIndex = 0;
+
+                        while (count($conditions) < count($cleanVal)) {
+                            $conditions[] = '=';
+                        }
+
+                        while (count($joinConditions) < count($cleanVal)) {
+                            $joinConditions[] = 'and';
+                        }
+
+                        foreach ($cleanVal as $singleVal) {
+                            $cond = $conditions[$condIndex];
+
+                            if (!in_array($cond, $supportedConds)) {
+                                $cond = '=';
+                            }
+
+                            if ($condIndex > 0) {
+                                $joinCond = $joinConditions[$condIndex - 1];
+
+                                if (!($joinCond == 'and' || $joinCond == 'or')) {
+                                    $joinCond = 'and';
+                                }
+                                $where .= $joinCond.' '.$colName.' '.$cond.' '.$singleVal.' ';
+                            } else {
+                                $where .= $colName.' '.$cond.' '.$singleVal.' ';
+                            }
+                            $condIndex++;
+                        }
+                    } else {
+                        $lCond = strtolower(trim($conditions));
+
+                        if ($lCond == 'in' || $lCond == 'not in') {
+                            $inCond = $lCond.'(';
+
+                            for ($x = 0 ; $x < count($cleanVal) ; $x++) {
+                                if ($x + 1 == count($cleanVal)) {
+                                    $inCond .= $cleanVal[$x];
+                                } else {
+                                    $inCond .= $cleanVal[$x].',';
+                                }
+                            }
+                            $where .= $colName.' '.$inCond.')';
+                        } 
+                    }
+                    $where = trim($where).')';
+                } else {
+                    $where .= $colName.' '.$equalityCond.' '.$cleanVal.' ';
                 }
 
                 if ($index + 1 != $colsCount) {

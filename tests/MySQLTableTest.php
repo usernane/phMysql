@@ -27,6 +27,7 @@ namespace phMysql\tests;
 use phMysql\MySQLColumn;
 use phMysql\MySQLTable;
 use PHPUnit\Framework\TestCase;
+use phMysql\EntityMapper;
 /**
  * A set of test units for testing the class 'MySQLTable'.
  *
@@ -221,7 +222,8 @@ class MySQLTableTest extends TestCase {
      * @depends testGetEntityMethodsTest01
      */
     public function testAttributesMap00($table) {
-        $map = $table->getAttribitesNames();
+        $entityMap = new EntityMapper($table, 'Entity');
+        $map = $entityMap->getAttribitesNames();
         $this->assertEquals([
             'userId',
             'pass',
@@ -234,7 +236,8 @@ class MySQLTableTest extends TestCase {
      * @depends testAddColumn00
      */
     public function testAttributesMap01($table) {
-        $map = $table->getAttribitesNames();
+        $entityMap = new EntityMapper($table, 'Entity');
+        $map = $entityMap->getAttribitesNames();
         $this->assertEquals([
             'newCol',
             'newCol2'
@@ -246,7 +249,8 @@ class MySQLTableTest extends TestCase {
      * @depends testGetColsNames
      */
     public function testAttributesMap02($table) {
-        $map = $table->getAttribitesNames();
+        $entityMap = new EntityMapper($table, 'Entity');
+        $map = $entityMap->getAttribitesNames();
         $this->assertEquals([
             'id',
             'createdOn',
@@ -259,7 +263,8 @@ class MySQLTableTest extends TestCase {
      * @depends testAddDefaultCols02
      */
     public function testAttributesMap04($table) {
-        $this->assertEquals(['userId'],$table->getAttribitesNames());
+        $entityMap = new EntityMapper($table, 'Entity');
+        $this->assertEquals(['userId'],$entityMap->getAttribitesNames());
     }
     /**
      * @test
@@ -423,6 +428,7 @@ class MySQLTableTest extends TestCase {
     public function testGetEntityMethodsTest00() {
         $table = new MySQLTable();
         $table->addColumn('user-id', new MySQLColumn('user_id', 'varchar', 15));
+        $mapper = new EntityMapper($table, 'Entity');
         $this->assertEquals([
             'setters' => [
                 'setUserId'
@@ -430,7 +436,7 @@ class MySQLTableTest extends TestCase {
             'getters' => [
                 'getUserId'
             ]
-        ],$table->getEntityMethods());
+        ],$mapper->getEntityMethods());
 
         return  $table;
     }
@@ -442,6 +448,7 @@ class MySQLTableTest extends TestCase {
         $table->addColumn('user-id', new MySQLColumn('user_id', 'varchar', 15));
         $table->addColumn('PASS', new MySQLColumn('user_pass', 'varchar', 15));
         $table->addColumn('c-in', new MySQLColumn('created_on', 'datetime'));
+        $mapper = new EntityMapper($table, 'Entity');
         $this->assertEquals([
             'setters' => [
                 'setUserId',
@@ -453,7 +460,7 @@ class MySQLTableTest extends TestCase {
                 'getPASS',
                 'getCIn'
             ]
-        ],$table->getEntityMethods());
+        ],$mapper->getEntityMethods());
 
         return  $table;
     }
@@ -619,9 +626,10 @@ class MySQLTableTest extends TestCase {
      * @depends testGetEntityMethodsTest00
      */
     public function testSettersMap00($table) {
+        $map = new EntityMapper($table, 'E');
         $this->assertEquals([
             'setUserId' => 'user_id'
-        ],$table->getSettersMap());
+        ],$map->getSettersMap());
     }
     /**
      * 
@@ -629,11 +637,12 @@ class MySQLTableTest extends TestCase {
      * @depends testGetEntityMethodsTest01
      */
     public function testSettersMap01($table) {
+        $map = new EntityMapper($table, 'E');
         $this->assertEquals([
             'setUserId' => 'user_id',
             'setPASS' => 'user_pass',
             'setCIn' => 'created_on'
-        ],$table->getSettersMap());
+        ],$map->getSettersMap());
     }
     /**
      * @test

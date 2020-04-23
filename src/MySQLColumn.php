@@ -27,7 +27,7 @@ namespace phMysql;
 /**
  * A class that represents a column in MySQL table.
  * @author Ibrahim
- * @version 1.6.7
+ * @version 1.6.8
  */
 class MySQLColumn {
     /**
@@ -303,6 +303,118 @@ class MySQLColumn {
         if ($colComment !== null) {
             return 'comment \''.$colComment.'\'';
         }
+    }
+    /**
+     * Returns a string that represents the datatype of column data in 
+     * PHP.
+     * This method basically maps the data that can be stored in a column from 
+     * MySQL type to PHP type. For example, if column type is 'varchar', the method 
+     * will return the value 'string'. If the column allow null values, the 
+     * method will return 'string|null' and so on.
+     * @return string A string that represents column type in PHP (such as 
+     * 'integer' or 'boolean').
+     * @since 1.6.8
+     */
+    public function getPHPType() {
+        
+        $isNull = $this->isNull() ? '|null' : '';
+        $type = $colObj->getType();
+
+        if ($type == 'int') {
+            return 'int'.$isNull;
+        } else if ($type == 'boolean') {
+            return 'boolean';
+        } else if ($type == 'decimal' || $type == 'double' || $type == 'float') {
+            return 'double'.$isNull;
+        } else if ($type == 'boolean') {
+            return 'boolean'.$isNull;
+        } else {
+            return 'string'.$isNull;
+        }
+    }
+    /**
+     * Creates an instance of the class 'Column' given an array of options.
+     * @param array $options An associative array of options. The available options 
+     * are: 
+     * <ul>
+     * <li><b>name</b>: Required. The name of the column in the database. If not 
+     * provided, no object will be created.</li>
+     * <li><b>datatype</b>: The datatype of the column. If not provided, 'varchar' 
+     * will be used. Equal option: 'type'.</li>
+     * <li><b>size</b>: Size of the column (if datatype does support size). 
+     * If not provided, 1 will be used.</li>
+     * <li><b>default</b>: A default value for the column if its value 
+     * is not present in case of insert.</li>
+     * <li><b>is-null</b>: A boolean. If the column allows null values, this should 
+     * be set to true. Default is false.</li>
+     * <li><b>is-primary</b>: A boolean. It must be set to true if the column 
+     * represents a primary key. Note that the column will be set as unique 
+     * once its set as a primary. Equal option: primary.</li>
+     * <li><b>auto-inc</b>: A boolean. Only applicable if the column is a 
+     * primary key. Set to true to auto-increment column value by 1 for every 
+     * insert.</li>
+     * <li><b>is-unique</b>: A boolean. If set to true, a unique index will 
+     * be created for the column.</li>
+     * <li><b>auto-update</b>: A boolean. If the column datatype is 'timestamp' or 
+     * 'datetime' and this parameter is set to true, the time of update will 
+     * change automatically without having to change it manually.</li>
+     * <li><b>scale</b>: Number of numbers to the left of the decimal 
+     * point. Only supported for decimal datatype.</li>
+     * <li><b>comment</b> A comment which can be used to describe the column.</li>
+     * </ul>
+     * 
+     * @return MySQLColumn|null The method will return an object of type 'MySQLColumn' 
+     * if created. If the index 'name' is not set, the method will return null.
+     * @since 1.6.8
+     */
+    public static function createColObj($options) {
+        if (isset($options['name'])) {
+            if (isset($options['datatype'])) {
+                $datatype = $options['datatype'];
+            } else {
+                if (isset($options['type'])) {
+                    $datatype = $options['type'];
+                } else {
+                    $datatype = 'varchar';
+                }
+            }
+            $col = new MySQLColumn($options['name'], $datatype);
+            $size = isset($options['size']) ? intval($options['size']) : 1;
+            $col->setSize($size);
+            $scale = isset($options['scale']) ? intval($options['scale']) : 2;
+            $col->setScale($scale);
+
+            if (isset($options['default'])) {
+                $col->setDefault($options['default']);
+            }
+            $isNull = isset($options['is-null']) ? $options['is-null'] === true : false;
+            $col->setIsNull($isNull);
+            
+            $isPrimary = isset($options['primary']) ? $options['primary'] : false;
+            if(!$isPrimary){
+                $isPrimary = isset($options['is-primary']) ? $options['is-primary'] : false;
+            }
+            $col->setIsPrimary($isPrimary);
+            if ($isPrimary && isset($options['auto-inc'])) {
+                $col->setIsAutoInc($options['auto-inc']);
+            }
+
+            if (isset($options['is-unique'])) {
+                $col->setIsUnique($options['is-unique']);
+            }
+
+            if (isset($options['auto-update'])) {
+                $col->setAutoUpdate($options['auto-update']);
+            }
+
+            if (isset($options['comment'])) {
+                $col->setComment($options['comment']);
+            }
+
+            return $col;
+        }
+
+        return null;
     }
     /**
      * Constructs a string that can be used to create the column in a table.

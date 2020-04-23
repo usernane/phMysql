@@ -530,8 +530,8 @@ class MySQLLink {
     private function _map($row) {
         $entityName = $this->getLastQuery()->getMappedEntity();
         $entity = new $entityName();
-
-        foreach ($this->getLastQuery()->getTable()->getSettersMap() as $methodName => $colName) {
+        $mapper = new EntityMapper($this->getLastQuery()->getTable(), 'E');
+        foreach ($mapper->getSettersMap() as $methodName => $colName) {
             if (isset($row[$colName])) {
                 $entity->$methodName($row[$colName]);
             }

@@ -201,7 +201,7 @@ class MySQLTable {
                 if (!isset($col['name'])) {
                     $col['name'] = str_replace('-', '_', $trimmedKey);
                 }
-                $col = $this->_createColObj($col);
+                $col = MySQLColumn::createColObj($col);
             }
             if ($col instanceof MySQLColumn) {
                 return $this->_addColObj($trimmedKey, $col);
@@ -328,7 +328,7 @@ class MySQLTable {
             }
             $inDbName = isset($defaultCol['db-name']) ? $defaultCol['db-name'] : str_replace('-', '_', $colIndex);
             $options[$colIndex]['name'] = $inDbName;
-            $colObj = $this->_createColObj($options[$colIndex]);
+            $colObj = MySQLColumn::createColObj($options[$colIndex]);
 
             if (!($colObj->getName() == $inDbName)) {
                 $colObj->setName(str_replace('-', '_', $colIndex));
@@ -461,50 +461,8 @@ class MySQLTable {
     public function columns() {
         return $this->colSet;
     }
-    private function _createEntityVariables($resource, $colsNames, $entityAttrs) {
-        $index = 0;
-        foreach ($entityAttrs as $attrName) {
-            $colName = $colsNames[$index];
-            fwrite($resource, "    /**\n"
-                        ."     * The attribute which is mapped to the column '".$colName."'.\n"
-                        ."     * @var ".$this->_getPHPType($index)."\n"
-                        ."     **/\n");
-            fwrite($resource, '    private $'.$attrName.";\n");
-            $index++;
-        }
-    }
-    private function _createEntityMethods($file, $settersGettersMap, $colsNames, $colsTypes, $entityAttrs) {
-        $attrsCount = count($entityAttrs);
-        for ($x = 0 ; $x < $attrsCount ; $x++) {
-            $colName = $colsNames[$x];
-            $setterName = $settersGettersMap['setters'][$x];
-            $attrName = $entityAttrs[$x];
-            fwrite($file, "    /**\n"
-                        ."     * Sets the value of the attribute '".$attrName."'.\n"
-                        ."     * The value of the attribute is mapped to the column which has\n"
-                        ."     * the name '$colName'.\n"
-                        ."     * @param \$$entityAttrs[$x] ".$this->_getPHPType($x)." The new value of the attribute.\n"
-                        ."     **/\n");
-            fwrite($file, '    public function '.$setterName.'($'.$entityAttrs[$x].") {\n");
-
-            if ($colsTypes[$x] == 'boolean') {
-                fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x]." === true || $".$entityAttrs[$x]." == 'Y';\n");
-            } else {
-                fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n");
-            }
-            fwrite($file, "    }\n");
-            $getterName = $settersGettersMap['getters'][$x];
-            fwrite($file, "    /**\n"
-                        ."     * Returns the value of the attribute '".$attrName."'.\n"
-                        ."     * The value of the attribute is mapped to the column which has\n"
-                        ."     * the name '$colName'.\n"
-                        ."     * @return ".$this->_getPHPType($x)." The value of the attribute.\n"
-                        ."     **/\n");
-            fwrite($file, '    public function '.$getterName."() {\n");
-            fwrite($file, '        return $this->'.$entityAttrs[$x].";\n");
-            fwrite($file, "    }\n");
-        }
-    }
+   
+    
     /**
      * Create a new entity class that can be used to store table records
      * @param array $options An associative array that contains entity class 
@@ -533,38 +491,13 @@ class MySQLTable {
             $namespace = isset($options['namespace']) && strlen($options['namespace']) != 0 
                     ? trim($options['namespace']) : $this->getEntityNamespace() !== null ? $this->getEntityNamespace() : __NAMESPACE__.'\\entity';
             $override = isset($options['override']) ? $options['override'] === true : false;
-
-            if (is_dir($path.DIRECTORY_SEPARATOR.$entityName) && class_exists($namespace.'\\'.$entityName) && !$override) {
-                $this->entityNamespace = $namespace.'\\'.$entityName;
-                $this->entityPath = $path.DIRECTORY_SEPARATOR.$entityName.'.php';
-                $retVal = true;
-            } else {
-                $file = fopen($path.DIRECTORY_SEPARATOR.$entityName.'.php', 'w+');
-
-                if (is_resource($file)) {
-                    $entityAttrs = $this->getAttribitesNames();
-                    $settersGettersMap = $this->getEntityMethods();
-                    fwrite($file, "<?php\nnamespace ".$namespace.";\n\n");
-                    fwrite($file, "/**\n"
-                            ." * An auto-generated entity class which maps to a record in the\n"
-                            ." * table '".$this->getName()."'\n"
-                            ." **/\n");
-                    fwrite($file, "class ".$entityName." {\n");
-                    $colsNames = $this->getColsNames();
-                    $colsTypes = $this->types();
-                    
-                    $this->_createEntityVariables($file, $colsNames, $entityAttrs);
-                    $this->_createEntityMethods($file, $settersGettersMap, $colsNames, $colsTypes, $entityAttrs);
-                    
-                    fwrite($file, "}\n");
-                    fclose($file);
-                    $this->entityNamespace = $namespace.'\\'.$entityName;
-                    $this->entityPath = $path.DIRECTORY_SEPARATOR.$entityName.'.php';
-                    $retVal = true;
-                } else {
-                    $retVal = false;
-                }
+            $mapper = new EntityMapper($this, $entityName, $path, $namespace);
+            if(!file_exists($mapper->getAbsolutePath()) || $override){
+                $mapper->create();
             }
+            $this->entityNamespace = $mapper->getNamespace().'\\'.$mapper->getEntityName();
+            $this->entityPath = $path.DIRECTORY_SEPARATOR.$entityName.'.php';
+            return true;
         }
 
         return $retVal;
@@ -576,44 +509,6 @@ class MySQLTable {
      */
     public function forignKeys() {
         return $this->foreignKeys;
-    }
-    /**
-     * Returns an array that contains the names of attributes mapped from columns 
-     * names.
-     * Attributes names are generated based on the names of keys. For example, 
-     * if we have two columns one with key 'user-id' and the second one with 
-     * name 'user-PASS', then the two attributes which represents the two columns 
-     * will have the names 'userId' and 'userPASS'.
-     * @return array An indexed array that contains attributes names. 
-     * @since 1.6.5
-     */
-    public function getAttribitesNames() {
-        $keys = array_keys($this->getColumns());
-        $retVal = [];
-
-        foreach ($keys as $keyName) {
-            $split = explode('-', $keyName);
-            $attrName = '';
-            $index = 0;
-
-            foreach ($split as $namePart) {
-                if (strlen($namePart) == 1) {
-                    $attrName .= strtolower($namePart);
-                    $index++;
-                } else {
-                    if ($index != 0) {
-                        $firstChar = $namePart[0];
-                        $attrName .= strtoupper($firstChar).substr($namePart, 1);
-                    } else {
-                        $index++;
-                        $attrName .= strtolower($namePart);
-                    }
-                }
-            }
-            $retVal[] = $attrName;
-        }
-
-        return $retVal;
     }
     /**
      * Returns the character set that is used by the table.
@@ -758,45 +653,6 @@ class MySQLTable {
         return $this->engin;
     }
     /**
-     * Returns an associative array that contains the possible names 
-     * of the methods which exist in the entity class that the result 
-     * of a select query on the table will be mapped to.
-     * The names of the methods are constructed from the names of columns 
-     * keys. For example, if the name of the column key is 'user-id', the 
-     * name of setter method will be 'setUserId' and the name of setter 
-     * method will be 'setUserId'.
-     * @return array An associative array. The array will have two indices. 
-     * The first index has the name 'setters' which will contain the names 
-     * of setters and the second index is 'getters' which contains the names 
-     * of the getters.
-     * @since 1.6.5
-     */
-    public function getEntityMethods() {
-        $keys = array_keys($this->getColumns());
-        $retVal = [
-            'setters' => [],
-            'getters' => []
-        ];
-
-        foreach ($keys as $keyName) {
-            $split = explode('-', $keyName);
-            $methodName = '';
-
-            foreach ($split as $namePart) {
-                if (strlen($namePart) == 1) {
-                    $methodName .= strtoupper($namePart);
-                } else {
-                    $firstChar = $namePart[0];
-                    $methodName .= strtoupper($firstChar).substr($namePart, 1);
-                }
-            }
-            $retVal['getters'][] = 'get'.$methodName;
-            $retVal['setters'][] = 'set'.$methodName;
-        }
-
-        return $retVal;
-    }
-    /**
      * Returns the namespace at which the auto-generated entity class belongs to.
      * @return string|null If no entity class is generated, the method will return 
      * null. Other than that, the method will return a string that represents 
@@ -894,46 +750,6 @@ class MySQLTable {
      */
     public function getPrimaryKeyName() {
         return $this->getName().'_pk';
-    }
-    /**
-     * Returns an associative array that maps possible entity methods names with 
-     * table columns names in the database.
-     * Assuming that the table has two columns. The first one has a key = 'user-id' 
-     * and the second one has a key 'password'. Also, let's assume that the first column 
-     * has the name 'id' in the database and the second one has the name 'user_pass'. 
-     * If this is the case, the method will return something like the following array:
-     * <p>
-     * <code>[<br/>
-     * 'setUserId'=>'id',<br/>
-     * 'setPassword'=>'user_pass'<br/>
-     * ]</code>
-     * </p>
-     * @return array An associative array. The indices represents the names of 
-     * the methods in the entity class and the values are the names of table 
-     * columns as they appear in the database.
-     * @since 1.6.5
-     */
-    public function getSettersMap() {
-        $keys = array_keys($this->getColumns());
-        $retVal = [];
-
-        foreach ($keys as $keyName) {
-            $split = explode('-', $keyName);
-            $methodName = '';
-
-            foreach ($split as $namePart) {
-                if (strlen($namePart) == 1) {
-                    $methodName .= strtoupper($namePart);
-                } else {
-                    $firstChar = $namePart[0];
-                    $methodName .= strtoupper($firstChar).substr($namePart, 1);
-                }
-            }
-            $mappedCol = $this->getCol($keyName)->getName();
-            $retVal['set'.$methodName] = $mappedCol;
-        }
-
-        return $retVal;
     }
 
     /**
@@ -1214,88 +1030,6 @@ class MySQLTable {
             }
         }
     }
-    /**
-     * Creates an instance of the class 'Column' given an array of options.
-     * @param array $options An associative array of options. The available options 
-     * are: 
-     * <ul>
-     * <li><b>name</b>: Required. The name of the column in the database.</li>
-     * <li><b>datatype</b>: The datatype of the column. If not provided, 'varchar' 
-     * will be used.</li>
-     * <li><b>size</b>: Size of the column (if datatype does support size). 
-     * If not provided, 1 will be used.</li>
-     * <li><b>default</b>: A default value for the column if its value 
-     * is not present in case of insert.</li>
-     * <li><b>is-null</b>: A boolean. If the column allows null values, this should 
-     * be set to true. Default is false.</li>
-     * <li><b>is-primary</b>: A boolean. It must be set to true if the column 
-     * represents a primary key. Note that the column will be set as unique 
-     * once its set as a primary.</li>
-     * <li><b>auto-inc</b>: A boolean. Only applicable if the column is a 
-     * primary key. Set to true to auto-increment column value by 1 for every 
-     * insert.</li>
-     * <li><b>is-unique</b>: A boolean. If set to true, a unique index will 
-     * be created for the column.</li>
-     * <li><b>auto-update</b>: A boolean. If the column datatype is 'timestamp' or 
-     * 'datetime' and this parameter is set to true, the time of update will 
-     * change automatically without having to change it manually.</li>
-     * <li><b>scale</b>: Number of numbers to the left of the decimal 
-     * point. Only supported for decimal datatype.</li>
-     * <li><b>comment</b> A comment which can be used to describe the column.</li>
-     * </ul>
-     * 
-     * @return MySQLColumn
-     * @since 1.6.4
-     */
-    private function _createColObj($options) {
-        if (isset($options['name'])) {
-            if (isset($options['datatype'])) {
-                $datatype = $options['datatype'];
-            } else {
-                if (isset($options['type'])) {
-                    $datatype = $options['type'];
-                } else {
-                    $datatype = 'varchar';
-                }
-            }
-            $col = new MySQLColumn($options['name'], $datatype);
-            $size = isset($options['size']) ? intval($options['size']) : 1;
-            $col->setSize($size);
-            $scale = isset($options['scale']) ? intval($options['scale']) : 2;
-            $col->setScale($scale);
-
-            if (isset($options['default'])) {
-                $col->setDefault($options['default']);
-            }
-            $isNull = isset($options['is-null']) ? $options['is-null'] === true : false;
-            $col->setIsNull($isNull);
-            
-            $isPrimary = isset($options['primary']) ? $options['primary'] : false;
-            if(!$isPrimary){
-                $isPrimary = isset($options['is-primary']) ? $options['is-primary'] : false;
-            }
-            $col->setIsPrimary($isPrimary);
-            if ($isPrimary && isset($options['auto-inc'])) {
-                $col->setIsAutoInc($options['auto-inc']);
-            }
-
-            if (isset($options['is-unique'])) {
-                $col->setIsUnique($options['is-unique']);
-            }
-
-            if (isset($options['auto-update'])) {
-                $col->setAutoUpdate($options['auto-update']);
-            }
-
-            if (isset($options['comment'])) {
-                $col->setComment($options['comment']);
-            }
-
-            return $col;
-        }
-
-        return null;
-    }
     private function _getPHPType($colIndex) {
         $colObj = array_values($this->getColumns())[$colIndex];
         $isNull = $colObj->isNull() ? '|null' : '';
@@ -1303,20 +1037,14 @@ class MySQLTable {
 
         if ($type == 'int') {
             return 'int'.$isNull;
+        } else if ($type == 'boolean') {
+            return 'boolean';
+        } else if ($type == 'decimal' || $type == 'double' || $type == 'float') {
+            return 'double'.$isNull;
+        } else if ($type == 'boolean') {
+            return 'boolean'.$isNull;
         } else {
-            if ($type == 'boolean') {
-                return 'boolean';
-            } else {
-                if ($type == 'decimal' || $type == 'double' || $type == 'float') {
-                    return 'double'.$isNull;
-                } else {
-                    if ($type == 'boolean') {
-                        return 'boolean'.$isNull;
-                    } else {
-                        return 'string'.$isNull;
-                    }
-                }
-            }
+            return 'string'.$isNull;
         }
     }
 
