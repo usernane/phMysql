@@ -12,6 +12,40 @@ use PHPUnit\Framework\TestCase;
  */
 class MySQLLinkTest extends TestCase {
     /**
+     * @depends testSetDb01
+     * @param MySQLLink $conn
+     * @test
+     */
+    public function testAddDataTest00($conn) {
+        $q = new UsersQuery();
+        $q->insertRecord([
+            'user-id' => 33,
+            'email' => '33@test.com',
+            'name' => 'Test User #33',
+            'is-active' => false
+        ]);
+        $this->assertTrue($conn->executeQuery($q));
+
+        return $conn;
+    }
+    /**
+     * @depends testSetDb01
+     * @param MySQLLink $conn
+     * @test
+     */
+    public function testAddDataTest01($conn) {
+        $q = new UsersQuery();
+        $q->insertRecord([
+            'user-id' => 34,
+            'email' => '34@test.com',
+            'name' => 'Test ; User #34',
+            'is-active' => false
+        ]);
+        $this->assertTrue($conn->executeQuery($q));
+
+        return $conn;
+    }
+    /**
      * @test
      * @depends testSetDb01
      * @param MySQLLink $conn Description
@@ -36,23 +70,7 @@ class MySQLLinkTest extends TestCase {
         $col3Data = $conn->getColumn('author-id');
         $this->assertEquals(0, count($col3Data));
     }
-    /**
-     * @depends testSetDb01
-     * @param MySQLLink $conn
-     * @test
-     */
-    public function testAddDataTest01($conn) {
-        $q = new UsersQuery();
-        $q->insertRecord([
-            'user-id' => 34,
-            'email' => '34@test.com',
-            'name' => 'Test ; User #34',
-            'is-active' => false
-        ]);
-        $this->assertTrue($conn->executeQuery($q));
-
-        return $conn;
-    }
+    
     /**
      * 
      * @param type $conn
@@ -75,23 +93,7 @@ class MySQLLinkTest extends TestCase {
         $this->assertFalse($obj->getIsActive());
         $this->assertEquals('ID: [34] Name: [Test ; User #34] Email: [34@test.com]',$obj.'');
     }
-    /**
-     * @depends testSetDb01
-     * @param MySQLLink $conn
-     * @test
-     */
-    public function testAddDataTest00($conn) {
-        $q = new UsersQuery();
-        $q->insertRecord([
-            'user-id' => 33,
-            'email' => '33@test.com',
-            'name' => 'Test User #33',
-            'is-active' => false
-        ]);
-        $this->assertTrue($conn->executeQuery($q));
-
-        return $conn;
-    }
+    
     /**
      * @test
      */
