@@ -316,9 +316,8 @@ class MySQLColumn {
      * @since 1.6.8
      */
     public function getPHPType() {
-        
         $isNull = $this->isNull() ? '|null' : '';
-        $type = $colObj->getType();
+        $type = $this->getType();
 
         if ($type == 'int') {
             return 'int'.$isNull;
