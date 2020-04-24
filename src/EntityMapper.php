@@ -84,7 +84,7 @@ class EntityMapper {
      * 
      */
     public function getAbsolutePath() {
-        return $this->getEntityPath().DIRECTORY_SEPARATOR.$this->getEntityName().'.php';
+        return $this->getPath().DIRECTORY_SEPARATOR.$this->getEntityName().'.php';
     }
     private function _createEntityVariables() {
         $index = 0;
@@ -151,14 +151,14 @@ class EntityMapper {
         $retVal = false;
         if (is_resource($file)) {
             $ns = $this->getNamespace();
-            $entityName = $this->getEntityName();
+            $entityClassName = $this->getEntityName();
             $this->classStr .= ""
             ."<?php\nnamespace ".$ns.";\n\n"
             ."/**\n"
             ." * An auto-generated entity class which maps to a record in the\n"
             ." * table '".$this->getTable()->getName()."'\n"
             ." **/\n"
-            ."class ".$entityName." {\n";
+            ."class ".$entityClassName." {\n";
             $this->_createEntityVariables();
             $this->_createEntityMethods();
 
@@ -320,28 +320,6 @@ class EntityMapper {
         }
 
         return $retVal;
-    }
-    /**
-     * Returns the namespace at which the auto-generated entity class belongs to.
-     * @return string|null If no entity class is generated, the method will return 
-     * null. Other than that, the method will return a string that represents 
-     * the namespace that the entity class belongs to. 
-     * @since 1.6.5
-     */
-    public function getEntityNamespace() {
-        return $this->entityNamespace;
-    }
-    /**
-     * Returns the name of the directory at which the auto-generated entity class 
-     * was created on.
-     * @return string|null If no entity class is generated, the method will return 
-     * null. Other than that, the method will return a string that represents 
-     * the name of the directory at which the auto-generated entity class 
-     * was created on.
-     * @since 1.6.5
-     */
-    public function getEntityPath() {
-        return $this->entityPath;
     }
     /**
      * Returns an associative array that contains the possible names 

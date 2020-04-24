@@ -454,8 +454,10 @@ class MySQLTable {
         return array_keys($this->colSet);
     }
     /**
-     * Returns an array of all the columns in the table.
-     * @return array An array that contains an objects of type <b>Column</b>
+     * Returns an associative array of all the columns in the table.
+     * The indices of the array are columns keys and the value of each index 
+     * is an object of type 'MySQLColumn'.
+     * @return array An array that contains an objects of type <code>MySQLColumn</code>
      * @since 1.0
      */
     public function columns() {
@@ -488,8 +490,7 @@ class MySQLTable {
         $entityName = isset($options['class-name']) ? trim($options['class-name']) : '';
 
         if (strlen($entityName) != 0 && !strpos($entityName, ' ')) {
-            $namespace = isset($options['namespace']) && strlen($options['namespace']) != 0 
-                    ? trim($options['namespace']) : $this->getEntityNamespace() !== null ? $this->getEntityNamespace() : __NAMESPACE__.'\\entity';
+            $namespace = isset($options['namespace']) ? trim($options['namespace']) : $this->getEntityNamespace();
             $override = isset($options['override']) ? $options['override'] === true : false;
             $mapper = new EntityMapper($this, $entityName, $path, $namespace);
             if(!file_exists($mapper->getAbsolutePath()) || $override){
@@ -543,7 +544,7 @@ class MySQLTable {
      * @since 1.6
      */
     public function getColByIndex($index) {
-        foreach ($this->colSet as $k => $col) {
+        foreach ($this->colSet as $col) {
             if ($col->getIndex() == $index) {
                 return $col;
             }
@@ -925,12 +926,10 @@ class MySQLTable {
      * false if not.
      */
     public function setOrder($val) {
-        if (gettype($val) == 'integer') {
-            if ($val > -1) {
-                $this->order = $val;
+        if (gettype($val) == 'integer' && $val > -1) {
+            $this->order = $val;
 
-                return true;
-            }
+            return true;
         }
 
         return false;
@@ -946,10 +945,8 @@ class MySQLTable {
         if ($qObj instanceof MySQLQuery) {
             $this->ownerQuery = $qObj;
             $this->setSchemaName($qObj->getSchemaName());
-        } else {
-            if ($qObj === null) {
-                $this->ownerQuery = null;
-            }
+        } else if ($qObj === null) {
+            $this->ownerQuery = null;
         }
     }
     /**
@@ -1028,23 +1025,6 @@ class MySQLTable {
                     $col->setIsUnique(true);
                 }
             }
-        }
-    }
-    private function _getPHPType($colIndex) {
-        $colObj = array_values($this->getColumns())[$colIndex];
-        $isNull = $colObj->isNull() ? '|null' : '';
-        $type = $colObj->getType();
-
-        if ($type == 'int') {
-            return 'int'.$isNull;
-        } else if ($type == 'boolean') {
-            return 'boolean';
-        } else if ($type == 'decimal' || $type == 'double' || $type == 'float') {
-            return 'double'.$isNull;
-        } else if ($type == 'boolean') {
-            return 'boolean'.$isNull;
-        } else {
-            return 'string'.$isNull;
         }
     }
 

@@ -316,19 +316,17 @@ class MySQLColumn {
      * @since 1.6.8
      */
     public function getPHPType() {
-        $isNull = $this->isNull() ? '|null' : '';
-        $type = $this->getType();
+        $isNullStr = $this->isNull() ? '|null' : '';
+        $colType = $this->getType();
 
-        if ($type == 'int') {
-            return 'int'.$isNull;
-        } else if ($type == 'boolean') {
-            return 'boolean';
-        } else if ($type == 'decimal' || $type == 'double' || $type == 'float') {
-            return 'double'.$isNull;
-        } else if ($type == 'boolean') {
-            return 'boolean'.$isNull;
+        if ($colType == 'int') {
+            return 'int'.$isNullStr;
+        } else if ($colType == 'decimal' || $colType == 'double' || $colType == 'float') {
+            return 'double'.$isNullStr;
+        } else if ($colType == 'boolean') {
+            return 'boolean'.$isNullStr;
         } else {
-            return 'string'.$isNull;
+            return 'string'.$isNullStr;
         }
     }
     /**
@@ -370,50 +368,52 @@ class MySQLColumn {
         if (isset($options['name'])) {
             if (isset($options['datatype'])) {
                 $datatype = $options['datatype'];
+            } else if (isset($options['type'])) {
+                $datatype = $options['type'];
             } else {
-                if (isset($options['type'])) {
-                    $datatype = $options['type'];
-                } else {
-                    $datatype = 'varchar';
-                }
+                $datatype = 'varchar';
             }
             $col = new MySQLColumn($options['name'], $datatype);
             $size = isset($options['size']) ? intval($options['size']) : 1;
             $col->setSize($size);
-            $scale = isset($options['scale']) ? intval($options['scale']) : 2;
-            $col->setScale($scale);
-
-            if (isset($options['default'])) {
-                $col->setDefault($options['default']);
-            }
-            $isNull = isset($options['is-null']) ? $options['is-null'] === true : false;
             $col->setIsNull($isNull);
+            $this->_primaryCheck($col);
+            $this->_extraAttrsCheck($col, $options);
             
-            $isPrimary = isset($options['primary']) ? $options['primary'] : false;
-            if(!$isPrimary){
-                $isPrimary = isset($options['is-primary']) ? $options['is-primary'] : false;
-            }
-            $col->setIsPrimary($isPrimary);
-            if ($isPrimary && isset($options['auto-inc'])) {
-                $col->setIsAutoInc($options['auto-inc']);
-            }
-
-            if (isset($options['is-unique'])) {
-                $col->setIsUnique($options['is-unique']);
-            }
-
-            if (isset($options['auto-update'])) {
-                $col->setAutoUpdate($options['auto-update']);
-            }
-
-            if (isset($options['comment'])) {
-                $col->setComment($options['comment']);
-            }
-
             return $col;
         }
 
         return null;
+    }
+    private function _extraAttrsCheck(&$col, $options) {
+        $scale = isset($options['scale']) ? intval($options['scale']) : 2;
+        $col->setScale($scale);
+        
+        if (isset($options['default'])) {
+            $col->setDefault($options['default']);
+        }
+        
+        if (isset($options['is-unique'])) {
+            $col->setIsUnique($options['is-unique']);
+        }
+        $isNull = isset($options['is-null']) ? $options['is-null'] === true : false;
+        if (isset($options['auto-update'])) {
+            $col->setAutoUpdate($options['auto-update']);
+        }
+
+        if (isset($options['comment'])) {
+            $col->setComment($options['comment']);
+        }
+    }
+    private function _primaryCheck(&$col, $options) {
+        $isPrimary = isset($options['primary']) ? $options['primary'] : false;
+        if(!$isPrimary){
+            $isPrimary = isset($options['is-primary']) ? $options['is-primary'] : false;
+        }
+        $col->setIsPrimary($isPrimary);
+        if ($isPrimary && isset($options['auto-inc'])) {
+            $col->setIsAutoInc($options['auto-inc']);
+        }
     }
     /**
      * Constructs a string that can be used to create the column in a table.
