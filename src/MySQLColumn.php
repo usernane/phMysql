@@ -377,15 +377,15 @@ class MySQLColumn {
             $size = isset($options['size']) ? intval($options['size']) : 1;
             $col->setSize($size);
             
-            $this->_primaryCheck($col);
-            $this->_extraAttrsCheck($col, $options);
+            self::_primaryCheck($col, $options);
+            self::_extraAttrsCheck($col, $options);
             
             return $col;
         }
 
         return null;
     }
-    private function _extraAttrsCheck(&$col, $options) {
+    private static function _extraAttrsCheck(&$col, $options) {
         $scale = isset($options['scale']) ? intval($options['scale']) : 2;
         $col->setScale($scale);
         
@@ -406,7 +406,7 @@ class MySQLColumn {
             $col->setComment($options['comment']);
         }
     }
-    private function _primaryCheck(&$col, $options) {
+    private static function _primaryCheck(&$col, $options) {
         $isPrimary = isset($options['primary']) ? $options['primary'] : false;
         if(!$isPrimary){
             $isPrimary = isset($options['is-primary']) ? $options['is-primary'] : false;
