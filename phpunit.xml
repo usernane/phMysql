@@ -4,9 +4,9 @@
     convertNoticesToExceptions="true"
     convertWarningsToExceptions="true"
     stopOnFailure="false"
-    strict="true"
     colors="true" 
-    bootstrap="tests/loader.php">
+    bootstrap="tests/loader.php"
+    verbose="true">
     <php>
     </php>
     <filter>
