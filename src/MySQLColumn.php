@@ -376,7 +376,7 @@ class MySQLColumn {
             $col = new MySQLColumn($options['name'], $datatype);
             $size = isset($options['size']) ? intval($options['size']) : 1;
             $col->setSize($size);
-            $col->setIsNull($isNull);
+            
             $this->_primaryCheck($col);
             $this->_extraAttrsCheck($col, $options);
             
@@ -396,7 +396,8 @@ class MySQLColumn {
         if (isset($options['is-unique'])) {
             $col->setIsUnique($options['is-unique']);
         }
-        $isNull = isset($options['is-null']) ? $options['is-null'] === true : false;
+        $isNull = isset($options['is-null']) ? $options['is-null'] : false;
+        $col->setIsNull($isNull);
         if (isset($options['auto-update'])) {
             $col->setAutoUpdate($options['auto-update']);
         }
