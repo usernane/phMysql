@@ -1194,6 +1194,13 @@ class MySQLQuery {
             'offset' => $offset
         ]);
     }
+    private function _getArray($index, $optionsArr){
+        if(isset($optionsArr[$index]) && gettype($optionsArr[$index]) == 'array'){
+            return $optionsArr[$index];
+        }
+        return [];
+    }
+
     /**
      * Constructs a select query which is used to count number of rows on a 
      * table.
@@ -1230,10 +1237,8 @@ class MySQLQuery {
                     $asPart = ' as '.str_replace(' ', '_', $trimmedAs);
                 }
             }
-            $options['join-operators'] = isset($options['join-operators']) && 
-                    gettype($options['join-operators']) == 'array' ? $options['join-operators'] : [];
-            $options['conditions'] = isset($options['conditions']) && 
-                    gettype($options['conditions']) == 'array' ? $options['conditions'] : [];
+            $options['join-operators'] = $this->_getArray('join-operators', $options);
+            $options['conditions'] = $this->_getArray('conditions', $options);
 
             if (isset($options['where']) && isset($options['conditions'])) {
                 $where = $this->_where($options);
@@ -1936,6 +1941,22 @@ class MySQLQuery {
         return $selectQuery;
     }
     /**
+     * Adds extra elements to an array.
+     * @param array $array
+     * @param mixed $fill The element that will fill the remaining slots.
+     * @param int $numOfElsToAdd The number of elements that the array must have.
+     * @return int The method will return the number of elements in the array after 
+     * its filled.
+     */
+    private function _fillArray(&$array, $fill, $numOfElsToAdd) {
+        $arrayCount = count($array);
+        while ($numOfElsToAdd > $arrayCount) {
+            $array[] = $fill;
+            $arrayCount = count($array);
+        }
+        return count($array);
+    }
+    /**
      * A method that is used to create the 'where' part of any query in case 
      * of multiple columns.
      * @param array $cols An array that holds an objects of type 'Column'.
@@ -1957,22 +1978,12 @@ class MySQLQuery {
         }
         $colsCount = count($cols);
         $valsCount = count($vals);
-        $condsCount = count($valsConds);
-        $joinOpsCount = count($jointOps);
 
         if ($colsCount == 0 || $valsCount == 0) {
             return '';
         }
-
-        while ($colsCount > $condsCount) {
-            $valsConds[] = '=';
-            $condsCount = count($valsConds);
-        }
-
-        while (($colsCount - 1) > $joinOpsCount) {
-            $jointOps[] = 'and';
-            $joinOpsCount = count($jointOps);
-        }
+        $condsCount = $this->_fillArray($valsConds, '=', $colsCount);
+        $joinOpsCount = $this->_fillArray($jointOps, 'and', $colsCount - 1);
 
         if ($colsCount != $valsCount || $colsCount != $condsCount || ($colsCount - 1) != $joinOpsCount) {
             return '';
@@ -2029,7 +2040,6 @@ class MySQLQuery {
                         $cleanVal = $col->cleanValue($vals[$index],true);
                         $where .= 'and '.$colName.' > '.$cleanVal.' ';
                     } else if ($equalityCond == '>=') {
-                        $cleanVal = $col->cleanValue($vals[$index],true);
                         $where .= $colName.' >= '.$cleanVal.' ';
                     } else if ($equalityCond == '<=') {
                         $cleanVal = $col->cleanValue($vals[$index],true);
