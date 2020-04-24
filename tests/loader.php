@@ -128,6 +128,6 @@ register_shutdown_function(function()
         echo 'Unable to drop Table '.$q->getTableName().".\n";
         echo 'Error: '.$conn->getErrorCode().' - '.$conn->getErrorMessage()."\n";
     }
-    
+    unlink(ROOT.'tests'.DIRECTORY_SEPARATOR.'User2.php');
     echo "Done.\n";
 });
