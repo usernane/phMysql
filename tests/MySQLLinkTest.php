@@ -193,6 +193,12 @@ class MySQLLinkTest extends TestCase {
         $q2->select([
             'where' => [
                 'author-id' => 1
+            ],
+            'order-by'=>[
+                [
+                    'col'=>'article-id',
+                    'order-type'=>'A'
+                ]
             ]
         ]);
         $result = $conn->executeQuery($q2);
