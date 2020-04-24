@@ -10,6 +10,11 @@ use InvalidArgumentException;
  */
 class EntityMapper {
     /**
+     * A string that represents the generated class.
+     * @var string 
+     */
+    private $classStr;
+    /**
      * The linked table object.
      * @var MySQLTable 
      * @since 1.0
@@ -81,21 +86,21 @@ class EntityMapper {
     public function getAbsolutePath() {
         return $this->getEntityPath().DIRECTORY_SEPARATOR.$this->getEntityName().'.php';
     }
-    private function _createEntityVariables($resource) {
+    private function _createEntityVariables() {
         $index = 0;
-        $colsNames = $this->getTable()->getColsNames();
         $entityAttrs = $this->getAttribitesNames();
         foreach ($entityAttrs as $attrName) {
-            $colName = $colsNames[$index];
-            fwrite($resource, "    /**\n"
-                        ."     * The attribute which is mapped to the column '".$colName."'.\n"
-                        ."     * @var ".$this->getTable()->getCol($index)->getPHPType()."\n"
-                        ."     **/\n");
-            fwrite($resource, '    private $'.$attrName.";\n");
+            $colObj = $this->getTable()->getColByIndex($index);
+            $this->classStr .= ""
+            ."    /**\n"
+            ."     * The attribute which is mapped to the column '".$colObj->getName()."'.\n"
+            ."     * @var ".$colObj->getPHPType()."\n"
+            ."     **/\n"
+            ."    private $".$attrName.";\n";
             $index++;
         }
     }
-    private function _createEntityMethods($file) {
+    private function _createEntityMethods() {
         $entityAttrs = $this->getAttribitesNames();
         $attrsCount = count($entityAttrs);
         $colsTypes = $this->getTable()->types();
@@ -105,31 +110,33 @@ class EntityMapper {
             $colName = $colsNames[$x];
             $setterName = $settersGettersMap['setters'][$x];
             $attrName = $entityAttrs[$x];
-            $phpType = $this->getTable()->getCol($x)->getPHPType();
-            fwrite($file, "    /**\n"
-                        ."     * Sets the value of the attribute '".$attrName."'.\n"
-                        ."     * The value of the attribute is mapped to the column which has\n"
-                        ."     * the name '$colName'.\n"
-                        ."     * @param \$$entityAttrs[$x] ".$phpType." The new value of the attribute.\n"
-                        ."     **/\n");
-            fwrite($file, '    public function '.$setterName.'($'.$entityAttrs[$x].") {\n");
+            $phpType = $this->getTable()->getColByIndex($x)->getPHPType();
+            $this->classStr .= ""
+            ."    /**\n"
+            ."     * Sets the value of the attribute '".$attrName."'.\n"
+            ."     * The value of the attribute is mapped to the column which has\n"
+            ."     * the name '$colName'.\n"
+            ."     * @param \$$entityAttrs[$x] ".$phpType." The new value of the attribute.\n"
+            ."     **/\n"
+            .'    public function '.$setterName.'($'.$entityAttrs[$x].") {\n";
 
             if ($colsTypes[$x] == 'boolean') {
-                fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x]." === true || $".$entityAttrs[$x]." == 'Y';\n");
+                $this->classStr .= '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x]." === true || $".$entityAttrs[$x]." == 'Y';\n";
             } else {
-                fwrite($file, '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n");
+                $this->classStr .= '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n";
             }
-            fwrite($file, "    }\n");
+            $this->classStr .= "    }\n";
             $getterName = $settersGettersMap['getters'][$x];
-            fwrite($file, "    /**\n"
-                        ."     * Returns the value of the attribute '".$attrName."'.\n"
-                        ."     * The value of the attribute is mapped to the column which has\n"
-                        ."     * the name '$colName'.\n"
-                        ."     * @return ".$phpType." The value of the attribute.\n"
-                        ."     **/\n");
-            fwrite($file, '    public function '.$getterName."() {\n");
-            fwrite($file, '        return $this->'.$entityAttrs[$x].";\n");
-            fwrite($file, "    }\n");
+            $this->classStr .= ""
+            ."    /**\n"
+            ."     * Returns the value of the attribute '".$attrName."'.\n"
+            ."     * The value of the attribute is mapped to the column which has\n"
+            ."     * the name '$colName'.\n"
+            ."     * @return ".$phpType." The value of the attribute.\n"
+            ."     **/\n"
+            .'    public function '.$getterName."() {\n"
+            .'        return $this->'.$entityAttrs[$x].";\n"
+            ."    }\n";
         }
     }
     /**
@@ -139,21 +146,24 @@ class EntityMapper {
      * @since 1.0
      */
     public function create() {
+        $this->classStr = '';
         $file = fopen($this->getAbsolutePath(), 'w+');
         $retVal = false;
         if (is_resource($file)) {
             $ns = $this->getNamespace();
             $entityName = $this->getEntityName();
-            fwrite($file, "<?php\nnamespace ".$ns.";\n\n");
-            fwrite($file, "/**\n"
-                    ." * An auto-generated entity class which maps to a record in the\n"
-                    ." * table '".$this->getTable()->getName()."'\n"
-                    ." **/\n");
-            fwrite($file, "class ".$entityName." {\n");
-            $this->_createEntityVariables($file);
-            $this->_createEntityMethods($file);
+            $this->classStr .= ""
+            ."<?php\nnamespace ".$ns.";\n\n"
+            ."/**\n"
+            ." * An auto-generated entity class which maps to a record in the\n"
+            ." * table '".$this->getTable()->getName()."'\n"
+            ." **/\n"
+            ."class ".$entityName." {\n";
+            $this->_createEntityVariables();
+            $this->_createEntityMethods();
 
-            fwrite($file, "}\n");
+            $this->classStr .= "}\n";
+            fwrite($file, $this->classStr);
             fclose($file);
             $retVal = true;
         }
