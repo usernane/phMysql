@@ -29,72 +29,6 @@ class MySQLLinkTest extends TestCase {
         return $conn;
     }
     /**
-     * @depends testSetDb01
-     * @param MySQLLink $conn
-     * @test
-     */
-    public function testAddDataTest01($conn) {
-        $q = new UsersQuery();
-        $q->insertRecord([
-            'user-id' => 34,
-            'email' => '34@test.com',
-            'name' => 'Test ; User #34',
-            'is-active' => false
-        ]);
-        $this->assertTrue($conn->executeQuery($q));
-
-        return $conn;
-    }
-    /**
-     * @test
-     * @depends testSetDb01
-     * @param MySQLLink $conn Description
-     */
-    public function testGetCol00($conn) {
-        $q2 = new ArticleQuery();
-        $q2->select([
-            'columns' => [
-                'title','content'
-            ]
-        ]);
-        $this->assertEquals(-1,$conn->rows());
-        $result = $conn->executeQuery($q2);
-        $this->assertTrue($result);
-        $this->assertNotEquals(-1,$conn->rows());
-        $data = $conn->getColumn('random');
-        $this->assertEquals(\phMysql\MySQLTable::NO_SUCH_COL,$data);
-        $col1Data = $conn->getColumn('title');
-        $this->assertEquals(20, count($col1Data));
-        $col2Data = $conn->getColumn('content');
-        $this->assertEquals(20, count($col2Data));
-        $col3Data = $conn->getColumn('author-id');
-        $this->assertEquals(0, count($col3Data));
-    }
-    
-    /**
-     * 
-     * @param type $conn
-     * @depends testAddDataTest01
-     */
-    public function testGetDataTest02($conn){
-        $q = new UsersQuery();
-        $q->select([
-            'where' => [
-                'user-id' => [
-                    'values' => [34]
-                ]
-            ],
-            'map-result-to' => '\phMysql\tests\EntityUser'
-        ]);
-        $this->assertTrue($conn->executeQuery($q));
-        $this->assertEquals(1,$conn->rows());
-        $obj = $conn->getRow();
-        $this->assertTrue($obj instanceof EntityUser);
-        $this->assertFalse($obj->getIsActive());
-        $this->assertEquals('ID: [34] Name: [Test ; User #34] Email: [34@test.com]',$obj.'');
-    }
-    
-    /**
      * @test
      */
     public function testConnect00() {
@@ -136,6 +70,31 @@ class MySQLLinkTest extends TestCase {
         $this->assertEquals("NO ERRORS",$conn->getErrorMessage());
 
         return $conn;
+    }
+    /**
+     * @test
+     * @depends testSetDb01
+     * @param MySQLLink $conn Description
+     */
+    public function testGetCol00($conn) {
+        $q2 = new ArticleQuery();
+        $q2->select([
+            'columns' => [
+                'title','content'
+            ]
+        ]);
+        $this->assertEquals(-1,$conn->rows());
+        $result = $conn->executeQuery($q2);
+        $this->assertTrue($result);
+        $this->assertNotEquals(-1,$conn->rows());
+        $data = $conn->getColumn('random');
+        $this->assertEquals(\phMysql\MySQLTable::NO_SUCH_COL,$data);
+        $col1Data = $conn->getColumn('title');
+        $this->assertEquals(20, count($col1Data));
+        $col2Data = $conn->getColumn('content');
+        $this->assertEquals(20, count($col2Data));
+        $col3Data = $conn->getColumn('author-id');
+        $this->assertEquals(0, count($col3Data));
     }
     /**
      * @test
@@ -195,12 +154,6 @@ class MySQLLinkTest extends TestCase {
         $q2->select([
             'where' => [
                 'author-id' => 1
-            ],
-            'order-by'=>[
-                [
-                    'col'=>'article-id',
-                    'order-type'=>'A'
-                ]
             ]
         ]);
         $result = $conn->executeQuery($q2);
