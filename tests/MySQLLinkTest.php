@@ -158,7 +158,7 @@ class MySQLLinkTest extends TestCase {
         ]);
         $result = $conn->executeQuery($q2);
         $this->assertTrue($result);
-        $index = 0;
+        $index = 1;
 
         while ($row = $conn->nextRow()) {
             $this->assertEquals('User # 1 Article #'.$index,$row['title']);
