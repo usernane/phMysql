@@ -385,6 +385,11 @@ class MySQLColumn {
 
         return null;
     }
+    /**
+     * 
+     * @param MySQLColumn $col
+     * @param array $options
+     */
     private static function _extraAttrsCheck(&$col, $options) {
         $scale = isset($options['scale']) ? intval($options['scale']) : 2;
         $col->setScale($scale);
@@ -406,6 +411,11 @@ class MySQLColumn {
             $col->setComment($options['comment']);
         }
     }
+    /**
+     * 
+     * @param MySQLColumn $col
+     * @param array $options
+     */
     private static function _primaryCheck(&$col, $options) {
         $isPrimary = isset($options['primary']) ? $options['primary'] : false;
         if(!$isPrimary){
@@ -414,6 +424,7 @@ class MySQLColumn {
         $col->setIsPrimary($isPrimary);
         if ($isPrimary && isset($options['auto-inc'])) {
             $col->setIsAutoInc($options['auto-inc']);
+            $col->setIsNull(true);
         }
     }
     /**
