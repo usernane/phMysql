@@ -65,7 +65,6 @@ if ($conn->executeQuery($q00)) {
     if ($conn->executeQuery($q00)) {
         echo "Successfully Created Tables.\n";
         echo "Adding Test Dataset...\n";
-
         for ($x = 0 ; $x < 5 ; $x++) {
             $q = new phMysql\tests\UsersQuery();
             $q->insertRecord([
@@ -80,7 +79,7 @@ if ($conn->executeQuery($q00)) {
                     $q = new \phMysql\tests\ArticleQuery();
                     $q->insertRecord([
                         'author-id' => $x + 1,
-                        'content' => 'This is the body of article number '.$y.' which '
+                        'content' => 'This is the body of article number '.($y + 1).' which '
                         .'is created by the user which has the ID '.($x + 1).'.',
                         'title' => 'User # '.($x + 1).' Article #'.($y + 1)
                     ]);
