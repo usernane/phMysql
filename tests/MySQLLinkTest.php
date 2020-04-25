@@ -86,7 +86,7 @@ class MySQLLinkTest extends TestCase {
         $this->assertEquals(-1,$conn->rows());
         $result = $conn->executeQuery($q2);
         $this->assertTrue($result);
-        $this->assertNotEquals(-1,$conn->rows());
+        $this->assertEquals(20,$conn->rows());
         $data = $conn->getColumn('random');
         $this->assertEquals(\phMysql\MySQLTable::NO_SUCH_COL,$data);
         $col1Data = $conn->getColumn('title');
@@ -134,7 +134,7 @@ class MySQLLinkTest extends TestCase {
         ]);
         $q3->select([
             'where' => [
-                'author-id' => 1
+                'author-id' => 2
             ]
         ]);
         $r = $conn->executeQuery($q3);
