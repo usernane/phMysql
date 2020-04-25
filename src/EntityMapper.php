@@ -10,6 +10,12 @@ use InvalidArgumentException;
  */
 class EntityMapper {
     /**
+     * An attribute which is when set to true, the interface 'jsonx\JsonI' will 
+     * be part of the generated entity.
+     * @var boolean 
+     */
+    private $implJsonI;
+    /**
      * A string that represents the generated class.
      * @var string 
      */
@@ -75,6 +81,7 @@ class EntityMapper {
         } else {
             throw new InvalidArgumentException("Provided class name is not a valid class name: '$className'.");
         }
+        $this->setUseJsonI(false);
     }
     /**
      * Returns the full path to the entity class.
@@ -140,6 +147,18 @@ class EntityMapper {
         }
     }
     /**
+     * Sets the value of the attribute '$implJsonI'. 
+     * If this attribute is set to true, the generated entity will implemented 
+     * the interface 'jsonx\JsonI'. Not that this will make the entity class 
+     * depends on the library 'JsonX'.
+     * @param boolean $bool True to make it implement the interface JsonI and 
+     * false to not.
+     * @since 1.0
+     */
+    public function setUseJsonI($bool) {
+        $this->implJsonI = $bool === true;
+    }
+    /**
      * Creates the class that the table records will be mapped to.
      * @return boolean If the class is created, the method will return true. 
      * If not, the method will return false.
@@ -153,21 +172,50 @@ class EntityMapper {
             $ns = $this->getNamespace();
             $entityClassName = $this->getEntityName();
             $this->classStr .= ""
-            ."<?php\nnamespace ".$ns.";\n\n"
-            ."/**\n"
+            . "<?php\nnamespace ".$ns.";\n\n";
+            
+            if($this->implJsonI){
+                $this->classStr .= ""
+                . "use jsonx\JsonX;\n"
+                . "use jsonx\JsonI;\n"
+                . "\n";
+            }
+            $this->classStr .= "/**\n"
             ." * An auto-generated entity class which maps to a record in the\n"
             ." * table '".$this->getTable()->getName()."'\n"
             ." **/\n"
             ."class ".$entityClassName." {\n";
             $this->_createEntityVariables();
             $this->_createEntityMethods();
-
+            $this->_imlpJsonX();
             $this->classStr .= "}\n";
             fwrite($file, $this->classStr);
             fclose($file);
             $retVal = true;
         }
         return $retVal;
+    }
+    private function _imlpJsonX() {
+        if($this->implJsonI){
+            $this->classStr .= ""
+            . "    public function toJSON(){\n";
+            $arrayStr = '';
+            $attributes = $this->getAttribitesNames();
+            $gettersMap = $this->getEntityMethods()['getters'];
+            $index = 0;
+            $comma = "";
+            foreach ($attributes as $attrName){
+                $arrayStr .= "            ".$comma."'$attrName' => \$this->$gettersMap[$index]";
+                $index++;
+                $comma = ",\n";
+            }
+            $this->classStr .=  ""
+                    . "\$jsonx = new JsonX([\n"
+                    . "            $arrayStr\n"
+                    . "        ]);\n"
+                    . "        return \$jsonx"
+                    . "    }\n";
+        }
     }
     /**
      * Returns the namespace at which the entity belongs to.
