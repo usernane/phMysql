@@ -82,7 +82,7 @@ if ($conn->executeQuery($q00)) {
                         'author-id' => $x + 1,
                         'content' => 'This is the body of article number '.$y.' which '
                         .'is created by the user which has the ID '.($x + 1).'.',
-                        'title' => 'User # '.($x + 1).' Article #'.$y
+                        'title' => 'User # '.($x + 1).' Article #'.($y + 1)
                     ]);
                     echo $q->getQuery()."\n";
 
