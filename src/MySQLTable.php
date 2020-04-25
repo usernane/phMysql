@@ -480,6 +480,9 @@ class MySQLTable {
      * </ul>
      * <li>override: A boolean value. If the entity was already created and this 
      * parameter is set to true, the entity class will be replaced with new one.</li>
+     * <li>implement-jsoni: If this attribute is set to true, the generated entity will implemented 
+     * the interface 'jsonx\JsonI'. Not that this will make the entity class 
+     * depends on the library 'JsonX'.</li>
      * </ul>
      * @return boolean If the entity class is created, the method will return 
      * true. If not created, it will return false.
@@ -491,8 +494,18 @@ class MySQLTable {
 
         if (strlen($entityName) != 0 && !strpos($entityName, ' ')) {
             $namespace = isset($options['namespace']) ? trim($options['namespace']) : $this->getEntityNamespace();
-            $override = isset($options['override']) ? $options['override'] === true : false;
+            if(isset($options['override'])){
+                $override = $options['override'] === true;
+            } else{
+                $override = false;
+            }
+            if(isset($options['implement-jsoni'])){
+                $implJsonI = $options['implement-jsoni'] === true;
+            } else{
+                $implJsonI = false;
+            }
             $mapper = new EntityMapper($this, $entityName, $path, $namespace);
+            $mapper->setUseJsonI($implJsonI);
             if(!file_exists($mapper->getAbsolutePath()) || $override){
                 $mapper->create();
             }
