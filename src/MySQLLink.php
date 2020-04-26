@@ -136,9 +136,6 @@ class MySQLLink {
             $this->lastErrorMessage = mysqli_connect_error();
         }
     }
-    public function __toString() {
-        return '';
-    }
     /**
      * Execute MySQL query.
      * Note that the method does not support the execution of multi-queries in 
@@ -342,13 +339,14 @@ class MySQLLink {
      * @since 1.0
      */
     public function getRow() {
+        if($this->resultRows == null){
+            $this->getRows();
+        }
         if (count($this->resultRows) != 0) {
             if ($this->currentRow == -1) {
                 return $this->getRows()[0];
-            } else {
-                if ($this->currentRow < $this->rows()) {
-                    return $this->getRows()[$this->currentRow];
-                }
+            } else if ($this->currentRow < $this->rows()) {
+                return $this->getRows()[$this->currentRow];
             }
         } else {
             return $this->_getRow();
