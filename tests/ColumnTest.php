@@ -9,6 +9,98 @@ use PHPUnit\Framework\TestCase;
  * @author Ibrahim
  */
 class ColumnTest extends TestCase {
+    
+    /**
+     * @test
+     */
+    public function testCreateColObj00() {
+        $obj = MySQLColumn::createColObj([]);
+        $this->assertNull($obj);
+    }
+    /**
+     * @test
+     */
+    public function testCreateColObj01() {
+        $obj = MySQLColumn::createColObj([
+            'name'=>'hello'
+        ]);
+        $this->assertNotNull($obj);
+        $this->assertEquals('varchar',$obj->getType());
+        $this->assertEquals(1,$obj->getSize());
+        $this->assertFalse($obj->isNull());
+        $this->assertFalse($obj->isPrimary());
+        $this->assertFalse($obj->isUnique());
+    }
+    /**
+     * @test
+     */
+    public function testCreateColObj02() {
+        $obj = MySQLColumn::createColObj([
+            'name'=>'hello',
+            'type'=>'int',
+            'primary'=>true,
+            'size'=>5
+        ]);
+        $this->assertNotNull($obj);
+        $this->assertEquals('int',$obj->getType());
+        $this->assertEquals(5,$obj->getSize());
+        $this->assertFalse($obj->isNull());
+        $this->assertTrue($obj->isPrimary());
+        $this->assertTrue($obj->isUnique());
+    }
+    /**
+     * @test
+     */
+    public function testCreateColObj03() {
+        $obj = MySQLColumn::createColObj([
+            'name'=>'hello',
+            'type'=>'int',
+            'primary'=>true,
+            'size'=>5,
+            'validator'=>function($orgVal, $basicValidated){
+                return "Original = '$orgVal'. Basic Cleaned = '$basicValidated'";
+            }
+        ]);
+        $this->assertNotNull($obj);
+        $this->assertEquals('int',$obj->getType());
+        $this->assertEquals(5,$obj->getSize());
+        $this->assertFalse($obj->isNull());
+        $this->assertTrue($obj->isPrimary());
+        $this->assertTrue($obj->isUnique());
+        $this->assertEquals("Original = '99'. Basic Cleaned = '99'", $obj->cleanValue('99'));
+        $this->assertEquals("Original = 'hello'. Basic Cleaned = '0'", $obj->cleanValue("hello"));
+    }
+    /**
+     * @test
+     */
+    public function testCreateColObj04() {
+        $obj = MySQLColumn::createColObj([
+            'name'=>'hello',
+            'type'=>'blob',
+            'validator'=>function($orgVal, $basicValidated){
+                return "BLOB TYPE: $orgVal";
+            }
+        ]);
+        $this->assertNotNull($obj);
+        $this->assertEquals('blob',$obj->getType());
+        $this->assertFalse($obj->isNull());
+        $this->assertEquals("BLOB TYPE: XYZ", $obj->cleanValue('XYZ'));
+    }
+    /**
+     * @test
+     */
+    public function testCreateColObj05() {
+        $obj = MySQLColumn::createColObj([
+            'name'=>'hello',
+            'type'=>'datetime',
+            'validator'=>function($orgVal, $basicValidated){
+                if($basicValidated == ''){
+                    return 'now()';
+                }
+            }
+        ]);
+        $this->assertEquals("now()", $obj->cleanValue('2020-03-04 23:00'));
+    }
     /**
      * @test
      */
