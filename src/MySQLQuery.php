@@ -1162,6 +1162,11 @@ class MySQLQuery {
             if (isset($selectOptions['map-result-to'])) {
                 if (class_exists($selectOptions['map-result-to'])) {
                     $this->resultMap = $selectOptions['map-result-to'];
+                } else if(file_exists($this->getTable()->getEntityPath())) {
+                    require_once $this->getTable()->getEntityPath();
+                    if (class_exists($selectOptions['map-result-to'])) {
+                        $this->resultMap = $selectOptions['map-result-to'];
+                    }
                 } else {
                     $this->resultMap = null;
                 }
