@@ -30,6 +30,10 @@ class ArticleQuery extends MySQLQuery {
             'content' => [
                 'name' => 'article_content',
                 'size' => 5000
+            ],
+            'is-published'=>[
+                'default'=>false,
+                'type'=>'boolean'
             ]
         ]);
 
