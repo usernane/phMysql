@@ -6,6 +6,7 @@ namespace phMysql\entity;
  * table 'users'
  **/
 class User {
+    private $isActive;
     /**
      * The attribute which is mapped to the column 'id'.
      * @var int
@@ -27,7 +28,7 @@ class User {
      * the name 'id'.
      * @param $id int The new value of the attribute.
      **/
-    public function setId($id) {
+    public function setUserId($id) {
         $this->id = $id;
     }
     /**
@@ -36,7 +37,7 @@ class User {
      * the name 'id'.
      * @return int The value of the attribute.
      **/
-    public function getId() {
+    public function getUserId() {
         return $this->id;
     }
     /**
@@ -74,5 +75,11 @@ class User {
      **/
     public function getLastUpdated() {
         return $this->lastUpdated;
+    }
+    public function setIsActive($bool) {
+        $this->isActive = $bool;
+    }
+    public function isActive(){
+        return $this->isActive;
     }
 }
