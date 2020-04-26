@@ -530,11 +530,21 @@ class MySQLLink {
     private function _map($row) {
         $entityName = $this->getLastQuery()->getMappedEntity();
         $entity = new $entityName();
-        $mapper = new EntityMapper($this->getLastQuery()->getTable(), 'E');
+        $table = $this->getLastQuery()->getTable();
+        $mapper = new EntityMapper($table, 'E');
+        $datatypes = $table->types();
+        $colsNames = $table->getColsNames();
+        $index = 0;
         foreach ($mapper->getSettersMap() as $methodName => $colName) {
-            if (isset($row[$colName])) {
-                $entity->$methodName($row[$colName]);
+            if (isset($row[$colName]) && method_exists($entity, $methodName)) {
+                if($datatypes[$index] == 'boolean' && $colsNames[$index] == $colName){
+                    $bool = $row[$colName] == 'Y';
+                    $entity->$methodName($bool);
+                } else {
+                    $entity->$methodName($row[$colName]);
+                }
             }
+            $index++;
         }
 
         return $entity;
