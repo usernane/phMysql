@@ -175,74 +175,6 @@ class MySQLLink {
 
         return false;
     }
-    private function _otherQuery() {
-        $this->result = null;
-        $query = $this->getLastQuery();
-        $r = mysqli_query($this->link, $query->getQuery());
-        $retVal = false;
-        if (!$r) {
-            $this->lastErrorMessage = $this->link->error;
-            $this->lastErrorNo = $this->link->errno;
-            $this->result = null;
-            $r = mysqli_multi_query($this->link, $query->getQuery());
-            if($r){
-                $this->lastErrorMessage = 'NO ERRORS';
-                $this->lastErrorNo = 0;
-                $this->result = null;
-                $retVal = true;
-            }
-        } else {
-            $this->lastErrorMessage = 'NO ERRORS';
-            $this->lastErrorNo = 0;
-            $this->result = null;
-            $query->setIsBlobInsertOrUpdate(false);
-
-            $retVal = true;
-        }
-        $query->setIsBlobInsertOrUpdate(false);
-        return $retVal;
-    }
-    private function _selectQuery() {
-        $r = mysqli_query($this->link, $this->getLastQuery()->getQuery());
-
-        if ($r) {
-            $this->result = $r;
-            $this->lastErrorNo = 0;
-
-            return true;
-        } else {
-            $this->lastErrorMessage = $this->link->error;
-            $this->lastErrorNo = $this->link->errno;
-            $this->result = null;
-            $this->getLastQuery()->setIsBlobInsertOrUpdate(false);
-
-            return false;
-        }
-    }
-    private function _insertQuery() {
-        $query = $this->getLastQuery();
-        $retVal = false;
-        $r = mysqli_query($this->link, $query->getQuery());
-
-        if (!$r) {
-            $this->lastErrorMessage = $this->link->error;
-            $this->lastErrorNo = $this->link->errno;
-            $this->result = null;
-            $r = mysqli_multi_query($this->link, $query->getQuery());
-            if($r){
-                $this->lastErrorMessage = 'NO ERRORS';
-                $this->lastErrorNo = 0;
-                $this->result = null;
-                $retVal = true;
-            }
-        }
-        else{
-            $retVal = true;
-        }
-        $query->setIsBlobInsertOrUpdate(false);
-
-        return $retVal;
-    }
     /**
      * Returns an array which contains all data from a specific column given its 
      * name.
@@ -339,9 +271,10 @@ class MySQLLink {
      * @since 1.0
      */
     public function getRow() {
-        if($this->resultRows == null){
+        if ($this->resultRows == null) {
             $this->getRows();
         }
+
         if (count($this->resultRows) != 0) {
             if ($this->currentRow == -1) {
                 return $this->getRows()[0];
@@ -509,16 +442,38 @@ class MySQLLink {
     private function _getRow($retry = 0) {
         if (count($this->resultRows) != 0) {
             return $this->getRows()[0];
+        } else if ($retry == 1) {
+            return null;
         } else {
-            if ($retry == 1) {
-                return null;
-            } else {
-                $this->getRows();
-                $retry++;
+            $this->getRows();
+            $retry++;
 
-                return $this->_getRow($retry);
-            }
+            return $this->_getRow($retry);
         }
+    }
+    private function _insertQuery() {
+        $query = $this->getLastQuery();
+        $retVal = false;
+        $r = mysqli_query($this->link, $query->getQuery());
+
+        if (!$r) {
+            $this->lastErrorMessage = $this->link->error;
+            $this->lastErrorNo = $this->link->errno;
+            $this->result = null;
+            $r = mysqli_multi_query($this->link, $query->getQuery());
+
+            if ($r) {
+                $this->lastErrorMessage = 'NO ERRORS';
+                $this->lastErrorNo = 0;
+                $this->result = null;
+                $retVal = true;
+            }
+        } else {
+            $retVal = true;
+        }
+        $query->setIsBlobInsertOrUpdate(false);
+
+        return $retVal;
     }
     /**
      * Map a record to an entity class.
@@ -533,9 +488,10 @@ class MySQLLink {
         $datatypes = $table->types();
         $colsNames = $table->getColsNames();
         $index = 0;
+
         foreach ($mapper->getSettersMap() as $methodName => $colName) {
             if (isset($row[$colName]) && method_exists($entity, $methodName)) {
-                if($datatypes[$index] == 'boolean' && $colsNames[$index] == $colName){
+                if ($datatypes[$index] == 'boolean' && $colsNames[$index] == $colName) {
                     $bool = $row[$colName] == 'Y';
                     $entity->$methodName($bool);
                 } else {
@@ -546,5 +502,52 @@ class MySQLLink {
         }
 
         return $entity;
+    }
+    private function _otherQuery() {
+        $this->result = null;
+        $query = $this->getLastQuery();
+        $r = mysqli_query($this->link, $query->getQuery());
+        $retVal = false;
+
+        if (!$r) {
+            $this->lastErrorMessage = $this->link->error;
+            $this->lastErrorNo = $this->link->errno;
+            $this->result = null;
+            $r = mysqli_multi_query($this->link, $query->getQuery());
+
+            if ($r) {
+                $this->lastErrorMessage = 'NO ERRORS';
+                $this->lastErrorNo = 0;
+                $this->result = null;
+                $retVal = true;
+            }
+        } else {
+            $this->lastErrorMessage = 'NO ERRORS';
+            $this->lastErrorNo = 0;
+            $this->result = null;
+            $query->setIsBlobInsertOrUpdate(false);
+
+            $retVal = true;
+        }
+        $query->setIsBlobInsertOrUpdate(false);
+
+        return $retVal;
+    }
+    private function _selectQuery() {
+        $r = mysqli_query($this->link, $this->getLastQuery()->getQuery());
+
+        if ($r) {
+            $this->result = $r;
+            $this->lastErrorNo = 0;
+
+            return true;
+        } else {
+            $this->lastErrorMessage = $this->link->error;
+            $this->lastErrorNo = $this->link->errno;
+            $this->result = null;
+            $this->getLastQuery()->setIsBlobInsertOrUpdate(false);
+
+            return false;
+        }
     }
 }
