@@ -1,6 +1,6 @@
 <?php
-
 namespace phMysql;
+
 use InvalidArgumentException;
 /**
  * A class which is used to map a 'MySQLTable' object to an entity class.
@@ -10,22 +10,10 @@ use InvalidArgumentException;
  */
 class EntityMapper {
     /**
-     * An attribute which is when set to true, the interface 'jsonx\JsonI' will 
-     * be part of the generated entity.
-     * @var boolean 
-     */
-    private $implJsonI;
-    /**
      * A string that represents the generated class.
      * @var string 
      */
     private $classStr;
-    /**
-     * The linked table object.
-     * @var MySQLTable 
-     * @since 1.0
-     */
-    private $table;
     /**
      * The class name of the entity.
      * @var string
@@ -45,6 +33,18 @@ class EntityMapper {
      */
     private $entityPath;
     /**
+     * An attribute which is when set to true, the interface 'jsonx\JsonI' will 
+     * be part of the generated entity.
+     * @var boolean 
+     */
+    private $implJsonI;
+    /**
+     * The linked table object.
+     * @var MySQLTable 
+     * @since 1.0
+     */
+    private $table;
+    /**
      * 
      * @param MySQLTable $tableObj The table that will be mapped to an entity.
      * @param string $className The name of the class that the entity will be 
@@ -57,106 +57,35 @@ class EntityMapper {
      * 'phMysql\MySQLTable'.
      */
     public function __construct($tableObj, $className, $path = __DIR__, $namespace = 'phMysql\\entity') {
-        if(!($tableObj instanceof MySQLTable)){
+        if (!($tableObj instanceof MySQLTable)) {
             throw new InvalidArgumentException('Provided parameter is not an '
-                    . "object of type 'phMysql\\MySQLTable'");
+                    ."object of type 'phMysql\\MySQLTable'");
         }
-        if(!($tableObj instanceof MySQLTable)){
+
+        if (!($tableObj instanceof MySQLTable)) {
             throw new InvalidArgumentException('Provided parameter is not an '
-                    . "object of type 'phMysql\\MySQLTable'");
+                    ."object of type 'phMysql\\MySQLTable'");
         }
         $this->table = $tableObj;
+
         if (is_dir($path)) {
             $this->entityPath = $path;
         } else {
             $this->entityPath = __DIR__;
         }
+
         if ($this->_isValidNs($namespace)) {
             $this->entityNamespace = trim($namespace);
         } else {
             $this->entityNamespace = 'phMysql\\entity';
         }
-        if ($this->_isValidClassName($className)){
+
+        if ($this->_isValidClassName($className)) {
             $this->entityName = trim($className);
         } else {
             throw new InvalidArgumentException("Provided class name is not a valid class name: '$className'.");
         }
         $this->setUseJsonI(false);
-    }
-    /**
-     * Returns the full path to the entity class.
-     * @return string The method will return the full path to the file that contains 
-     * the mapped class.
-     * @since 1.0
-     * 
-     */
-    public function getAbsolutePath() {
-        return $this->getPath().DIRECTORY_SEPARATOR.$this->getEntityName().'.php';
-    }
-    private function _createEntityVariables() {
-        $index = 0;
-        $entityAttrs = $this->getAttribitesNames();
-        foreach ($entityAttrs as $attrName) {
-            $colObj = $this->getTable()->getColByIndex($index);
-            $this->classStr .= ""
-            ."    /**\n"
-            ."     * The attribute which is mapped to the column '".$colObj->getName()."'.\n"
-            ."     * @var ".$colObj->getPHPType()."\n"
-            ."     **/\n"
-            ."    private $".$attrName.";\n";
-            $index++;
-        }
-    }
-    private function _createEntityMethods() {
-        $entityAttrs = $this->getAttribitesNames();
-        $attrsCount = count($entityAttrs);
-        $colsTypes = $this->getTable()->types();
-        $colsNames = $this->getTable()->getColsNames();
-        $settersGettersMap = $this->getEntityMethods();
-        for ($x = 0 ; $x < $attrsCount ; $x++) {
-            $colName = $colsNames[$x];
-            $setterName = $settersGettersMap['setters'][$x];
-            $attrName = $entityAttrs[$x];
-            $phpType = $this->getTable()->getColByIndex($x)->getPHPType();
-            $this->classStr .= ""
-            ."    /**\n"
-            ."     * Sets the value of the attribute '".$attrName."'.\n"
-            ."     * The value of the attribute is mapped to the column which has\n"
-            ."     * the name '$colName'.\n"
-            ."     * @param \$$entityAttrs[$x] ".$phpType." The new value of the attribute.\n"
-            ."     **/\n"
-            .'    public function '.$setterName.'($'.$entityAttrs[$x].") {\n";
-
-            if ($colsTypes[$x] == 'boolean') {
-                $this->classStr .= '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x]." === true || $".$entityAttrs[$x]." == 'Y';\n";
-            } else {
-                $this->classStr .= '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n";
-            }
-            $this->classStr .= "    }\n";
-            $getterName = $settersGettersMap['getters'][$x];
-            $this->classStr .= ""
-            ."    /**\n"
-            ."     * Returns the value of the attribute '".$attrName."'.\n"
-            ."     * The value of the attribute is mapped to the column which has\n"
-            ."     * the name '$colName'.\n"
-            ."     * @return ".$phpType." The value of the attribute.\n"
-            ."     **/\n"
-            .'    public function '.$getterName."() {\n"
-            .'        return $this->'.$entityAttrs[$x].";\n"
-            ."    }\n";
-        }
-    }
-    /**
-     * Sets the value of the attribute '$implJsonI'. 
-     * If this attribute is set to true, the generated entity will implemented 
-     * the interface 'jsonx\JsonI'. Not that this will make the entity class 
-     * depends on the library 'JsonX'.
-     * @param boolean $bool True to make it implement the interface JsonI and 
-     * false to not.
-     * @since 1.0
-     */
-    public function setUseJsonI($bool) {
-        $this->implJsonI = $bool === true;
     }
     /**
      * Creates the class that the table records will be mapped to.
@@ -168,26 +97,27 @@ class EntityMapper {
         $this->classStr = '';
         $file = fopen($this->getAbsolutePath(), 'w+');
         $retVal = false;
+
         if (is_resource($file)) {
             $ns = $this->getNamespace();
             $entityClassName = $this->getEntityName();
             $this->classStr .= ""
-            . "<?php\nnamespace ".$ns.";\n\n";
-            
-            if($this->implJsonI){
+            ."<?php\nnamespace ".$ns.";\n\n";
+
+            if ($this->implJsonI) {
                 $this->classStr .= ""
-                . "use jsonx\JsonX;\n"
-                . "use jsonx\JsonI;\n"
-                . "\n";
+                ."use jsonx\JsonX;\n"
+                ."use jsonx\JsonI;\n"
+                ."\n";
             }
             $this->classStr .= "/**\n"
             ." * An auto-generated entity class which maps to a record in the\n"
             ." * table '".$this->getTable()->getName()."'\n"
             ." **/\n";
-            if($this->implJsonI){
+
+            if ($this->implJsonI) {
                 $this->classStr .= "class ".$entityClassName." implements JsonI {\n";
-            }
-            else{
+            } else {
                 $this->classStr .= "class ".$entityClassName." {\n";
             }
             $this->_createEntityVariables();
@@ -198,155 +128,18 @@ class EntityMapper {
             fclose($file);
             $retVal = true;
         }
-        return $retVal;
-    }
-    private function _imlpJsonX() {
-        if($this->implJsonI){
-            $this->classStr .= ""
-            . "    /**\n"
-            . "     * Returns an object of type 'JsonX' that contains object information.\n"
-            . "     * The returned object will have the following attributes:\n";
-            $arrayStr = '';
-            $attrsStr = '';
-            $attributes = $this->getAttribitesNames();
-            $gettersMap = $this->getEntityMethods()['getters'];
-            $index = 0;
-            $comma = "";
-            foreach ($attributes as $attrName){
-                $arrayStr .= $comma."            '$attrName' => \$this->$gettersMap[$index]()";
-                $index++;
-                $comma = ",\n";
-                $attrsStr .= "     * <li>$attrName</li>\n";
-            }
-            $this->classStr .= ""
-            . "     * <ul>\n"
-            . "$attrsStr"
-            . "     * </ul>\n"
-            . "     * @return JsonX An object of type 'JsonX'.\n"
-            . "     */\n"
-            . "    public function toJSON() {\n"
-            . "        \$jsonx = new JsonX([\n"
-            . "$arrayStr\n"
-            . "        ]);\n"
-            . "        return \$jsonx;\n"
-            . "    }\n";
-        }
-    }
-    /**
-     * Returns the namespace at which the entity belongs to.
-     * @return string The method will return a string that represents the name
-     * of the namespace at which the entity belongs to.
-     * @since 1.0
-     */
-    public function getNamespace() {
-        return $this->entityNamespace;
-    }
-    /**
-     * Returns the name of the directory at which the entity will be created in.
-     * @return string The method will return a string that represents the name 
-     * of the directory at which the entity will be created in.
-     * @since 1.0
-     */
-    public function getPath() {
-        return $this->entityPath;
-    }
-    /**
-     * Returns the name of the class that the table is mapped to.
-     * @return string The method will return a string that represents the 
-     * name of the class that the table is mapped to.
-     * @since 1.0
-     */
-    public function getEntityName() {
-        return $this->entityName;
-    }
-    private function _isValidClassName($cn) {
-        $trim = trim($cn);
-        $len = strlen($cn);
-        if($len > 0){
-            for($x = 0 ; $x < $len ; $x++){
-                $ch = $trim[$x];
-                if ($x == 0 && $ch >= '0' && $ch <= '9') {
-                    return false;
-                }
-
-                if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-    private function _isValidNs($ns) {
-        $trim = trim($ns);
-        $len = strlen($ns);
-        if($len > 0){
-            $slashCount = 0;
-            for($x = 0 ; $x < $len ; $x++){
-                $ch = $trim[$x];
-                if($x == 0 && ($ch == '\\' || ($ch >= '0' && $ch <= '9'))){
-                    return false;
-                } else if ($ch == '\\' && $slashCount > 1){
-                    return false;
-                } else if ($ch == '\\'){
-                    $slashCount++;
-                    continue;
-                } else if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))){
-                    return false;
-                }
-                $slashCount = 0;
-            }
-            return true;
-        }
-        return false;
-    }
-    /**
-     * Returns an associative array that maps possible entity methods names with 
-     * table columns names in the database.
-     * Assuming that the table has two columns. The first one has a key = 'user-id' 
-     * and the second one has a key 'password'. Also, let's assume that the first column 
-     * has the name 'id' in the database and the second one has the name 'user_pass'. 
-     * If this is the case, the method will return something like the following array:
-     * <p>
-     * <code>[<br/>
-     * 'setUserId'=>'id',<br/>
-     * 'setPassword'=>'user_pass'<br/>
-     * ]</code>
-     * </p>
-     * @return array An associative array. The indices represents the names of 
-     * the methods in the entity class and the values are the names of table 
-     * columns as they appear in the database.
-     * @since 1.0
-     */
-    public function getSettersMap() {
-        $keys = array_keys($this->getTable()->getColumns());
-        $retVal = [];
-
-        foreach ($keys as $keyName) {
-            $split = explode('-', $keyName);
-            $methodName = '';
-
-            foreach ($split as $namePart) {
-                if (strlen($namePart) == 1) {
-                    $methodName .= strtoupper($namePart);
-                } else {
-                    $firstChar = $namePart[0];
-                    $methodName .= strtoupper($firstChar).substr($namePart, 1);
-                }
-            }
-            $mappedCol = $this->getTable()->getCol($keyName)->getName();
-            $retVal['set'.$methodName] = $mappedCol;
-        }
 
         return $retVal;
     }
     /**
-     * Returns the table instance which is associated with the mapper.
-     * @return MySQLTable An object of type 'MySQLTable'.
+     * Returns the full path to the entity class.
+     * @return string The method will return the full path to the file that contains 
+     * the mapped class.
      * @since 1.0
+     * 
      */
-    public function getTable() {
-        return $this->table;
+    public function getAbsolutePath() {
+        return $this->getPath().DIRECTORY_SEPARATOR.$this->getEntityName().'.php';
     }
     /**
      * Returns an array that contains the names of attributes mapped from columns 
@@ -422,5 +215,230 @@ class EntityMapper {
         }
 
         return $retVal;
+    }
+    /**
+     * Returns the name of the class that the table is mapped to.
+     * @return string The method will return a string that represents the 
+     * name of the class that the table is mapped to.
+     * @since 1.0
+     */
+    public function getEntityName() {
+        return $this->entityName;
+    }
+    /**
+     * Returns the namespace at which the entity belongs to.
+     * @return string The method will return a string that represents the name
+     * of the namespace at which the entity belongs to.
+     * @since 1.0
+     */
+    public function getNamespace() {
+        return $this->entityNamespace;
+    }
+    /**
+     * Returns the name of the directory at which the entity will be created in.
+     * @return string The method will return a string that represents the name 
+     * of the directory at which the entity will be created in.
+     * @since 1.0
+     */
+    public function getPath() {
+        return $this->entityPath;
+    }
+    /**
+     * Returns an associative array that maps possible entity methods names with 
+     * table columns names in the database.
+     * Assuming that the table has two columns. The first one has a key = 'user-id' 
+     * and the second one has a key 'password'. Also, let's assume that the first column 
+     * has the name 'id' in the database and the second one has the name 'user_pass'. 
+     * If this is the case, the method will return something like the following array:
+     * <p>
+     * <code>[<br/>
+     * 'setUserId'=>'id',<br/>
+     * 'setPassword'=>'user_pass'<br/>
+     * ]</code>
+     * </p>
+     * @return array An associative array. The indices represents the names of 
+     * the methods in the entity class and the values are the names of table 
+     * columns as they appear in the database.
+     * @since 1.0
+     */
+    public function getSettersMap() {
+        $keys = array_keys($this->getTable()->getColumns());
+        $retVal = [];
+
+        foreach ($keys as $keyName) {
+            $split = explode('-', $keyName);
+            $methodName = '';
+
+            foreach ($split as $namePart) {
+                if (strlen($namePart) == 1) {
+                    $methodName .= strtoupper($namePart);
+                } else {
+                    $firstChar = $namePart[0];
+                    $methodName .= strtoupper($firstChar).substr($namePart, 1);
+                }
+            }
+            $mappedCol = $this->getTable()->getCol($keyName)->getName();
+            $retVal['set'.$methodName] = $mappedCol;
+        }
+
+        return $retVal;
+    }
+    /**
+     * Returns the table instance which is associated with the mapper.
+     * @return MySQLTable An object of type 'MySQLTable'.
+     * @since 1.0
+     */
+    public function getTable() {
+        return $this->table;
+    }
+    /**
+     * Sets the value of the attribute '$implJsonI'. 
+     * If this attribute is set to true, the generated entity will implemented 
+     * the interface 'jsonx\JsonI'. Not that this will make the entity class 
+     * depends on the library 'JsonX'.
+     * @param boolean $bool True to make it implement the interface JsonI and 
+     * false to not.
+     * @since 1.0
+     */
+    public function setUseJsonI($bool) {
+        $this->implJsonI = $bool === true;
+    }
+    private function _createEntityMethods() {
+        $entityAttrs = $this->getAttribitesNames();
+        $attrsCount = count($entityAttrs);
+        $colsTypes = $this->getTable()->types();
+        $colsNames = $this->getTable()->getColsNames();
+        $settersGettersMap = $this->getEntityMethods();
+
+        for ($x = 0 ; $x < $attrsCount ; $x++) {
+            $colName = $colsNames[$x];
+            $setterName = $settersGettersMap['setters'][$x];
+            $attrName = $entityAttrs[$x];
+            $phpType = $this->getTable()->getColByIndex($x)->getPHPType();
+            $this->classStr .= ""
+            ."    /**\n"
+            ."     * Sets the value of the attribute '".$attrName."'.\n"
+            ."     * The value of the attribute is mapped to the column which has\n"
+            ."     * the name '$colName'.\n"
+            ."     * @param \$$entityAttrs[$x] ".$phpType." The new value of the attribute.\n"
+            ."     **/\n"
+            .'    public function '.$setterName.'($'.$entityAttrs[$x].") {\n";
+
+            if ($colsTypes[$x] == 'boolean') {
+                $this->classStr .= '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x]." === true || $".$entityAttrs[$x]." == 'Y';\n";
+            } else {
+                $this->classStr .= '        $this->'.$entityAttrs[$x].' = $'.$entityAttrs[$x].";\n";
+            }
+            $this->classStr .= "    }\n";
+            $getterName = $settersGettersMap['getters'][$x];
+            $this->classStr .= ""
+            ."    /**\n"
+            ."     * Returns the value of the attribute '".$attrName."'.\n"
+            ."     * The value of the attribute is mapped to the column which has\n"
+            ."     * the name '$colName'.\n"
+            ."     * @return ".$phpType." The value of the attribute.\n"
+            ."     **/\n"
+            .'    public function '.$getterName."() {\n"
+            .'        return $this->'.$entityAttrs[$x].";\n"
+            ."    }\n";
+        }
+    }
+    private function _createEntityVariables() {
+        $index = 0;
+        $entityAttrs = $this->getAttribitesNames();
+
+        foreach ($entityAttrs as $attrName) {
+            $colObj = $this->getTable()->getColByIndex($index);
+            $this->classStr .= ""
+            ."    /**\n"
+            ."     * The attribute which is mapped to the column '".$colObj->getName()."'.\n"
+            ."     * @var ".$colObj->getPHPType()."\n"
+            ."     **/\n"
+            ."    private $".$attrName.";\n";
+            $index++;
+        }
+    }
+    private function _imlpJsonX() {
+        if ($this->implJsonI) {
+            $this->classStr .= ""
+            ."    /**\n"
+            ."     * Returns an object of type 'JsonX' that contains object information.\n"
+            ."     * The returned object will have the following attributes:\n";
+            $arrayStr = '';
+            $attrsStr = '';
+            $attributes = $this->getAttribitesNames();
+            $gettersMap = $this->getEntityMethods()['getters'];
+            $index = 0;
+            $comma = "";
+
+            foreach ($attributes as $attrName) {
+                $arrayStr .= $comma."            '$attrName' => \$this->$gettersMap[$index]()";
+                $index++;
+                $comma = ",\n";
+                $attrsStr .= "     * <li>$attrName</li>\n";
+            }
+            $this->classStr .= ""
+            ."     * <ul>\n"
+            ."$attrsStr"
+            ."     * </ul>\n"
+            ."     * @return JsonX An object of type 'JsonX'.\n"
+            ."     */\n"
+            ."    public function toJSON() {\n"
+            ."        \$jsonx = new JsonX([\n"
+            ."$arrayStr\n"
+            ."        ]);\n"
+            ."        return \$jsonx;\n"
+            ."    }\n";
+        }
+    }
+    private function _isValidClassName($cn) {
+        $trim = trim($cn);
+        $len = strlen($cn);
+
+        if ($len > 0) {
+            for ($x = 0 ; $x < $len ; $x++) {
+                $ch = $trim[$x];
+
+                if ($x == 0 && $ch >= '0' && $ch <= '9') {
+                    return false;
+                }
+
+                if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+    private function _isValidNs($ns) {
+        $trim = trim($ns);
+        $len = strlen($ns);
+
+        if ($len > 0) {
+            $slashCount = 0;
+
+            for ($x = 0 ; $x < $len ; $x++) {
+                $ch = $trim[$x];
+
+                if ($x == 0 && ($ch == '\\' || ($ch >= '0' && $ch <= '9'))) {
+                    return false;
+                } else if ($ch == '\\' && $slashCount > 1) {
+                    return false;
+                } else if ($ch == '\\') {
+                    $slashCount++;
+                    continue;
+                } else if (!($ch == '_' || ($ch >= 'a' && $ch <= 'z') || ($ch >= 'A' && $ch <= 'Z') || ($ch >= '0' && $ch <= '9'))) {
+                    return false;
+                }
+                $slashCount = 0;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }
