@@ -66,6 +66,7 @@ if ($conn->executeQuery($q00)) {
         echo "Successfully Created Tables.\n";
         echo "Adding Test Dataset...\n";
         $articleId = 1;
+
         for ($x = 0 ; $x < 5 ; $x++) {
             $q = new phMysql\tests\UsersQuery();
             $q->insertRecord([
@@ -83,7 +84,7 @@ if ($conn->executeQuery($q00)) {
                         'content' => 'This is the body of article number '.($y + 1).' which '
                         .'is created by the user which has the ID '.($x + 1).'.',
                         'title' => 'User # '.($x + 1).' Article #'.($y + 1),
-                        'article-id'=>$articleId
+                        'article-id' => $articleId
                     ]);
                     echo $q->getQuery()."\n";
 
@@ -114,19 +115,20 @@ register_shutdown_function(function()
     $q = new \phMysql\tests\ArticleQuery();
     $q->dropTable();
     echo $q->getQuery()."\n";
-    if($conn->executeQuery($q)){
+
+    if ($conn->executeQuery($q)) {
         echo 'Table '.$q->getTableName()." Dropped.\n";
         $q = new \phMysql\tests\UsersQuery();
         $q->dropTable();
         echo $q->getQuery()."\n";
-        if($conn->executeQuery($q)){
+
+        if ($conn->executeQuery($q)) {
             echo 'Table '.$q->getTableName()." Dropped.\n";
-            
-        } else{
+        } else {
             echo 'Unable to drop Table '.$q->getTableName().".\n";
             echo 'Error: '.$conn->getErrorCode().' - '.$conn->getErrorMessage()."\n";
         }
-    } else{
+    } else {
         echo 'Unable to drop Table '.$q->getTableName().".\n";
         echo 'Error: '.$conn->getErrorCode().' - '.$conn->getErrorMessage()."\n";
     }
