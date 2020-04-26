@@ -65,6 +65,7 @@ if ($conn->executeQuery($q00)) {
     if ($conn->executeQuery($q00)) {
         echo "Successfully Created Tables.\n";
         echo "Adding Test Dataset...\n";
+        $articleId = 1;
         for ($x = 0 ; $x < 5 ; $x++) {
             $q = new phMysql\tests\UsersQuery();
             $q->insertRecord([
@@ -81,7 +82,8 @@ if ($conn->executeQuery($q00)) {
                         'author-id' => $x + 1,
                         'content' => 'This is the body of article number '.($y + 1).' which '
                         .'is created by the user which has the ID '.($x + 1).'.',
-                        'title' => 'User # '.($x + 1).' Article #'.($y + 1)
+                        'title' => 'User # '.($x + 1).' Article #'.($y + 1),
+                        'article-id'=>$articleId
                     ]);
                     echo $q->getQuery()."\n";
 
@@ -89,6 +91,7 @@ if ($conn->executeQuery($q00)) {
                         echo "Unable to execute query.\n";
                         echo $conn->getErrorCode().': '.$conn->getErrorMessage()."\n";
                     }
+                    $articleId++;
                 }
             } else {
                 echo "Unable to execute query.\n";
