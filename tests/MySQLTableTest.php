@@ -91,7 +91,17 @@ class MySQLTableTest extends TestCase {
         $this->assertTrue($table->hasColumn('id'));
         $this->assertTrue($table->hasColumn('created-on'));
         $this->assertTrue($table->hasColumn('last-updated'));
+        $colObj = $table->getCol('id');
+        $this->assertNull($colObj->getAlias());
+        $this->assertNull($colObj->getAlias(true));
+        $colObj->setAlias('hello');
+        $this->assertEquals('table.hello', $colObj->getAlias(true));
+        $this->assertEquals('hello', $colObj->getAlias());
+        $this->assertTrue($colObj->setAlias(null));
         $this->assertEquals(1, $table->primaryKeyColsCount());
+        $this->assertNull($colObj->getAlias());
+        $this->assertNull($colObj->getAlias(true));
+        $this->assertFalse($colObj->setAlias('invalid alias'));
     }
     /**
      * @test
