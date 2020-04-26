@@ -145,37 +145,27 @@ class ForeignKey {
      * @since 1.3.1
      */
     public function addReference($ownerColName,$sourceColName = null) {
-        if($this->_addReferenceHelper()){
+        if ($this->_addReferenceHelper()) {
             $ownerColName = trim($ownerColName);
             $sourceColName = $sourceColName === null ? $ownerColName : trim($sourceColName);
-            
+
             $sourceTbl = $this->getSource();
             $ownerTbl = $this->getOwner();
-            
+
             $ownerCol = $ownerTbl->getCol($ownerColName);
-            if($ownerCol !== null){
+
+            if ($ownerCol !== null) {
                 $sourceCol = $sourceTbl->getCol($sourceColName);
-                if($sourceCol !== null && $sourceCol->getType() == $ownerCol->getType()) {
+
+                if ($sourceCol !== null && $sourceCol->getType() == $ownerCol->getType()) {
                     $this->ownerCols[$ownerColName] = $ownerCol;
                     $this->sourceCols[$sourceColName] = $sourceCol;
 
                     return true;
                 }
-            } 
-        }
-        
-        return false;
-    }
-    private function _addReferenceHelper() {
-        if($this->getOwner() !== null){
-            if($this->getSource() !== null){
-                return true;
-            } else {
-                trigger_error('Source table is not set.');
             }
-        } else {
-            trigger_error('Owner table is not set.');
         }
+
         return false;
     }
     /**
@@ -380,6 +370,19 @@ class ForeignKey {
             $this->sourceTableObj = $table;
             $this->sourceCols = [];
         }
+    }
+    private function _addReferenceHelper() {
+        if ($this->getOwner() !== null) {
+            if ($this->getSource() !== null) {
+                return true;
+            } else {
+                trigger_error('Source table is not set.');
+            }
+        } else {
+            trigger_error('Owner table is not set.');
+        }
+
+        return false;
     }
     /**
      * A method that is used to validate the names of the key attributes (such as source column 
