@@ -55,8 +55,20 @@ class MySQLColumn {
      * @since 1.0
      */
     const DATATYPES = [
-        'int','varchar','timestamp','tinyblob','blob','mediumblob','longblob',
-        'datetime','text','mediumtext','decimal','double','float','boolean', 
+        'int',
+        'varchar',
+        'timestamp',
+        'tinyblob',
+        'blob',
+        'mediumblob',
+        'longblob',
+        'datetime',
+        'text',
+        'mediumtext',
+        'decimal',
+        'double',
+        'float',
+        'boolean', 
         'bool'
     ];
     /**
@@ -247,6 +259,10 @@ class MySQLColumn {
     }
     /**
      * Sets a custom filter to clean up query values even more. 
+     * The function will have two parameters, the first parameter is the original 
+     * value and the second one is the cleaned value using the basic validator. 
+     * The developer must implement the function in a a way that it returns the 
+     * value after doing more validation before submitting it to the database.
      * @param callable $func A user defined function to filter column value 
      * even further.
      * @since 1.6.7
@@ -357,7 +373,9 @@ class MySQLColumn {
      * change automatically without having to change it manually.</li>
      * <li><b>scale</b>: Number of numbers to the left of the decimal 
      * point. Only supported for decimal datatype.</li>
-     * <li><b>comment</b> A comment which can be used to describe the column.</li>
+     * <li><b>comment</b>: A comment which can be used to describe the column.</li>
+     * <li><b>validator</b>: A PHP function which can be used to validate user 
+     * values before submitting the query to database.</li>
      * </ul>
      * 
      * @return MySQLColumn|null The method will return an object of type 'MySQLColumn' 
@@ -401,14 +419,22 @@ class MySQLColumn {
         if (isset($options['is-unique'])) {
             $col->setIsUnique($options['is-unique']);
         }
+        
+        //the 'not null' or 'null' must be specified or it will cause query 
+        //or it will cause query error.
         $isNull = isset($options['is-null']) ? $options['is-null'] : false;
         $col->setIsNull($isNull);
+        
         if (isset($options['auto-update'])) {
             $col->setAutoUpdate($options['auto-update']);
         }
 
         if (isset($options['comment'])) {
             $col->setComment($options['comment']);
+        }
+        
+        if(isset($options['validator'])){
+            $col->setCustomFilter($options['validator']);
         }
     }
     /**
@@ -465,6 +491,9 @@ class MySQLColumn {
      * Note that any single quot inside the string will be escaped.</li>
      * <li><b>datetime and timestamp</b>: A quoted string (such as '2019-11-09 00:00:00')</li>
      * </ul>
+     * If the column has a custom clean function is set, the 
+     * value will also depend on the return value of the custom filter
+     * function
      * @since 1.6.4
      */
     public function cleanValue($val,$dateEndOfDay = false) {
@@ -483,12 +512,13 @@ class MySQLColumn {
         }
     }
     /**
-     * 
-     * @return type
+     * Returns the name of column alias.
+     * @return string|null If column alias is set, the method will return it. 
+     * If it is not set, the method will return null.
      * @since 1.6.6
      */
     public function getAlias($tablePrefix = false) {
-        if ($tablePrefix === true && $this->getOwner() !== null) {
+        if ($tablePrefix === true && $this->getOwner() !== null && $this->alias !== null) {
             return $this->getOwner()->getName().'.'.$this->alias;
         }
 
@@ -605,7 +635,7 @@ class MySQLColumn {
      * Returns the value of scale.
      * Scale is simply the number of digits that will appear to the right of 
      * decimal point. Only applicable if the datatype of the column is decimal, 
-     * float and double.
+     * float or double.
      * @return int The number of numbers after the decimal point. Note that 
      * if the size of datatype of the column is 1, scale is set to 
      * 0 by default. If if the size of datatype of the column is 2, scale is 
@@ -657,15 +687,17 @@ class MySQLColumn {
     }
     /**
      * Checks if the column allows null values.
-     * @return boolean true if the column allows null values.
+     * @return boolean true if the column allows null values. Default return 
+     * value is false which means that the column does not allow null values.
      * @since 1.0
      */
     public function isNull() {
         return $this->isNull;
     }
     /**
-     * Checks if the column is a primary key or not.
-     * @return boolean true if the column is primary.
+     * Checks if the column is part of the primary key or not.
+     * @return boolean true if the column is primary. 
+     * Default return value is false.
      * @since 1.0
      */
     public function isPrimary() {
@@ -883,11 +915,9 @@ class MySQLColumn {
             $colsCount = count($table->columns());
             $this->columnIndex = $colsCount == 0 ? 0 : $colsCount;
             $this->setMySQLVersion($table->getMySQLVersion());
-        } else {
-            if ($table === null) {
-                $this->ownerTable = null;
-                $this->columnIndex = -1;
-            }
+        } else if ($table === null) {
+            $this->ownerTable = null;
+            $this->columnIndex = -1;
         }
     }
     /**
@@ -1045,7 +1075,8 @@ class MySQLColumn {
         } else if ($colDatatype == 'datetime' || $colDatatype == 'timestamp') {
             $cleanedVal = $this->_dateCleanUp($val, $dateEndOfDay);
         } else {
-            $cleanedVal = '';
+            //blob mostly
+            $cleanedVal = $val;
         }
         if($this->customCleaner !== null){
             return call_user_func($this->customCleaner, $val, $cleanedVal);
