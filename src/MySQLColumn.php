@@ -123,6 +123,13 @@ class MySQLColumn {
      */
     private $comment;
     /**
+     * A user defined custom cleanup function to clean the values even more before 
+     * inserting or doing any SQL transaction.
+     * @var callback 
+     * @since 1.6.7
+     */
+    private $customCleaner;
+    /**
      * Default value for the column.
      * @var mixed 
      * @since 1.0
@@ -191,13 +198,6 @@ class MySQLColumn {
      */
     private $type;
     /**
-     * A user defined custom cleanup function to clean the values even more before 
-     * inserting or doing any SQL transaction.
-     * @var callback 
-     * @since 1.6.7
-     */
-    private $customCleaner;
-    /**
      * Creates new instance of the class.
      * This method is used to initialize basic attributes of the column. 
      * First of all, it sets MySQL version number to 5.5. Then it validates the 
@@ -241,218 +241,6 @@ class MySQLColumn {
         $this->setIsNull(false);
         $this->setIsUnique(false);
     }
-    private function _setFloatTypeSize($size) {
-        if (!$this->setSize($size)) {
-            $this->setSize(10);
-            $this->setScale(2);
-        } else {
-            $size = $this->getSize();
-
-            if ($size == 0 || $size == 1) {
-                $this->setScale(0);
-            } else if ($size == 2) {
-                $this->setScale(1);
-            } else {
-                $this->setScale(2);
-            }
-        }
-    }
-    /**
-     * Sets a custom filter to clean up query values even more. 
-     * The function will have two parameters, the first parameter is the original 
-     * value and the second one is the cleaned value using the basic validator. 
-     * The developer must implement the function in a a way that it returns the 
-     * value after doing more validation before submitting it to the database.
-     * @param callable $func A user defined function to filter column value 
-     * even further.
-     * @since 1.6.7
-     */
-    public function setCustomFilter($func) {
-        if(is_callable($func)){
-            $this->customCleaner = $func;
-        }
-    }
-    private function _firstColPart(){
-        $retVal = $this->getName().' ';
-        $colDataType = $this->getType();
-
-        if ($colDataType == 'int' || $colDataType == 'varchar' || $colDataType == 'text') {
-            $retVal .= $colDataType.'('.$this->getSize().') ';
-        } else if ($colDataType == 'boolean') {
-            $retVal .= 'varchar(1) ';
-        } else if ($colDataType == 'decimal' || $colDataType == 'float' || $colDataType == 'double') {
-            if ($this->getSize() != 0) {
-                $retVal .= $colDataType.'('.$this->getSize().','.$this->getScale().') ';
-            } else {
-                $retVal .= $colDataType.' ';
-            }
-        } else {
-            $retVal .= $colDataType.' ';
-        }
-        return $retVal;
-    }
-    private function _nullPart() {
-        $colDataType = $this->getType();
-        if (!$this->isNull() || $colDataType == 'boolean') {
-            return 'not null ';
-        } else {
-            return 'null ';
-        }
-    }
-    private function _defaultPart() {
-        $colDataType = $this->getType();
-        $colDefault = $this->default;
-        if ($colDefault !== null) {
-            if ($colDataType == 'boolean') {
-                if ($this->getDefault() === true) {
-                    return 'default \'Y\' ';
-                } else {
-                    return 'default \'N\' ';
-                }
-            } else {
-                return 'default '.$colDefault.' ';
-            }
-        }
-    }
-    private function _commentPart() {
-        $colComment = $this->getComment();
-        if ($colComment !== null) {
-            return 'comment \''.$colComment.'\'';
-        }
-    }
-    /**
-     * Returns a string that represents the datatype of column data in 
-     * PHP.
-     * This method basically maps the data that can be stored in a column from 
-     * MySQL type to PHP type. For example, if column type is 'varchar', the method 
-     * will return the value 'string'. If the column allow null values, the 
-     * method will return 'string|null' and so on.
-     * @return string A string that represents column type in PHP (such as 
-     * 'integer' or 'boolean').
-     * @since 1.6.8
-     */
-    public function getPHPType() {
-        $isNullStr = $this->isNull() ? '|null' : '';
-        $colType = $this->getType();
-
-        if ($colType == 'int') {
-            return 'int'.$isNullStr;
-        } else if ($colType == 'decimal' || $colType == 'double' || $colType == 'float') {
-            return 'double'.$isNullStr;
-        } else if ($colType == 'boolean') {
-            return 'boolean'.$isNullStr;
-        } else {
-            return 'string'.$isNullStr;
-        }
-    }
-    /**
-     * Creates an instance of the class 'Column' given an array of options.
-     * @param array $options An associative array of options. The available options 
-     * are: 
-     * <ul>
-     * <li><b>name</b>: Required. The name of the column in the database. If not 
-     * provided, no object will be created.</li>
-     * <li><b>datatype</b>: The datatype of the column. If not provided, 'varchar' 
-     * will be used. Equal option: 'type'.</li>
-     * <li><b>size</b>: Size of the column (if datatype does support size). 
-     * If not provided, 1 will be used.</li>
-     * <li><b>default</b>: A default value for the column if its value 
-     * is not present in case of insert.</li>
-     * <li><b>is-null</b>: A boolean. If the column allows null values, this should 
-     * be set to true. Default is false.</li>
-     * <li><b>is-primary</b>: A boolean. It must be set to true if the column 
-     * represents a primary key. Note that the column will be set as unique 
-     * once its set as a primary. Equal option: primary.</li>
-     * <li><b>auto-inc</b>: A boolean. Only applicable if the column is a 
-     * primary key. Set to true to auto-increment column value by 1 for every 
-     * insert.</li>
-     * <li><b>is-unique</b>: A boolean. If set to true, a unique index will 
-     * be created for the column.</li>
-     * <li><b>auto-update</b>: A boolean. If the column datatype is 'timestamp' or 
-     * 'datetime' and this parameter is set to true, the time of update will 
-     * change automatically without having to change it manually.</li>
-     * <li><b>scale</b>: Number of numbers to the left of the decimal 
-     * point. Only supported for decimal datatype.</li>
-     * <li><b>comment</b>: A comment which can be used to describe the column.</li>
-     * <li><b>validator</b>: A PHP function which can be used to validate user 
-     * values before submitting the query to database.</li>
-     * </ul>
-     * 
-     * @return MySQLColumn|null The method will return an object of type 'MySQLColumn' 
-     * if created. If the index 'name' is not set, the method will return null.
-     * @since 1.6.8
-     */
-    public static function createColObj($options) {
-        if (isset($options['name'])) {
-            if (isset($options['datatype'])) {
-                $datatype = $options['datatype'];
-            } else if (isset($options['type'])) {
-                $datatype = $options['type'];
-            } else {
-                $datatype = 'varchar';
-            }
-            $col = new MySQLColumn($options['name'], $datatype);
-            $size = isset($options['size']) ? intval($options['size']) : 1;
-            $col->setSize($size);
-            
-            self::_primaryCheck($col, $options);
-            self::_extraAttrsCheck($col, $options);
-            
-            return $col;
-        }
-
-        return null;
-    }
-    /**
-     * 
-     * @param MySQLColumn $col
-     * @param array $options
-     */
-    private static function _extraAttrsCheck(&$col, $options) {
-        $scale = isset($options['scale']) ? intval($options['scale']) : 2;
-        $col->setScale($scale);
-        
-        if (isset($options['default'])) {
-            $col->setDefault($options['default']);
-        }
-        
-        if (isset($options['is-unique'])) {
-            $col->setIsUnique($options['is-unique']);
-        }
-        
-        //the 'not null' or 'null' must be specified or it will cause query 
-        //or it will cause query error.
-        $isNull = isset($options['is-null']) ? $options['is-null'] : false;
-        $col->setIsNull($isNull);
-        
-        if (isset($options['auto-update'])) {
-            $col->setAutoUpdate($options['auto-update']);
-        }
-
-        if (isset($options['comment'])) {
-            $col->setComment($options['comment']);
-        }
-        
-        if(isset($options['validator'])){
-            $col->setCustomFilter($options['validator']);
-        }
-    }
-    /**
-     * 
-     * @param MySQLColumn $col
-     * @param array $options
-     */
-    private static function _primaryCheck(&$col, $options) {
-        $isPrimary = isset($options['primary']) ? $options['primary'] : false;
-        if(!$isPrimary){
-            $isPrimary = isset($options['is-primary']) ? $options['is-primary'] : false;
-        }
-        $col->setIsPrimary($isPrimary);
-        if ($isPrimary && isset($options['auto-inc'])) {
-            $col->setIsAutoInc($options['auto-inc']);
-            $col->setIsNull(true);
-        }
-    }
     /**
      * Constructs a string that can be used to create the column in a table.
      * @return string A string that can be used to create the column in a table.
@@ -461,6 +249,7 @@ class MySQLColumn {
         $retVal = $this->_firstColPart();
         $retVal .= $this->_nullPart();
         $colDataType = $this->getType();
+
         if ($this->isUnique() && $colDataType != 'boolean') {
             $retVal .= 'unique ';
         }
@@ -512,6 +301,64 @@ class MySQLColumn {
         }
     }
     /**
+     * Creates an instance of the class 'Column' given an array of options.
+     * @param array $options An associative array of options. The available options 
+     * are: 
+     * <ul>
+     * <li><b>name</b>: Required. The name of the column in the database. If not 
+     * provided, no object will be created.</li>
+     * <li><b>datatype</b>: The datatype of the column. If not provided, 'varchar' 
+     * will be used. Equal option: 'type'.</li>
+     * <li><b>size</b>: Size of the column (if datatype does support size). 
+     * If not provided, 1 will be used.</li>
+     * <li><b>default</b>: A default value for the column if its value 
+     * is not present in case of insert.</li>
+     * <li><b>is-null</b>: A boolean. If the column allows null values, this should 
+     * be set to true. Default is false.</li>
+     * <li><b>is-primary</b>: A boolean. It must be set to true if the column 
+     * represents a primary key. Note that the column will be set as unique 
+     * once its set as a primary. Equal option: primary.</li>
+     * <li><b>auto-inc</b>: A boolean. Only applicable if the column is a 
+     * primary key. Set to true to auto-increment column value by 1 for every 
+     * insert.</li>
+     * <li><b>is-unique</b>: A boolean. If set to true, a unique index will 
+     * be created for the column.</li>
+     * <li><b>auto-update</b>: A boolean. If the column datatype is 'timestamp' or 
+     * 'datetime' and this parameter is set to true, the time of update will 
+     * change automatically without having to change it manually.</li>
+     * <li><b>scale</b>: Number of numbers to the left of the decimal 
+     * point. Only supported for decimal datatype.</li>
+     * <li><b>comment</b>: A comment which can be used to describe the column.</li>
+     * <li><b>validator</b>: A PHP function which can be used to validate user 
+     * values before submitting the query to database.</li>
+     * </ul>
+     * 
+     * @return MySQLColumn|null The method will return an object of type 'MySQLColumn' 
+     * if created. If the index 'name' is not set, the method will return null.
+     * @since 1.6.8
+     */
+    public static function createColObj($options) {
+        if (isset($options['name'])) {
+            if (isset($options['datatype'])) {
+                $datatype = $options['datatype'];
+            } else if (isset($options['type'])) {
+                $datatype = $options['type'];
+            } else {
+                $datatype = 'varchar';
+            }
+            $col = new MySQLColumn($options['name'], $datatype);
+            $size = isset($options['size']) ? intval($options['size']) : 1;
+            $col->setSize($size);
+
+            self::_primaryCheck($col, $options);
+            self::_extraAttrsCheck($col, $options);
+
+            return $col;
+        }
+
+        return null;
+    }
+    /**
      * Returns the name of column alias.
      * @return string|null If column alias is set, the method will return it. 
      * If it is not set, the method will return null.
@@ -558,6 +405,7 @@ class MySQLColumn {
     public function getDefault() {
         $defaultVal = $this->default;
         $retVal = null;
+
         if ($defaultVal !== null) {
             $dt = $this->getType();
 
@@ -571,7 +419,6 @@ class MySQLColumn {
                 if ($dt == 'decimal' || $dt == 'float' || $dt == 'double') {
                     $retVal = floatval($retVal);
                 }
-
             } else if (($this->default == 'now()' || $this->default == 'current_timestamp') &&
                 ($dt == 'datetime' || $dt == 'timestamp')) {
                 $retVal = date('Y-m-d H:i:s');
@@ -579,12 +426,11 @@ class MySQLColumn {
                 $retVal = substr($defaultVal, 1, strlen($defaultVal) - 2);
             } else if ($dt == 'int') {
                 $retVal = intval($defaultVal);
-            } else if ($dt == 'boolean'){
+            } else if ($dt == 'boolean') {
                 return $defaultVal === true;
             }
             return $retVal;
-        }
-        else{
+        } else {
             return $this->default;
         }
     }
@@ -630,6 +476,31 @@ class MySQLColumn {
      */
     public function getOwner() {
         return $this->ownerTable;
+    }
+    /**
+     * Returns a string that represents the datatype of column data in 
+     * PHP.
+     * This method basically maps the data that can be stored in a column from 
+     * MySQL type to PHP type. For example, if column type is 'varchar', the method 
+     * will return the value 'string'. If the column allow null values, the 
+     * method will return 'string|null' and so on.
+     * @return string A string that represents column type in PHP (such as 
+     * 'integer' or 'boolean').
+     * @since 1.6.8
+     */
+    public function getPHPType() {
+        $isNullStr = $this->isNull() ? '|null' : '';
+        $colType = $this->getType();
+
+        if ($colType == 'int') {
+            return 'int'.$isNullStr;
+        } else if ($colType == 'decimal' || $colType == 'double' || $colType == 'float') {
+            return 'double'.$isNullStr;
+        } else if ($colType == 'boolean') {
+            return 'boolean'.$isNullStr;
+        } else {
+            return 'string'.$isNullStr;
+        }   
     }
     /**
      * Returns the value of scale.
@@ -761,6 +632,21 @@ class MySQLColumn {
         }
     }
     /**
+     * Sets a custom filter to clean up query values even more. 
+     * The function will have two parameters, the first parameter is the original 
+     * value and the second one is the cleaned value using the basic validator. 
+     * The developer must implement the function in a a way that it returns the 
+     * value after doing more validation before submitting it to the database.
+     * @param callable $func A user defined function to filter column value 
+     * even further.
+     * @since 1.6.7
+     */
+    public function setCustomFilter($func) {
+        if (is_callable($func)) {
+            $this->customCleaner = $func;
+        }
+    }
+    /**
      * Sets the default value for the column to use in case of insert.
      * For integer data type, the passed value must be an integer. For string types such as 
      * 'varchar' or 'text', the passed value must be a string. If the datatype 
@@ -794,9 +680,9 @@ class MySQLColumn {
      */
     public function setIsAutoInc($bool) {
         if ($this->isPrimary() && gettype($bool) == 'boolean' && $this->getType() == 'int') {
-                $this->isAutoInc = $bool;
+            $this->isAutoInc = $bool;
 
-                return true;
+            return true;
         }
 
         return false;
@@ -972,6 +858,7 @@ class MySQLColumn {
     public function setSize($size) {
         $type = $this->getType();
         $retVal = false;
+
         if ($type == 'boolean') {
             $this->size = 1;
 
@@ -989,30 +876,6 @@ class MySQLColumn {
         }
 
         return $retVal;
-    }
-    private function _intSize($size) {
-        if ($size > 0 && $size < 12) {
-            $this->size = $size;
-
-            return true;
-        } else if ($size > 11) {
-            $this->size = 11;
-
-            return true;
-        }
-        return false;
-    }
-    private function _textTypeSize($size) {
-        if ($size > 0) {
-            $this->size = $size;
-
-            if ($size > 21845) {
-                $this->setType('mediumtext');
-            }
-
-            return true;
-        }
-        return false;
     }
     /**
      * Sets the type of column data.
@@ -1062,6 +925,7 @@ class MySQLColumn {
     private function _cleanValueHelper($val,$dateEndOfDay = false) {
         $colDatatype = $this->getType();
         $cleanedVal = null;
+
         if ($val === null) {
             return null;
         } else if ($colDatatype == 'int') {
@@ -1078,14 +942,24 @@ class MySQLColumn {
             //blob mostly
             $cleanedVal = $val;
         }
-        if($this->customCleaner !== null){
+
+        if ($this->customCleaner !== null) {
             return call_user_func($this->customCleaner, $val, $cleanedVal);
         }
+
         return $cleanedVal;
+    }
+    private function _commentPart() {
+        $colComment = $this->getComment();
+
+        if ($colComment !== null) {
+            return 'comment \''.$colComment.'\'';
+        }
     }
     private function _dateCleanUp($val, $dateEndOfDay) {
         $trimmed = strtolower(trim($val));
         $cleanedVal = '';
+
         if ($trimmed == 'current_timestamp') {
             $cleanedVal = 'current_timestamp';
         } else if ($trimmed == 'now()') {
@@ -1099,7 +973,147 @@ class MySQLColumn {
                 $cleanedVal = '\''.$trimmed.' 00:00:00\'';
             }
         }
+
         return $cleanedVal;
+    }
+    private function _defaultPart() {
+        $colDataType = $this->getType();
+        $colDefault = $this->default;
+
+        if ($colDefault !== null) {
+            if ($colDataType == 'boolean') {
+                if ($this->getDefault() === true) {
+                    return 'default \'Y\' ';
+                } else {
+                    return 'default \'N\' ';
+                }
+            } else {
+                return 'default '.$colDefault.' ';
+            }
+        }
+    }
+    /**
+     * 
+     * @param MySQLColumn $col
+     * @param array $options
+     */
+    private static function _extraAttrsCheck(&$col, $options) {
+        $scale = isset($options['scale']) ? intval($options['scale']) : 2;
+        $col->setScale($scale);
+
+        if (isset($options['default'])) {
+            $col->setDefault($options['default']);
+        }
+
+        if (isset($options['is-unique'])) {
+            $col->setIsUnique($options['is-unique']);
+        }
+
+        //the 'not null' or 'null' must be specified or it will cause query 
+        //or it will cause query error.
+        $isNull = isset($options['is-null']) ? $options['is-null'] : false;
+        $col->setIsNull($isNull);
+
+        if (isset($options['auto-update'])) {
+            $col->setAutoUpdate($options['auto-update']);
+        }
+
+        if (isset($options['comment'])) {
+            $col->setComment($options['comment']);
+        }
+
+        if (isset($options['validator'])) {
+            $col->setCustomFilter($options['validator']);
+        }
+    }
+    private function _firstColPart() {
+        $retVal = $this->getName().' ';
+        $colDataType = $this->getType();
+
+        if ($colDataType == 'int' || $colDataType == 'varchar' || $colDataType == 'text') {
+            $retVal .= $colDataType.'('.$this->getSize().') ';
+        } else if ($colDataType == 'boolean') {
+            $retVal .= 'varchar(1) ';
+        } else if ($colDataType == 'decimal' || $colDataType == 'float' || $colDataType == 'double') {
+            if ($this->getSize() != 0) {
+                $retVal .= $colDataType.'('.$this->getSize().','.$this->getScale().') ';
+            } else {
+                $retVal .= $colDataType.' ';
+            }
+        } else {
+            $retVal .= $colDataType.' ';
+        }
+
+        return $retVal;
+    }
+    private function _intSize($size) {
+        if ($size > 0 && $size < 12) {
+            $this->size = $size;
+
+            return true;
+        } else if ($size > 11) {
+            $this->size = 11;
+
+            return true;
+        }
+
+        return false;
+    }
+    private function _nullPart() {
+        $colDataType = $this->getType();
+
+        if (!$this->isNull() || $colDataType == 'boolean') {
+            return 'not null ';
+        } else {
+            return 'null ';
+        }
+    }
+    /**
+     * 
+     * @param MySQLColumn $col
+     * @param array $options
+     */
+    private static function _primaryCheck(&$col, $options) {
+        $isPrimary = isset($options['primary']) ? $options['primary'] : false;
+
+        if (!$isPrimary) {
+            $isPrimary = isset($options['is-primary']) ? $options['is-primary'] : false;
+        }
+        $col->setIsPrimary($isPrimary);
+
+        if ($isPrimary && isset($options['auto-inc'])) {
+            $col->setIsAutoInc($options['auto-inc']);
+            $col->setIsNull(true);
+        }
+    }
+    private function _setFloatTypeSize($size) {
+        if (!$this->setSize($size)) {
+            $this->setSize(10);
+            $this->setScale(2);
+        } else {
+            $size = $this->getSize();
+
+            if ($size == 0 || $size == 1) {
+                $this->setScale(0);
+            } else if ($size == 2) {
+                $this->setScale(1);
+            } else {
+                $this->setScale(2);
+            }
+        }
+    }
+    private function _textTypeSize($size) {
+        if ($size > 0) {
+            $this->size = $size;
+
+            if ($size > 21845) {
+                $this->setType('mediumtext');
+            }
+
+            return true;
+        }
+
+        return false;
     }
     /**
      * 
