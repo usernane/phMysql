@@ -24,7 +24,6 @@
  */
 namespace phMysql;
 
-use Exception;
 /**
  * A base class that is used to construct MySQL queries. It can be used as a base 
  * class for constructing other MySQL queries.
@@ -181,17 +180,20 @@ class MySQLQuery {
     public function addPrimaryKey($tableObj) {
         if ($tableObj instanceof MySQLTable) {
             $primaryCount = $tableObj->primaryKeyColsCount();
-            if($primaryCount != 0){
+
+            if ($primaryCount != 0) {
                 $stm = 'alter table '.$tableObj->getName().' add constraint '.$tableObj->getPrimaryKeyName().' primary key (';
                 $index = 0;
                 $alterStm = '';
                 $comma = ',';
+
                 foreach ($tableObj->getColumns() as $col) {
                     if ($col->isPrimary()) {
                         if ($index + 1 == $primaryCount) {
                             $comma = ')';
                         }
                         $stm .= $col->getName().$comma;
+
                         if ($col->isAutoInc()) {
                             $alterStm .= 'alter table '.$tableObj->getName().' modify '.$col.' auto_increment;'.self::NL;
                         }
@@ -227,47 +229,6 @@ class MySQLQuery {
         }
         $this->setQuery($q, 'alter');
     }
-    private function _createColsToSelectJoin($colsArr) {
-        $retVal = '';
-        if (count($colsArr) == 0) {
-            $comma = " \n";
-            $tableObj = $this->getTable();
-            foreach ($tableObj->getLeftTable()->getColumns() as $colObj) {
-                if ($tableObj->isCommon($colObj->getName())) {
-                    $alias = 'left_'.$colObj->getName();
-                    $colObj->setAlias($alias);
-                    $asPart = $comma.$colObj->getName(true).' as '.$alias;
-                } else {
-                    $asPart = $comma.$colObj->getName(true);
-                }
-                $retVal .= $asPart;
-                $comma = ",\n";
-            }
-
-            foreach ($tableObj->getRightTable()->getColumns() as $colObj) {
-                if ($tableObj->isCommon($colObj->getName())) {
-                    $alias = 'right_'.$colObj->getName();
-                    $colObj->setAlias($alias);
-                    $asPart = $comma.$colObj->getName(true).' as '.$alias;
-                } else {
-                    $asPart = $comma.$colObj->getName(true);
-                }
-                $retVal .= $asPart;
-            }
-        } else {
-            $comma = " \n";
-
-            if (isset($colsArr['left']) && gettype($colsArr['left']) == 'array') {
-                $retVal .= $this->_createColToSelechH1($colsArr['left'], $comma, 'left');
-            }
-
-            if (isset($colsArr['right']) && gettype($colsArr['right']) == 'array') {
-                $retVal .= $this->_createColToSelechH1($colsArr['right'], $comma, 'right');
-            }
-            $retVal .= $this->_createColToSelechH1($colsArr, $comma);
-        }
-        return $retVal;
-    }
     /**
      * Constructs a string which contains columns names that will be selected.
      * @param array $colsArr It can be an indexed array which contains columns 
@@ -296,7 +257,7 @@ class MySQLQuery {
         if ($tableObj instanceof JoinTable && $tableObj->hasCommon()) {
             $retVal = $this->_createColsToSelectJoin($colsArr);
         } else if (count($colsArr) == 0) {
-                $retVal = '*';
+            $retVal = '*';
         } else {
             $comma = " \n";
 
@@ -583,7 +544,7 @@ class MySQLQuery {
      */
     public function getColIndex($colKey) {
         $col = $this->getCol($colKey);
-        
+
         return $col instanceof MySQLColumn ? $col->getIndex() : -1;
     }
     /**
@@ -1199,12 +1160,6 @@ class MySQLQuery {
             'offset' => $offset
         ]);
     }
-    private function _getArray($index, $optionsArr){
-        if(isset($optionsArr[$index]) && gettype($optionsArr[$index]) == 'array'){
-            return $optionsArr[$index];
-        }
-        return [];
-    }
 
     /**
      * Constructs a select query which is used to count number of rows on a 
@@ -1250,32 +1205,8 @@ class MySQLQuery {
             } else {
                 $where = '';
             }
-
-            
         }
         $this->setQuery('select count(*)'.$asPart.' from '.$this->getStructureName().$where.';', 'select');
-    }
-    private function _where($options) {
-        $cols = [];
-        $vals = [];
-
-        foreach ($options['where'] as $valOrColIndex => $colOrVal) {
-            if ($colOrVal instanceof MySQLColumn) {
-                $cols[] = $colOrVal;
-                $vals[] = $valOrColIndex;
-            } else if (gettype($valOrColIndex) == 'integer') {
-                $testCol = $this->getTable()->getColByIndex($valOrColIndex);
-            } else {
-                $testCol = $this->getTable()->getCol($valOrColIndex);
-            }
-            $cols[] = $testCol;
-            $vals[] = $colOrVal;
-        }
-        $where = $this->createWhereConditions($cols, $vals, $options['conditions'], $options['join-operators']);
-        if (trim($where) == 'where') {
-            $where = '';
-        }
-        return $where;
     }
     /**
      * Constructs a query that can be used to select maximum value of a table column.
@@ -1741,6 +1672,50 @@ class MySQLQuery {
 
         return ' '.trim($orderByStr);
     }
+    private function _createColsToSelectJoin($colsArr) {
+        $retVal = '';
+
+        if (count($colsArr) == 0) {
+            $comma = " \n";
+            $tableObj = $this->getTable();
+
+            foreach ($tableObj->getLeftTable()->getColumns() as $colObj) {
+                if ($tableObj->isCommon($colObj->getName())) {
+                    $alias = 'left_'.$colObj->getName();
+                    $colObj->setAlias($alias);
+                    $asPart = $comma.$colObj->getName(true).' as '.$alias;
+                } else {
+                    $asPart = $comma.$colObj->getName(true);
+                }
+                $retVal .= $asPart;
+                $comma = ",\n";
+            }
+
+            foreach ($tableObj->getRightTable()->getColumns() as $colObj) {
+                if ($tableObj->isCommon($colObj->getName())) {
+                    $alias = 'right_'.$colObj->getName();
+                    $colObj->setAlias($alias);
+                    $asPart = $comma.$colObj->getName(true).' as '.$alias;
+                } else {
+                    $asPart = $comma.$colObj->getName(true);
+                }
+                $retVal .= $asPart;
+            }
+        } else {
+            $comma = " \n";
+
+            if (isset($colsArr['left']) && gettype($colsArr['left']) == 'array') {
+                $retVal .= $this->_createColToSelechH1($colsArr['left'], $comma, 'left');
+            }
+
+            if (isset($colsArr['right']) && gettype($colsArr['right']) == 'array') {
+                $retVal .= $this->_createColToSelechH1($colsArr['right'], $comma, 'right');
+            }
+            $retVal .= $this->_createColToSelechH1($colsArr, $comma);
+        }
+
+        return $retVal;
+    }
     private function _createColToSelechH1($colsArr,&$comma,$leftOrRightOrBoth = 'both') {
         $retVal = '';
 
@@ -1813,6 +1788,7 @@ class MySQLQuery {
             if ($alias !== null) {
                 $asPart = $colObj->getName(true).' as '.$alias;
                 $colObj->setAlias($alias);
+
                 if ($updateName) {
                     $this->origColsNames[$colKey] = $colObj->getName();
                     $colObj->setName($alias);
@@ -1835,49 +1811,6 @@ class MySQLQuery {
         }
 
         return $asPart;
-    }
-    private function _createTableColumns($tableObj) {
-        $keys = $this->getTable()->colsKeys();
-        $count = count($keys);
-        $queryStr = '';
-        for ($x = 0 ; $x < $count ; $x++) {
-            if ($x + 1 == $count) {
-                $queryStr .= '    '.$tableObj->columns()[$keys[$x]].self::NL;
-            } else {
-                $queryStr .= '    '.$tableObj->columns()[$keys[$x]].','.self::NL;
-            }
-        }
-        return $queryStr;
-    }
-    private function _createTablePK($inclSqlComments) {
-        $coutPk = $this->getTable()->primaryKeyColsCount();
-        $queryStr = '';
-        if ($coutPk >= 1) {
-            if ($inclSqlComments === true) {
-                $queryStr .= '-- Add Primary key to the table.'.self::NL;
-            }
-            $this->addPrimaryKey($this->getTable());
-            $q = $this->getQuery();
-
-            if (strlen($q) != 0) {
-                //no need to append ';\n' as it was added before.
-                $queryStr .= $q;
-            }
-        }
-        return $queryStr;
-    }
-    private function _createTableFKs($inclSqlComments) {
-        $count2 = count($this->getTable()->forignKeys());
-        $queryStr = '';
-        if ($inclSqlComments === true && $count2 != 0) {
-            $queryStr .= '-- Add Forign keys to the table.'.self::NL;
-        }
-
-        for ($x = 0 ; $x < $count2 ; $x++) {
-            $this->addForeignKey($this->getTable()->forignKeys()[$x]);
-            $queryStr .= $this->getQuery().';'.self::NL;
-        }
-        return $queryStr;
     }
     /**
      * Constructs a query that can be used to create a new table.
@@ -1911,11 +1844,86 @@ class MySQLQuery {
             $queryStr .= $this->_createTablePK($inclSqlComments);
             //add forign keys
             $queryStr .= $this->_createTableFKs($inclSqlComments);
+
             if ($inclSqlComments === true) {
                 $queryStr .= '-- End of the Structure of the table \''.$this->getStructureName().'\''.self::NL;
             }
             $this->setQuery($queryStr, 'create');
         }
+    }
+    private function _createTableColumns($tableObj) {
+        $keys = $this->getTable()->colsKeys();
+        $count = count($keys);
+        $queryStr = '';
+
+        for ($x = 0 ; $x < $count ; $x++) {
+            if ($x + 1 == $count) {
+                $queryStr .= '    '.$tableObj->columns()[$keys[$x]].self::NL;
+            } else {
+                $queryStr .= '    '.$tableObj->columns()[$keys[$x]].','.self::NL;
+            }
+        }
+
+        return $queryStr;
+    }
+    private function _createTableFKs($inclSqlComments) {
+        $count2 = count($this->getTable()->forignKeys());
+        $queryStr = '';
+
+        if ($inclSqlComments === true && $count2 != 0) {
+            $queryStr .= '-- Add Forign keys to the table.'.self::NL;
+        }
+
+        for ($x = 0 ; $x < $count2 ; $x++) {
+            $this->addForeignKey($this->getTable()->forignKeys()[$x]);
+            $queryStr .= $this->getQuery().';'.self::NL;
+        }
+
+        return $queryStr;
+    }
+    private function _createTablePK($inclSqlComments) {
+        $coutPk = $this->getTable()->primaryKeyColsCount();
+        $queryStr = '';
+
+        if ($coutPk >= 1) {
+            if ($inclSqlComments === true) {
+                $queryStr .= '-- Add Primary key to the table.'.self::NL;
+            }
+            $this->addPrimaryKey($this->getTable());
+            $q = $this->getQuery();
+
+            if (strlen($q) != 0) {
+                //no need to append ';\n' as it was added before.
+                $queryStr .= $q;
+            }
+        }
+
+        return $queryStr;
+    }
+    /**
+     * Adds extra elements to an array.
+     * @param array $array
+     * @param mixed $fill The element that will fill the remaining slots.
+     * @param int $numOfElsToAdd The number of elements that the array must have.
+     * @return int The method will return the number of elements in the array after 
+     * its filled.
+     */
+    private function _fillArray(&$array, $fill, $numOfElsToAdd) {
+        $arrayCount = count($array);
+
+        while ($numOfElsToAdd > $arrayCount) {
+            $array[] = $fill;
+            $arrayCount = count($array);
+        }
+
+        return count($array);
+    }
+    private function _getArray($index, $optionsArr) {
+        if (isset($optionsArr[$index]) && gettype($optionsArr[$index]) == 'array') {
+            return $optionsArr[$index];
+        }
+
+        return [];
     }
     /**
      * 
@@ -1945,21 +1953,29 @@ class MySQLQuery {
 
         return $selectQuery;
     }
-    /**
-     * Adds extra elements to an array.
-     * @param array $array
-     * @param mixed $fill The element that will fill the remaining slots.
-     * @param int $numOfElsToAdd The number of elements that the array must have.
-     * @return int The method will return the number of elements in the array after 
-     * its filled.
-     */
-    private function _fillArray(&$array, $fill, $numOfElsToAdd) {
-        $arrayCount = count($array);
-        while ($numOfElsToAdd > $arrayCount) {
-            $array[] = $fill;
-            $arrayCount = count($array);
+    private function _where($options) {
+        $cols = [];
+        $vals = [];
+
+        foreach ($options['where'] as $valOrColIndex => $colOrVal) {
+            if ($colOrVal instanceof MySQLColumn) {
+                $cols[] = $colOrVal;
+                $vals[] = $valOrColIndex;
+            } else if (gettype($valOrColIndex) == 'integer') {
+                $testCol = $this->getTable()->getColByIndex($valOrColIndex);
+            } else {
+                $testCol = $this->getTable()->getCol($valOrColIndex);
+            }
+            $cols[] = $testCol;
+            $vals[] = $colOrVal;
         }
-        return count($array);
+        $where = $this->createWhereConditions($cols, $vals, $options['conditions'], $options['join-operators']);
+
+        if (trim($where) == 'where') {
+            $where = '';
+        }
+
+        return $where;
     }
     /**
      * A method that is used to create the 'where' part of any query in case 
@@ -2110,7 +2126,7 @@ class MySQLQuery {
                                 }
                             }
                             $where .= $colName.' '.$inCond.')';
-                        } 
+                        }
                     }
                     $where = trim($where).')';
                 } else {
