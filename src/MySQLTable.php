@@ -826,20 +826,23 @@ class MySQLTable {
         if (!($col instanceof MySQLColumn)) {
             foreach ($this->colSet as $key => $col) {
                 if ($col->getIndex() == $colKeyOrIndex) {
-                    unset($this->colSet[$key]);
-                    $this->_checkPKs();
-
-                    return true;
+                    
+                    return $this->_removeCol($key);
                 }
             }
 
             return false;
         } else {
-            unset($this->colSet[$colKeyOrIndex]);
-            $this->_checkPKs();
-
-            return true;
+            
+            return $this->_removeCol($colKeyOrIndex);
         }
+    }
+    private function _removeCol($colKey) {
+        $col = $this->colSet[$colKey];
+        unset($this->colSet[$colKey]);
+        $this->_checkPKs();
+        $col->setOwner(null);
+        return true;
     }
     /**
      * Sets a comment which will appear with the table.
