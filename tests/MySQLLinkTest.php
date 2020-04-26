@@ -4,6 +4,7 @@ namespace phMysql\tests;
 use phMysql\MySQLLink;
 use PHPUnit\Framework\TestCase;
 use phMysql\entity\User;
+use phMysql\MySQLQuery;
 /**
  * Integration testing. This class will test the whole library 
  * by integrating all classes in the library. It will be used to execute actual 
@@ -12,6 +13,45 @@ use phMysql\entity\User;
  * @author Ibrahim
  */
 class MySQLLinkTest extends TestCase {
+    /**
+     * @test
+     * @depends testSetDb01
+     * @param MySQLLink $conn Description
+     */
+    public function testOtherQuery00($conn) {
+        $query = new MySQLQuery();
+        $query->schemaViewsCount('testing_db');
+        $this->assertTrue($conn->executeQuery($query));
+        $result = $conn->getRow()['views_count'];
+        $this->assertEquals(0, $result);
+    }
+    /**
+     * @test
+     * @depends testSetDb01
+     * @param MySQLLink $conn Description
+     */
+    public function testOtherQuery01($conn) {
+        $query = new MySQLQuery();
+        $query->schemaTablesCount('testing_db');
+        $this->assertTrue($conn->executeQuery($query));
+        $result = $conn->getRow()['tables_count'];
+        $this->assertEquals(2, $result);
+    }
+    /**
+     * @test
+     * @depends testSetDb01
+     * @param MySQLLink $conn Description
+     */
+    public function testOtherQuery02($conn) {
+        $query = new MySQLQuery();
+        $custom = 'select x from y;';
+        $query->setQuery($custom, 'select');
+        $this->assertFalse($conn->executeQuery($query));
+        $errCode = $conn->getErrorCode();
+        $errMsg = $conn->getErrorMessage();
+        $this->assertEquals(1146, $errCode);
+        $this->assertEquals("Table 'testing_db.y' doesn't exist", $errMsg);
+    }
     /**
      * @depends testSetDb01
      * @param MySQLLink $conn
