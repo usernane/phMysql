@@ -338,6 +338,12 @@ class MySQLTableTest extends TestCase {
         $this->assertTrue(file_exists($table->getEntityPath()));
         require_once $table->getEntityPath();
         $this->assertTrue(class_exists($table->getEntityNamespace()));
+        $this->assertTrue($table->createEntityClass([
+            'store-path' => __DIR__,
+            'class-name' => 'User3',
+            'implement-jsoni'=>true
+        ]));
+        $this->assertTrue(file_exists($table->getEntityPath()));
     }
     /**
      * 
@@ -528,7 +534,7 @@ class MySQLTableTest extends TestCase {
         $query = new ArticleQuery();
         $table = $query->getStructure();
         $this->assertTrue($table->removeColumn('author-id'));
-        $this->assertEquals(5,count($table->columns()));
+        $this->assertEquals(6,count($table->columns()));
         $this->assertFalse($table->hasColumn('author-id'));
     }
     /**
@@ -538,7 +544,7 @@ class MySQLTableTest extends TestCase {
         $query = new ArticleQuery();
         $table = $query->getStructure();
         $this->assertTrue($table->removeColumn(0));
-        $this->assertEquals(5,count($table->columns()));
+        $this->assertEquals(6,count($table->columns()));
         $this->assertFalse($table->hasColumn('article-id'));
     }
     /**
@@ -548,7 +554,7 @@ class MySQLTableTest extends TestCase {
         $query = new ArticleQuery();
         $table = $query->getStructure();
         $this->assertTrue($table->removeColumn(3));
-        $this->assertEquals(5,count($table->columns()));
+        $this->assertEquals(6,count($table->columns()));
         $this->assertFalse($table->hasColumn('author-id'));
     }
     /**
@@ -558,7 +564,7 @@ class MySQLTableTest extends TestCase {
         $query = new ArticleQuery();
         $table = $query->getStructure();
         $this->assertTrue($table->removeColumn(4));
-        $this->assertEquals(5,count($table->columns()));
+        $this->assertEquals(6,count($table->columns()));
         $this->assertFalse($table->hasColumn('author-name'));
     }
     /**
@@ -568,7 +574,7 @@ class MySQLTableTest extends TestCase {
         $query = new ArticleQuery();
         $table = $query->getStructure();
         $this->assertFalse($table->removeColumn(20));
-        $this->assertEquals(6,count($table->columns()));
+        $this->assertEquals(7,count($table->columns()));
     }
     /**
      * @test
