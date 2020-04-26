@@ -183,8 +183,13 @@ class EntityMapper {
             $this->classStr .= "/**\n"
             ." * An auto-generated entity class which maps to a record in the\n"
             ." * table '".$this->getTable()->getName()."'\n"
-            ." **/\n"
-            ."class ".$entityClassName." {\n";
+            ." **/\n";
+            if($this->implJsonI){
+                $this->classStr .= "class ".$entityClassName." implements JsonI {\n";
+            }
+            else{
+                $this->classStr .= "class ".$entityClassName." {\n";
+            }
             $this->_createEntityVariables();
             $this->_createEntityMethods();
             $this->_imlpJsonX();
@@ -198,6 +203,10 @@ class EntityMapper {
     private function _imlpJsonX() {
         if($this->implJsonI){
             $this->classStr .= ""
+            . "    /**\n"
+            . "     * Returns an object of type 'JsonX' that contains object information.\n"
+            . "     * @return JsonX An object of type 'JsonX'.\n"
+            . "     */\n"
             . "    public function toJSON(){\n";
             $arrayStr = '';
             $attributes = $this->getAttribitesNames();
@@ -205,15 +214,15 @@ class EntityMapper {
             $index = 0;
             $comma = "";
             foreach ($attributes as $attrName){
-                $arrayStr .= "            ".$comma."'$attrName' => \$this->$gettersMap[$index]";
+                $arrayStr .= $comma."            '$attrName' => \$this->$gettersMap[$index]()";
                 $index++;
                 $comma = ",\n";
             }
             $this->classStr .=  ""
-                    . "\$jsonx = new JsonX([\n"
-                    . "            $arrayStr\n"
+                    . "        \$jsonx = new JsonX([\n"
+                    . "$arrayStr\n"
                     . "        ]);\n"
-                    . "        return \$jsonx"
+                    . "        return \$jsonx;\n"
                     . "    }\n";
         }
     }
