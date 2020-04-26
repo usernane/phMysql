@@ -3,6 +3,7 @@ namespace phMysql\tests;
 
 use phMysql\MySQLLink;
 use PHPUnit\Framework\TestCase;
+use phMysql\entity\User;
 /**
  * Integration testing. This class will test the whole library 
  * by integrating all classes in the library. It will be used to execute actual 
@@ -144,6 +145,55 @@ class MySQLLinkTest extends TestCase {
         }
         $this->assertTrue($r);
         $this->assertEquals(4,$conn->rows());
+    }
+    /**
+     * @depends testAddDataTest00
+     * @param MySQLLink $conn
+     */
+    public function testGetData02($conn) {
+        $q = new UsersQuery();
+        $q->select([
+            'where'=>[
+                'user-id'=>1
+            ],
+            'map-result-to'=>'phMysql\\entity\\User'
+        ]);
+        $r = $conn->executeQuery($q);
+        $this->assertTrue($r);
+        $this->assertEquals(1, $conn->rows());
+        $user = $conn->nextRow();
+        $this->assertTrue($user instanceof User);
+        $this->assertEquals(1, $user->getUserId());
+        $this->assertTrue($user->isActive());
+        return $conn;
+    }
+    /**
+     * @depends testAddDataTest00
+     * @param MySQLLink $conn
+     */
+    public function testGetData03($conn) {
+        $q = new UsersQuery();
+        $q->insertRecord([
+            'user-id'=>100,
+            'is-active'=>false,
+            'name'=>'Not Active',
+            'email'=>'x@yy.xz'
+        ]);
+        $r = $conn->executeQuery($q);
+        $this->assertTrue($r);
+        $q->select([
+            'where'=>[
+                'user-id'=>100
+            ],
+            'map-result-to'=>'phMysql\\entity\\User'
+        ]);
+        $r = $conn->executeQuery($q);
+        $this->assertTrue($r);
+        $this->assertEquals(1, $conn->rows());
+        $user = $conn->nextRow();
+        $this->assertTrue($user instanceof User);
+        $this->assertEquals(100, $user->getUserId());
+        $this->assertFalse($user->isActive());
     }
     /**
      * @depends testSetDb01
