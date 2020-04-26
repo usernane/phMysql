@@ -205,10 +205,9 @@ class EntityMapper {
             $this->classStr .= ""
             . "    /**\n"
             . "     * Returns an object of type 'JsonX' that contains object information.\n"
-            . "     * @return JsonX An object of type 'JsonX'.\n"
-            . "     */\n"
-            . "    public function toJSON(){\n";
+            . "     * The returned object will have the following attributes:\n";
             $arrayStr = '';
+            $attrsStr = '';
             $attributes = $this->getAttribitesNames();
             $gettersMap = $this->getEntityMethods()['getters'];
             $index = 0;
@@ -217,13 +216,20 @@ class EntityMapper {
                 $arrayStr .= $comma."            '$attrName' => \$this->$gettersMap[$index]()";
                 $index++;
                 $comma = ",\n";
+                $attrsStr .= "     * <li>$attrName</li>\n";
             }
-            $this->classStr .=  ""
-                    . "        \$jsonx = new JsonX([\n"
-                    . "$arrayStr\n"
-                    . "        ]);\n"
-                    . "        return \$jsonx;\n"
-                    . "    }\n";
+            $this->classStr .= ""
+            . "     * <ul>\n"
+            . "$attrsStr"
+            . "     * </ul>\n"
+            . "     * @return JsonX An object of type 'JsonX'.\n"
+            . "     */\n"
+            . "    public function toJSON() {\n"
+            . "        \$jsonx = new JsonX([\n"
+            . "$arrayStr\n"
+            . "        ]);\n"
+            . "        return \$jsonx;\n"
+            . "    }\n";
         }
     }
     /**
