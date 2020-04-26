@@ -48,7 +48,7 @@ require_once $rootDir.'tests'.$DS.'QueryTestObj.php';
 require_once $rootDir.'tests'.$DS.'UsersQuery.php';
 require_once $rootDir.'tests'.$DS.'ArticleQuery.php';
 require_once $rootDir.'tests'.$DS.'EntityUser.php';
-
+require_once $rootDir.'tests'.$DS.'User.php';
 
 echo "Initializing Database...\n";
 $conn = new phMysql\MySQLLink('localhost', 'root', '123456');
