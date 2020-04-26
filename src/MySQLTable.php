@@ -203,33 +203,12 @@ class MySQLTable {
                 }
                 $col = MySQLColumn::createColObj($col);
             }
+
             if ($col instanceof MySQLColumn) {
                 return $this->_addColObj($trimmedKey, $col);
-            }   
-        }
-
-        return false;
-    }
-    private function _addColObj($trimmedKey, $col) {
-        if (!isset($this->colSet[$trimmedKey])) {
-            $givanColName = $col->getName();
-
-            foreach ($this->columns() as $val) {
-                $inTableColName = $val->getName();
-
-                if ($inTableColName == $givanColName) {
-                    return false;
-                }
-            }
-
-            if ($this->_isKeyNameValid($trimmedKey)) {
-                $col->setOwner($this);
-                $this->colSet[$trimmedKey] = $col;
-                $this->_checkPKs();
-
-                return true;
             }
         }
+
         return false;
     }
     /**
@@ -308,33 +287,13 @@ class MySQLTable {
                 $options[$indexName]['default'] = 'current_timestamp';
                 $this->_addDefaultCol($indexName, $options);
             }
-            
+
             if (isset($options['last-updated'])) {
                 $indexName = 'last-updated';
                 $options[$indexName]['auto-update'] = true;
                 $options[$indexName]['is-null'] = true;
                 $options[$indexName]['datatype'] = 'datetime';
                 $this->_addDefaultCol($indexName, $options);
-            }
-        }
-    }
-    private function _addDefaultCol($colIndex, $options) {
-        if (isset($options[$colIndex]) && $this->defaultColsKeys[$colIndex] === null) {
-            $defaultCol = $options[$colIndex];
-            $key = isset($defaultCol['key-name']) ? trim($defaultCol['key-name']) : $colIndex;
-
-            if (!$this->_isKeyNameValid($key)) {
-                $key = $colIndex;
-            }
-            $inDbName = isset($defaultCol['db-name']) ? $defaultCol['db-name'] : str_replace('-', '_', $colIndex);
-            $options[$colIndex]['name'] = $inDbName;
-            $colObj = MySQLColumn::createColObj($options[$colIndex]);
-
-            if (!($colObj->getName() == $inDbName)) {
-                $colObj->setName(str_replace('-', '_', $colIndex));
-            }
-            if ($this->addColumn($key, $colObj)) {
-                $this->defaultColsKeys[$colIndex] = $key;
             }
         }
     }
@@ -463,8 +422,8 @@ class MySQLTable {
     public function columns() {
         return $this->colSet;
     }
-   
-    
+
+
     /**
      * Create a new entity class that can be used to store table records
      * @param array $options An associative array that contains entity class 
@@ -494,23 +453,27 @@ class MySQLTable {
 
         if (strlen($entityName) != 0 && !strpos($entityName, ' ')) {
             $namespace = isset($options['namespace']) ? trim($options['namespace']) : $this->getEntityNamespace();
-            if(isset($options['override'])){
+
+            if (isset($options['override'])) {
                 $override = $options['override'] === true;
-            } else{
+            } else {
                 $override = false;
             }
-            if(isset($options['implement-jsoni'])){
+
+            if (isset($options['implement-jsoni'])) {
                 $implJsonI = $options['implement-jsoni'] === true;
-            } else{
+            } else {
                 $implJsonI = false;
             }
             $mapper = new EntityMapper($this, $entityName, $path, $namespace);
             $mapper->setUseJsonI($implJsonI);
-            if(!file_exists($mapper->getAbsolutePath()) || $override){
+
+            if (!file_exists($mapper->getAbsolutePath()) || $override) {
                 $mapper->create();
             }
             $this->entityNamespace = $mapper->getNamespace().'\\'.$mapper->getEntityName();
             $this->entityPath = $path.DIRECTORY_SEPARATOR.$entityName.'.php';
+
             return true;
         }
 
@@ -826,23 +789,14 @@ class MySQLTable {
         if (!($col instanceof MySQLColumn)) {
             foreach ($this->colSet as $key => $col) {
                 if ($col->getIndex() == $colKeyOrIndex) {
-                    
                     return $this->_removeCol($key);
                 }
             }
 
             return false;
         } else {
-            
             return $this->_removeCol($colKeyOrIndex);
         }
-    }
-    private function _removeCol($colKey) {
-        $col = $this->colSet[$colKey];
-        unset($this->colSet[$colKey]);
-        $this->_checkPKs();
-        $col->setOwner(null);
-        return true;
     }
     /**
      * Sets a comment which will appear with the table.
@@ -1026,6 +980,50 @@ class MySQLTable {
 
         return $retVal;
     }
+    private function _addColObj($trimmedKey, $col) {
+        if (!isset($this->colSet[$trimmedKey])) {
+            $givanColName = $col->getName();
+
+            foreach ($this->columns() as $val) {
+                $inTableColName = $val->getName();
+
+                if ($inTableColName == $givanColName) {
+                    return false;
+                }
+            }
+
+            if ($this->_isKeyNameValid($trimmedKey)) {
+                $col->setOwner($this);
+                $this->colSet[$trimmedKey] = $col;
+                $this->_checkPKs();
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+    private function _addDefaultCol($colIndex, $options) {
+        if (isset($options[$colIndex]) && $this->defaultColsKeys[$colIndex] === null) {
+            $defaultCol = $options[$colIndex];
+            $key = isset($defaultCol['key-name']) ? trim($defaultCol['key-name']) : $colIndex;
+
+            if (!$this->_isKeyNameValid($key)) {
+                $key = $colIndex;
+            }
+            $inDbName = isset($defaultCol['db-name']) ? $defaultCol['db-name'] : str_replace('-', '_', $colIndex);
+            $options[$colIndex]['name'] = $inDbName;
+            $colObj = MySQLColumn::createColObj($options[$colIndex]);
+
+            if (!($colObj->getName() == $inDbName)) {
+                $colObj->setName(str_replace('-', '_', $colIndex));
+            }
+
+            if ($this->addColumn($key, $colObj)) {
+                $this->defaultColsKeys[$colIndex] = $key;
+            }
+        }
+    }
     private function _checkPKs() {
         $primaryCount = $this->primaryKeyColsCount();
 
@@ -1067,5 +1065,13 @@ class MySQLTable {
         }
 
         return $actualKeyLen != 0;
+    }
+    private function _removeCol($colKey) {
+        $col = $this->colSet[$colKey];
+        unset($this->colSet[$colKey]);
+        $this->_checkPKs();
+        $col->setOwner(null);
+
+        return true;
     }
 }
