@@ -703,6 +703,22 @@ class MySQLTable {
         return $this->ownerQuery;
     }
     /**
+     * Returns an array that contains the keys of the columns which are primary.
+     * @return array An array that contains the keys of the columns which are primary.
+     * @since 1.6.7
+     */
+    public function getPrimaryColsKeys() {
+        $arr = [];
+
+        foreach ($this->columns() as $colkey => $col) {
+            if ($col->isPrimary()) {
+                $arr[] = $colkey;
+            }
+        }
+
+        return $arr;
+    }
+    /**
      * Returns the columns of the table which are a part of the primary key.
      * @return array An array which contains an objects of type 'MySQLColumn'. If 
      * the table has no primary key, the array will be empty.
@@ -720,6 +736,15 @@ class MySQLTable {
         return $arr;
     }
     /**
+     * Returns the name of table primary key.
+     * @return string The returned value will be the name of the table added 
+     * to it the suffix '_pk'.
+     * @since 1.5
+     */
+    public function getPrimaryKeyName() {
+        return $this->getName().'_pk';
+    }
+    /**
      * Returns an array that contains the keys of the columns which are unique.
      * @return array An array that contains the keys of the columns which are unique.
      * @since 1.6.7
@@ -734,31 +759,6 @@ class MySQLTable {
         }
 
         return $arr;
-    }
-    /**
-     * Returns an array that contains the keys of the columns which are primary.
-     * @return array An array that contains the keys of the columns which are primary.
-     * @since 1.6.7
-     */
-    public function getPrimaryColsKeys() {
-        $arr = [];
-
-        foreach ($this->columns() as $colkey => $col) {
-            if ($col->isPrimary()) {
-                $arr[] = $colkey;
-            }
-        }
-
-        return $arr;
-    }
-    /**
-     * Returns the name of table primary key.
-     * @return string The returned value will be the name of the table added 
-     * to it the suffix '_pk'.
-     * @since 1.5
-     */
-    public function getPrimaryKeyName() {
-        return $this->getName().'_pk';
     }
 
     /**
