@@ -274,6 +274,14 @@ class EntityMapper {
         return $retVal;
     }
     /**
+     * Returns the table instance which is associated with the mapper.
+     * @return MySQLTable An object of type 'MySQLTable'.
+     * @since 1.0
+     */
+    public function getTable() {
+        return $this->table;
+    }
+    /**
      * Maps key name to entity method name.
      * @param string $colKey The name of column key such as 'user-id'.
      * @param string $type The type of the method. This one can have only two values, 
@@ -283,6 +291,7 @@ class EntityMapper {
      */
     public function mapToMethodName($colKey, $type = 'g') {
         $trimmed = trim($colKey);
+
         if (strlen($trimmed) !== 0) {
             $split = explode('-', $trimmed);
             $methodName = '';
@@ -295,21 +304,15 @@ class EntityMapper {
                     $methodName .= strtoupper($firstChar).substr($namePart, 1);
                 }
             }
+
             if ($type == 's') {
                 return 'set'.$methodName;
             } else {
                 return 'get'.$methodName;
             }
         }
+
         return '';
-    }
-    /**
-     * Returns the table instance which is associated with the mapper.
-     * @return MySQLTable An object of type 'MySQLTable'.
-     * @since 1.0
-     */
-    public function getTable() {
-        return $this->table;
     }
     /**
      * Sets the value of the attribute '$implJsonI'. 
