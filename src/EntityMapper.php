@@ -266,7 +266,25 @@ class EntityMapper {
         $retVal = [];
 
         foreach ($keys as $keyName) {
-            $split = explode('-', $keyName);
+            $methodName = $this->mapToMethodName($keyName, 's');
+            $mappedCol = $this->getTable()->getCol($keyName)->getName();
+            $retVal[$methodName] = $mappedCol;
+        }
+
+        return $retVal;
+    }
+    /**
+     * Maps key name to entity method name.
+     * @param string $colKey The name of column key such as 'user-id'.
+     * @param string $type The type of the method. This one can have only two values, 
+     * 's' for setter method and 'g' for getter method. Default is 'g'
+     * @return string The name of the mapped method name. If the passed column 
+     * key is empty string, the method will return empty string.
+     */
+    public function mapToMethodName($colKey, $type = 'g') {
+        $trimmed = trim($colKey);
+        if (strlen($trimmed) !== 0) {
+            $split = explode('-', $trimmed);
             $methodName = '';
 
             foreach ($split as $namePart) {
@@ -277,11 +295,13 @@ class EntityMapper {
                     $methodName .= strtoupper($firstChar).substr($namePart, 1);
                 }
             }
-            $mappedCol = $this->getTable()->getCol($keyName)->getName();
-            $retVal['set'.$methodName] = $mappedCol;
+            if ($type == 's') {
+                return 'set'.$methodName;
+            } else {
+                return 'get'.$methodName;
+            }
         }
-
-        return $retVal;
+        return '';
     }
     /**
      * Returns the table instance which is associated with the mapper.
