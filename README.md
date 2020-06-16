@@ -12,12 +12,12 @@ Object oriented PHP library for building MySQL database schema and quires.
   </a>
   <img alt="GitHub All Releases" src="https://img.shields.io/packagist/dt/webfiori/ph-mysql?color=light-green">
   <a href="https://paypal.me/IbrahimBinAlshikh">
-    <img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fprogrammingacademia.com%2Fwebfiori%2Fapis%2Fshields-get-dontate-badget">
+    <img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fwebfiori.com%2Fx%2Fapis%2Fshields-get-dontate-badget">
   </a>
 </p>
 
 ## API Docs
-This library is a part of <a href="https://github.com/usernane/webfiori">WebFiori Framework</a>. To access API docs of the library, you can visid the following link: https://programmingacademia.com/webfiori/docs/phMysql .
+This library is a part of <a href="https://github.com/usernane/webfiori">WebFiori Framework</a>. To access API docs of the library, you can visid the following link: https://webfiori.com/docs/phMysql .
 
 ## Features
 * Ability to create MySQL database table structure using PHP.
