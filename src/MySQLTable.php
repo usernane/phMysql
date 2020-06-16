@@ -28,7 +28,7 @@ namespace phMysql;
  * A class that represents MySQL table.
  *
  * @author Ibrahim
- * @version 1.6.6
+ * @version 1.6.7
  */
 class MySQLTable {
     /**
@@ -714,6 +714,38 @@ class MySQLTable {
         foreach ($this->columns() as $col) {
             if ($col->isPrimary()) {
                 $arr[] = $col;
+            }
+        }
+
+        return $arr;
+    }
+    /**
+     * Returns an array that contains the keys of the columns which are unique.
+     * @return array An array that contains the keys of the columns which are unique.
+     * @since 1.6.7
+     */
+    public function getUniqueColsKeys() {
+        $arr = [];
+
+        foreach ($this->columns() as $colkey => $col) {
+            if ($col->isUnique()) {
+                $arr[] = $colkey;
+            }
+        }
+
+        return $arr;
+    }
+    /**
+     * Returns an array that contains the keys of the columns which are primary.
+     * @return array An array that contains the keys of the columns which are primary.
+     * @since 1.6.7
+     */
+    public function getPrimaryColsKeys() {
+        $arr = [];
+
+        foreach ($this->columns() as $colkey => $col) {
+            if ($col->isPrimary()) {
+                $arr[] = $colkey;
             }
         }
 
