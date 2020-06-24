@@ -1078,12 +1078,12 @@ class MySQLQuery {
                         $cols[] = $colOrVal;
                         $vals[] = $valOrColIndex;
                     } else if (gettype($valOrColIndex) == 'integer') {
-                        $testCol = $tableObj->getColByIndex($valOrColIndex);
+                        $cols[] = $tableObj->getColByIndex($valOrColIndex);
+                        $vals[] = $colOrVal;
                     } else {
-                        $testCol = $tableObj->getCol($valOrColIndex);
+                        $cols[] = $tableObj->getCol($valOrColIndex);
+                        $vals[] = $colOrVal;
                     }
-                    $cols[] = $testCol;
-                    $vals[] = $colOrVal;
                 }
                 $where = $tableObj instanceof JoinTable ? 
                         $this->createWhereConditions($cols, $vals, $selectOptions['conditions'], $selectOptions['join-operators'],$tableObj->getName()) :
