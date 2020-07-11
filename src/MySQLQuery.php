@@ -739,48 +739,43 @@ class MySQLQuery {
                         } else {
                             $vals .= 'null'.$comma;
                         }
-                    } else {
-                        if ($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob') {
-                            $fixedPath = str_replace('\\', '/', $val);
+                    } else if ($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob') {
+                        $fixedPath = str_replace('\\', '/', $val);
 
-                            if (file_exists($fixedPath)) {
-                                $file = fopen($fixedPath, 'r');
-                                $data = '';
+                        if (file_exists($fixedPath)) {
+                            $file = fopen($fixedPath, 'r');
+                            $data = '';
 
-                                if ($file !== false) {
-                                    $fileContent = fread($file, filesize($fixedPath));
+                            if ($file !== false) {
+                                $fileContent = fread($file, filesize($fixedPath));
 
-                                    if ($fileContent !== false) {
-                                        $data = '\''.addslashes($fileContent).'\'';
-                                        $vals .= $data.$comma;
-                                        $this->setIsBlobInsertOrUpdate(true);
-                                    } else {
-                                        $vals .= 'null'.$comma;
-                                    }
-                                    fclose($file);
+                                if ($fileContent !== false) {
+                                    $data = '\''.addslashes($fileContent).'\'';
+                                    $vals .= $data.$comma;
+                                    $this->setIsBlobInsertOrUpdate(true);
                                 } else {
                                     $vals .= 'null'.$comma;
                                 }
+                                fclose($file);
                             } else {
                                 $vals .= 'null'.$comma;
                             }
                         } else {
-                            if ($type == 'boolean') {
-                                if ($cleanedVal === true) {
-                                    $vals .= "'Y'".$comma;
-                                } else {
-                                    $vals .= "'N'".$comma;
-                                }
-                            } else {
-                                if ($createdOnColObj !== null && $createdOnColObj->getIndex() == $column->getIndex()) {
-                                    $vals .= $cleanedVal.$comma;
-                                    $createdOnColObj = null;
-                                } else {
-                                    $vals .= $cleanedVal.$comma;
-                                }
-                            }
+                            $vals .= 'null'.$comma;
                         }
+                    } else if ($type == 'boolean') {
+                        if ($cleanedVal === true) {
+                            $vals .= "'Y'".$comma;
+                        } else {
+                            $vals .= "'N'".$comma;
+                        }
+                    } else if ($createdOnColObj !== null && $createdOnColObj->getIndex() == $column->getIndex()) {
+                        $vals .= $cleanedVal.$comma;
+                        $createdOnColObj = null;
+                    } else {
+                        $vals .= $cleanedVal.$comma;
                     }
+                    
                 } else {
                     $vals .= 'null'.$comma;
                 }
@@ -1511,39 +1506,41 @@ class MySQLQuery {
                         } else {
                             $colsStr .= 'null'.$comma;
                         }
-                    } else {
-                        if ($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob') {
-                            $fixedPath = str_replace('\\', '/', $colIndex);
+                    } else if ($type == 'tinyblob' || $type == 'mediumblob' || $type == 'longblob') {
+                        $fixedPath = str_replace('\\', '/', $colIndex);
 
-                            if (file_exists($fixedPath)) {
-                                $file = fopen($fixedPath, 'r');
-                                $data = '';
+                        if (file_exists($fixedPath)) {
+                            $file = fopen($fixedPath, 'r');
+                            $data = '';
 
-                                if ($file !== false) {
-                                    $fileContent = fread($file, filesize($fixedPath));
+                            if ($file !== false) {
+                                $fileContent = fread($file, filesize($fixedPath));
 
-                                    if ($fileContent !== false) {
-                                        $data = '\''.addslashes($fileContent).'\'';
-                                        $colsStr .= $data.$comma;
-                                        $this->setIsBlobInsertOrUpdate(true);
-                                    } else {
-                                        $colsStr .= 'null'.$comma;
-                                    }
-                                    fclose($file);
+                                if ($fileContent !== false) {
+                                    $data = '\''.addslashes($fileContent).'\'';
+                                    $colsStr .= $data.$comma;
+                                    $this->setIsBlobInsertOrUpdate(true);
                                 } else {
                                     $colsStr .= 'null'.$comma;
                                 }
+                                fclose($file);
                             } else {
                                 $colsStr .= 'null'.$comma;
                             }
                         } else {
-                            if ($lastUpdatedColObj !== null && $lastUpdatedColObj->getIndex() == $column->getIndex()) {
-                                $colsStr .= $cleanedVal.$comma;
-                                $lastUpdatedColObj = null;
-                            } else {
-                                $colsStr .= $cleanedVal.$comma;
-                            }
+                            $colsStr .= 'null'.$comma;
                         }
+                    }  else if ($type == 'boolean') {
+                        if ($cleanedVal === true) {
+                            $colsStr .= "'Y'".$comma;
+                        } else {
+                            $colsStr .= "'N'".$comma;
+                        }
+                    } else if ($lastUpdatedColObj !== null && $lastUpdatedColObj->getIndex() == $column->getIndex()) {
+                        $colsStr .= $cleanedVal.$comma;
+                        $lastUpdatedColObj = null;
+                    } else {
+                        $colsStr .= $cleanedVal.$comma;
                     }
                 } else {
                     $colsStr .= 'null'.$comma;
