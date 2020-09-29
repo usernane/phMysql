@@ -1,9 +1,9 @@
 <?php
 namespace phMysql\tests;
 
-use phMysql\JoinTable;
-use phMysql\MySQLQuery;
-use phMysql\MySQLTable;
+use webfiori\phMysql\JoinTable;
+use webfiori\phMysql\MySQLQuery;
+use webfiori\phMysql\MySQLTable;
 use PHPUnit\Framework\TestCase;
 /**
  * Description of JoinTest

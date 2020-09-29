@@ -7,9 +7,9 @@
  */
 namespace phMysql\tests;
 
-use phMysql\ForeignKey;
-use phMysql\MySQLColumn;
-use phMysql\MySQLTable;
+use webfiori\phMysql\ForeignKey;
+use webfiori\phMysql\MySQLColumn;
+use webfiori\phMysql\MySQLTable;
 use PHPUnit\Framework\TestCase;
 /**
  * Description of FKTest

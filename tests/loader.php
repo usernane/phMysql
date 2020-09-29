@@ -51,7 +51,7 @@ require_once $rootDir.'tests'.$DS.'EntityUser.php';
 require_once $rootDir.'tests'.$DS.'User.php';
 
 echo "Initializing Database...\n";
-$conn = new phMysql\MySQLLink('localhost', 'root', '123456');
+$conn = new webfiori\phMysql\MySQLLink('localhost', 'root', '123456');
 $conn->setDB('testing_db');
 $q00 = new phMysql\tests\UsersQuery();
 $q00->createStructure();

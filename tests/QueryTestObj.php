@@ -7,7 +7,7 @@
  */
 namespace phMysql\tests;
 
-use phMysql\MySQLQuery;
+use webfiori\phMysql\MySQLQuery;
 /**
  * An object which used as a base for testing the class 'MySQLQuery'.
  *

@@ -1,9 +1,9 @@
 <?php
 namespace phMysql\tests;
 
-use phMysql\MySQLColumn;
-use phMysql\MySQLQuery;
-use phMysql\MySQLTable;
+use webfiori\phMysql\MySQLColumn;
+use webfiori\phMysql\MySQLQuery;
+use webfiori\phMysql\MySQLTable;
 
 /**
  * Description of UsersQuery

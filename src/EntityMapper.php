@@ -1,5 +1,5 @@
 <?php
-namespace phMysql;
+namespace webfiori\phMysql;
 
 use InvalidArgumentException;
 /**

@@ -1,10 +1,10 @@
 <?php
 namespace phMysql\tests;
 
-use phMysql\MySQLLink;
+use webfiori\phMysql\MySQLQuery;
 use PHPUnit\Framework\TestCase;
 use phMysql\entity\User;
-use phMysql\MySQLQuery;
+use webfiori\phMysql\MySQLLink;
 /**
  * Integration testing. This class will test the whole library 
  * by integrating all classes in the library. It will be used to execute actual 
@@ -129,7 +129,7 @@ class MySQLLinkTest extends TestCase {
         $this->assertTrue($result);
         $this->assertEquals(20,$conn->rows());
         $data = $conn->getColumn('random');
-        $this->assertEquals(\phMysql\MySQLTable::NO_SUCH_COL,$data);
+        $this->assertEquals(\webfiori\phMysql\MySQLTable::NO_SUCH_COL,$data);
         $col1Data = $conn->getColumn('title');
         $this->assertEquals(20, count($col1Data));
         $col2Data = $conn->getColumn('content');

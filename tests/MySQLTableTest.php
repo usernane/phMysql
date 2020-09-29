@@ -24,10 +24,10 @@
  */
 namespace phMysql\tests;
 
-use phMysql\MySQLColumn;
-use phMysql\MySQLTable;
+use webfiori\phMysql\MySQLColumn;
+use webfiori\phMysql\MySQLTable;
 use PHPUnit\Framework\TestCase;
-use phMysql\EntityMapper;
+use webfiori\phMysql\EntityMapper;
 /**
  * A set of test units for testing the class 'MySQLTable'.
  *

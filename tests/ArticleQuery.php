@@ -1,7 +1,7 @@
 <?php
 namespace phMysql\tests;
 
-use phMysql\MySQLQuery;
+use webfiori\phMysql\MySQLQuery;
 /**
  * Description of ArticleQuery
  *

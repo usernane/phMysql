@@ -1,7 +1,7 @@
 <?php
 namespace phMysql\tests;
 
-use phMysql\MySQLColumn;
+use webfiori\phMysql\MySQLColumn;
 use PHPUnit\Framework\TestCase;
 /**
  * Unit tests for testing the class 'Column'.

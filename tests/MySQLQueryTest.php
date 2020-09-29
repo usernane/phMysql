@@ -1,7 +1,7 @@
 <?php
 namespace phMysql\tests;
 
-use phMysql\MySQLQuery;
+use webfiori\phMysql\MySQLQuery;
 use PHPUnit\Framework\TestCase;
 /**
  * Unit tests for testing the class 'MySQLQuery'.

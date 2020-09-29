@@ -1,2 +1,6 @@
 /nbproject
 /vendor
+clover.xml
+*.cache
+tests/User2.php
+tests/User3.php
